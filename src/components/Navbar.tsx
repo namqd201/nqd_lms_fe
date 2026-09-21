@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { RoleBadge } from './RoleBadge';
 import { NotificationBell } from './NotificationBell';
+import { UserAvatar } from './UserAvatar';
 import { Menu, LogOut, User as UserIcon, BookOpen, Layers, Users, Crown, Sparkles, Zap, TrendingUp, BarChart3, GraduationCap } from 'lucide-react';
 
 interface NavbarProps {
@@ -68,17 +69,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
                   className="flex items-center gap-3 p-1.5 pr-3 rounded-full border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-left bg-white shadow-2xs cursor-pointer"
                 >
                   <div className="relative">
-                    {user.avatarUrl ? (
-                      <img
-                        src={user.avatarUrl}
-                        alt={user.fullName}
-                        className="w-8 h-8 rounded-full object-cover border border-slate-200"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-[#83C75D] text-white flex items-center justify-center font-bold text-sm">
-                        {user.fullName.charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <UserAvatar
+                      src={user.avatarUrl}
+                      name={user.fullName}
+                      size="md"
+                      borderColor="border-slate-200"
+                    />
                     {isUltra ? (
                       <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-gradient-to-r from-purple-600 to-pink-500 text-white flex items-center justify-center shadow-xs text-[9px] font-black border border-white" title="Tài khoản ULTRA">
                         ⚡

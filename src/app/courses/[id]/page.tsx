@@ -1241,9 +1241,9 @@ export default function StudentCourseDetailPage() {
                   )}
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="bg-white border border-slate-200 rounded-3xl shadow-xs divide-y divide-slate-100 overflow-hidden">
                   {(showAllReviews ? filteredReviews : filteredReviews.slice(0, 3)).map((rev) => (
-                    <div key={rev.id} className="p-5 bg-white border border-slate-200 rounded-3xl shadow-xs space-y-3">
+                    <div key={rev.id} className="p-5 space-y-3 hover:bg-slate-50/40 transition-colors">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           {rev.userAvatar || rev.userAvatarUrl ? (

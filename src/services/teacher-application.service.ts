@@ -4,31 +4,14 @@ import {
   TeacherApplicantType,
   TeacherApplicationStatus,
 } from '@/types/teacher-application';
+import { mediaService } from './media.service';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 export const teacherApplicationService = {
   uploadDocument: async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await fetch(`${API_BASE_URL}/api/v1/teacher-applications/upload-document`, {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      let errorMsg = 'Tải tệp tin lên thất bại';
-      try {
-        const errorData = await response.json();
-        errorMsg = errorData.message || errorMsg;
-      } catch {}
-      throw new Error(errorMsg);
-    }
-
-    const data = await response.json();
-    return data.url;
+    const res = await mediaService.uploadImage(file);
+    return res.url;
   },
 
   submitApplication: async (payload: TeacherApplicationRequest): Promise<TeacherApplicationResponse> => {

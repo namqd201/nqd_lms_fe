@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { UserAvatar } from '../UserAvatar';
 import {
   Users,
   ShieldAlert,
@@ -257,17 +258,12 @@ export const AdminSidebar: React.FC = () => {
           {!collapsed ? (
             <div className="flex items-center justify-between gap-2 p-2 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
               <div className="flex items-center gap-2.5 truncate">
-                {user.avatarUrl ? (
-                  <img
-                    src={user.avatarUrl}
-                    alt={user.fullName}
-                    className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                    {user.fullName.charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <UserAvatar
+                  src={user.avatarUrl}
+                  name={user.fullName}
+                  size="md"
+                  borderColor="border-slate-200"
+                />
                 <div className="truncate">
                   <p className="text-xs font-bold text-slate-900 truncate leading-tight">
                     {user.fullName}
@@ -288,17 +284,12 @@ export const AdminSidebar: React.FC = () => {
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2 py-1">
-              {user.avatarUrl ? (
-                <img
-                  src={user.avatarUrl}
-                  alt={user.fullName}
-                  className="w-8 h-8 rounded-full object-cover border border-slate-200"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-bold text-xs flex items-center justify-center">
-                  {user.fullName.charAt(0).toUpperCase()}
-                </div>
-              )}
+              <UserAvatar
+                src={user.avatarUrl}
+                name={user.fullName}
+                size="md"
+                borderColor="border-slate-200"
+              />
               <button
                 onClick={logout}
                 className="p-1 text-slate-400 hover:text-rose-600"

@@ -9,6 +9,7 @@ export interface DiscussionThreadResponse {
   authorName: string;
   authorEmail: string;
   authorRole: string;
+  authorAvatarUrl?: string | null;
   title: string;
   content: string;
   isPinned: boolean;
@@ -35,10 +36,12 @@ export interface UpdateDiscussionThreadRequest {
 export interface DiscussionPostResponse {
   id: string;
   threadId: string;
+  parentId?: string;
   authorId: string;
   authorName: string;
   authorEmail: string;
   authorRole: string;
+  authorAvatarUrl?: string | null;
   content: string;
   isAnswer: boolean;
   upvoteCount: number;
@@ -49,6 +52,7 @@ export interface DiscussionPostResponse {
 
 export interface CreateDiscussionPostRequest {
   content: string;
+  parentId?: string;
   mentionedUserIds?: string[];
 }
 

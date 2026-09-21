@@ -1,13 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { userService } from '@/services/user.service';
 import { studentService } from '@/services/student.service';
 import { teacherService } from '@/services/teacher.service';
+import { mediaService } from '@/services/media.service';
 import { UserProfileResponse, UpdateProfileRequest } from '@/types/user';
 import { RoleBadge } from './RoleBadge';
 import { StatusBadge } from './StatusBadge';
+import { UserAvatar } from './UserAvatar';
+import { Camera, Upload, Loader2, Trash2 } from 'lucide-react';
 
 const AVATAR_PRESETS = [
   'https://api.dicebear.com/7.x/bottts/svg?seed=Felix',
@@ -23,8 +26,11 @@ export const ProfileForm: React.FC = () => {
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form fields
   const [fullName, setFullName] = useState<string>('');
@@ -65,6 +71,36 @@ export const ProfileForm: React.FC = () => {
     }
   };
 
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMessage('Dung lượng ảnh đại diện không được vượt quá 10MB');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      const res = await mediaService.uploadImage(file);
+      if (res && res.url) {
+        setAvatarUrl(res.url);
+        setSuccessMessage('Tải ảnh lên Cloudinary thành công! Nhấn "Lưu thay đổi" để hoàn tất cập nhật.');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Tải ảnh đại diện lên Cloudinary thất bại';
+      setErrorMessage(msg);
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim()) {
@@ -79,7 +115,7 @@ export const ProfileForm: React.FC = () => {
     const payload: UpdateProfileRequest = {
       fullName: fullName.trim(),
       phoneNumber: phoneNumber.trim() || undefined,
-      avatarUrl: avatarUrl.trim() || undefined,
+      avatarUrl: avatarUrl !== undefined ? avatarUrl.trim() : undefined,
     };
 
     try {
@@ -135,21 +171,31 @@ export const ProfileForm: React.FC = () => {
         <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm text-center relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-[#83C75D]/20 via-[#83C75D]/40 to-emerald-200/30" />
           
-          <div className="relative mt-8 mb-4 inline-block">
-            {avatarUrl ? (
-              <img
+          <div className="relative mt-8 mb-4 inline-block group">
+            <div className="relative">
+              <UserAvatar
                 src={avatarUrl}
-                alt={profile.fullName}
-                className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg mx-auto bg-slate-100"
+                name={profile.fullName}
+                size="2xl"
+                className="mx-auto shadow-lg"
               />
-            ) : (
-              <div className="w-24 h-24 rounded-full bg-[#83C75D] text-white border-4 border-white shadow-lg flex items-center justify-center font-bold text-3xl mx-auto">
-                {profile.fullName.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <div className="absolute bottom-0 right-0 translate-x-1">
-              <span className="h-4 w-4 rounded-full bg-emerald-500 border-2 border-white block" />
+              {isUploadingAvatar && (
+                <div className="absolute inset-0 bg-slate-900/60 rounded-full flex flex-col items-center justify-center text-white text-[11px] font-bold gap-1 animate-in fade-in">
+                  <Loader2 className="w-6 h-6 animate-spin text-[#83C75D]" />
+                  <span>Đang tải...</span>
+                </div>
+              )}
             </div>
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploadingAvatar}
+              title="Tải ảnh đại diện mới từ máy tính / điện thoại"
+              className="absolute bottom-0 right-0 translate-x-1 p-2 rounded-full bg-[#83C75D] hover:bg-[#72b44e] text-white border-2 border-white shadow-md transition-all hover:scale-110 cursor-pointer disabled:opacity-50"
+            >
+              <Camera className="w-4 h-4" />
+            </button>
           </div>
 
           <h2 className="text-xl font-bold text-slate-900 leading-tight">{profile.fullName}</h2>
@@ -295,21 +341,69 @@ export const ProfileForm: React.FC = () => {
               />
             </div>
 
-            {/* Avatar URL & Presets */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
-                Ảnh đại diện (URL hoặc chọn mẫu có sẵn)
-              </label>
+            {/* Avatar Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  Ảnh đại diện (Avatar)
+                </label>
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setAvatarUrl('')}
+                    className="text-xs font-semibold text-rose-600 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Xóa ảnh avatar</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Hidden file input for avatar upload */}
               <input
-                type="url"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                placeholder="https://example.com/avatar.jpg"
-                className="w-full px-4 py-3 bg-white border border-slate-300 focus:border-[#83C75D] focus:ring-4 focus:ring-[#83C75D]/10 rounded-xl text-slate-900 font-medium text-sm transition-all outline-none mb-3"
+                type="file"
+                ref={fileInputRef}
+                onChange={handleAvatarFileChange}
+                accept="image/png, image/jpeg, image/webp, image/gif"
+                className="hidden"
               />
 
-              <div className="mt-2">
-                <span className="text-xs text-slate-500 block mb-2">Hoặc chọn avatar hoạt hình ngẫu nhiên:</span>
+              {/* Cloudinary Upload Action Card */}
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-200 hover:border-[#83C75D] bg-slate-50/70 hover:bg-[#83C75D]/5 rounded-2xl p-4 cursor-pointer transition-all flex flex-col sm:flex-row items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-3 text-left">
+                  <div className="w-10 h-10 rounded-xl bg-[#83C75D]/15 text-[#4e8231] flex items-center justify-center shrink-0">
+                    {isUploadingAvatar ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Upload className="w-5 h-5" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">
+                      {isUploadingAvatar ? 'Đang tải ảnh lên Cloudinary...' : 'Tải ảnh từ máy tính hoặc điện thoại'}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      Hỗ trợ JPG, PNG, WEBP hoặc GIF (Tối đa 10MB, lưu trữ vĩnh viễn trên Cloudinary)
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={isUploadingAvatar}
+                  className="px-3.5 py-1.5 bg-[#83C75D] hover:bg-[#72b44e] text-white rounded-xl text-xs font-bold transition shadow-xs shrink-0 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Chọn ảnh</span>
+                </button>
+              </div>
+
+              {/* Preset Avatars or Custom URL */}
+              <div className="pt-1 space-y-2">
+                <span className="text-xs text-slate-500 block">Hoặc chọn avatar hoạt hình ngẫu nhiên:</span>
                 <div className="flex flex-wrap gap-2.5 items-center">
                   {AVATAR_PRESETS.map((preset, idx) => (
                     <button
@@ -323,15 +417,6 @@ export const ProfileForm: React.FC = () => {
                       <img src={preset} alt={`Preset ${idx + 1}`} className="w-full h-full object-cover rounded-full" />
                     </button>
                   ))}
-                  {avatarUrl && (
-                    <button
-                      type="button"
-                      onClick={() => setAvatarUrl('')}
-                      className="text-xs text-slate-500 hover:text-rose-600 px-2 py-1 underline ml-1"
-                    >
-                      Xóa ảnh
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
