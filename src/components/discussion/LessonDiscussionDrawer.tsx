@@ -357,7 +357,7 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
                     <h4 className="text-xs font-bold text-slate-900 leading-snug">{activeThread.title}</h4>
 
                     <div className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">
-                      <MentionBadgeText content={activeThread.content} />
+                      <MentionBadgeText content={activeThread.content} candidates={candidates} />
                     </div>
 
                     {/* Question actions */}
@@ -422,7 +422,7 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
                                       )}
                                     </div>
                                     <div className="text-slate-800 whitespace-pre-wrap leading-relaxed">
-                                      <MentionBadgeText content={rootPost.content} />
+                                      <MentionBadgeText content={rootPost.content} candidates={candidates} />
                                     </div>
                                   </div>
 
@@ -491,7 +491,7 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
                                               )}
                                             </div>
                                             <div className="text-slate-800 whitespace-pre-wrap leading-relaxed">
-                                              <MentionBadgeText content={child.content} />
+                                              <MentionBadgeText content={child.content} candidates={candidates} />
                                             </div>
                                           </div>
 

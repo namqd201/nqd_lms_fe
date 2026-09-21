@@ -1,22 +1,51 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+
+interface MentionCandidateLike {
+  id?: string;
+  fullName?: string;
+  name?: string;
+}
 
 interface MentionBadgeTextProps {
   content: string;
   className?: string;
+  candidates?: MentionCandidateLike[];
 }
 
-export const MentionBadgeText: React.FC<MentionBadgeTextProps> = ({ content, className = '' }) => {
+export const MentionBadgeText: React.FC<MentionBadgeTextProps> = ({
+  content,
+  className = '',
+  candidates = [],
+}) => {
   if (!content) return null;
 
-  // Split text by mention patterns: @ followed by characters until special punctuation or end of name
-  // Format: @Name (e.g. @Quách Duy Nam or @Nguyen Van A)
-  const regex = /(@[A-Za-z0-9À-ỹ_]+(?:\s+[A-Za-z0-9À-ỹ_]+)*)/g;
-  const parts = content.split(regex);
+  const parts = useMemo(() => {
+    // 1. If candidate names are available, build specific matching pattern
+    const candidateNames = (candidates || [])
+      .map((c) => (c.fullName || c.name || '').trim())
+      .filter((name) => name.length > 0)
+      .sort((a, b) => b.length - a.length)
+      .map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+    const candidatePattern =
+      candidateNames.length > 0 ? `@(?:${candidateNames.join('|')})` : null;
+
+    // 2. Generic pattern for names: @Word followed by capitalized words (e.g. @Nguyễn Văn A, @Duy Quang, @admin)
+    // \p{Lu} = Uppercase Letter, \p{Ll} = Lowercase Letter, \p{L} = Any Letter, \p{N} = Number
+    const generalPattern = '@[\\p{L}\\p{N}_]+(?:\\s+[\\p{Lu}][\\p{Ll}\\p{N}_]*)*';
+
+    const fullPattern = candidatePattern
+      ? `(${candidatePattern}|${generalPattern})`
+      : `(${generalPattern})`;
+
+    const regex = new RegExp(fullPattern, 'gu');
+    return content.split(regex);
+  }, [content, candidates]);
 
   return (
     <span className={className}>
       {parts.map((part, index) => {
-        if (part.startsWith('@') && part.length > 1) {
+        if (part && part.startsWith('@') && part.length > 1) {
           return (
             <span
               key={index}
@@ -31,3 +60,5 @@ export const MentionBadgeText: React.FC<MentionBadgeTextProps> = ({ content, cla
     </span>
   );
 };
+
+export default MentionBadgeText;

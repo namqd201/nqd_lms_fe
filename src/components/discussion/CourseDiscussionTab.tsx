@@ -579,9 +579,9 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
 
         {/* Thread Detail Pane (when a thread is selected) */}
         {activeThread && (
-          <div className="lg:col-span-7 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6 sticky top-24 self-start max-h-[85vh] overflow-y-auto">
-            {/* Header & Controls */}
-            <div className="space-y-3 pb-4 border-b border-slate-100">
+          <div className="lg:col-span-7 bg-white border border-slate-200 rounded-3xl shadow-sm sticky top-24 self-start max-h-[85vh] overflow-y-auto divide-y divide-slate-100">
+            {/* 1. Question Section (Unified inside same card, no isolated box border) */}
+            <div className="p-5 sm:p-6 space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -608,14 +608,14 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
 
                 <button
                   onClick={() => setActiveThread(null)}
-                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors shrink-0"
+                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors shrink-0 cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Author & moderation actions */}
-              <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 pt-1">
+              <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
                 <div className="flex items-center gap-2">
                   <UserAvatar
                     src={activeThread.authorAvatarUrl}
@@ -643,7 +643,7 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
                       <button
                         onClick={handleTogglePin}
                         title={activeThread.isPinned ? 'Bỏ ghim' : 'Ghim chủ đề'}
-                        className={'p-2 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1 ' + (
+                        className={'p-2 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1 cursor-pointer ' + (
                           activeThread.isPinned
                             ? 'bg-amber-50 text-amber-700 border-amber-200'
                             : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
@@ -656,7 +656,7 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
                       <button
                         onClick={handleToggleLock}
                         title={activeThread.isLocked ? 'Mở khóa' : 'Khóa chủ đề'}
-                        className={'p-2 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1 ' + (
+                        className={'p-2 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1 cursor-pointer ' + (
                           activeThread.isLocked
                             ? 'bg-rose-50 text-rose-700 border-rose-200'
                             : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
@@ -672,7 +672,7 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
                     <button
                       onClick={() => handleDeleteThread(activeThread.id)}
                       title="Xóa chủ đề"
-                      className="p-2 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors"
+                      className="p-2 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -680,89 +680,89 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
                 </div>
               </div>
 
-              {/* Main Question Body */}
-              <div className="pt-2 text-xs sm:text-sm text-slate-800 whitespace-pre-wrap leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
-                <MentionBadgeText content={activeThread.content} />
-                {!activeThread.isLocked && (isEnrolled || isTeacherOrAdmin) && (
-                  <div className="flex items-center justify-end pt-2 border-t border-slate-200/60">
-                    <button
-                      type="button"
-                      onClick={() => handleReplyToUser(activeThread.authorId, activeThread.authorName, undefined)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-600 hover:text-[#4e8231] hover:bg-[#83C75D]/15 transition-all cursor-pointer"
-                    >
-                      <Reply className="w-3.5 h-3.5" />
-                      <span>Trả lời</span>
-                    </button>
-                  </div>
-                )}
+              {/* Main Question Body (Clean, no inner border box) */}
+              <div className="pt-1 text-xs sm:text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">
+                <MentionBadgeText content={activeThread.content} candidates={candidates} />
               </div>
+
+              {/* Question Reply Action */}
+              {!activeThread.isLocked && (isEnrolled || isTeacherOrAdmin) && (
+                <div className="flex items-center gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleReplyToUser(activeThread.authorId, activeThread.authorName, undefined)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold text-slate-600 hover:text-[#4e8231] hover:bg-[#83C75D]/15 transition-all cursor-pointer"
+                  >
+                    <Reply className="w-3.5 h-3.5" />
+                    <span>Trả lời</span>
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* SINGLE UNIFIED REPLIES & FORM CARD (Facebook style) */}
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
-                  {/* Replies section */}
-                  <div className="p-5 sm:p-6 space-y-4">
-                    <h3 className="font-extrabold text-sm text-slate-900 flex items-center justify-between pb-2 border-b border-slate-100">
-                      <div className="flex items-center gap-2">
-                        <CornerDownRight className="w-4 h-4 text-[#83C75D]" />
-                        <span>Phản hồi ({posts.length})</span>
-                      </div>
-                    </h3>
+            {/* 2. Replies section (Unified in same card, separated by divide-y) */}
+            <div className="p-5 sm:p-6 space-y-4">
+              <h3 className="font-extrabold text-sm text-slate-900 flex items-center justify-between pb-2 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <CornerDownRight className="w-4 h-4 text-[#83C75D]" />
+                  <span>Phản hồi ({posts.length})</span>
+                </div>
+              </h3>
 
-                    {isLoadingPosts ? (
-                      <div className="p-8 text-center">
-                        <Loader2 className="w-6 h-6 text-[#83C75D] animate-spin mx-auto" />
-                      </div>
-                    ) : posts.length === 0 ? (
-                      <div className="p-6 text-center text-xs text-slate-400 py-6">
-                        Chưa có ai phản hồi cho câu hỏi này. Bạn hãy là người đầu tiên trả lời nhé!
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {rootPosts.map((rootPost) => {
-                          const childReplies = childPostsMap.get(rootPost.id) || [];
-                          const isTeacherReply = rootPost.authorRole === 'TEACHER' || rootPost.authorRole === 'ADMIN';
-                          const isAuthor = rootPost.authorId === activeThread.authorId;
+              {isLoadingPosts ? (
+                <div className="p-8 text-center">
+                  <Loader2 className="w-6 h-6 text-[#83C75D] animate-spin mx-auto" />
+                </div>
+              ) : posts.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-400 py-6">
+                  Chưa có ai phản hồi cho câu hỏi này. Bạn hãy là người đầu tiên trả lời nhé!
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {rootPosts.map((rootPost) => {
+                    const childReplies = childPostsMap.get(rootPost.id) || [];
+                    const isTeacherReply = rootPost.authorRole === 'TEACHER' || rootPost.authorRole === 'ADMIN';
+                    const isAuthor = rootPost.authorId === activeThread.authorId;
 
-                          return (
-                            <div key={rootPost.id} className="space-y-3">
-                              {/* Level 1 Comment */}
-                              <div className="flex items-start gap-3">
-                                <UserAvatar
-                                  src={rootPost.authorAvatarUrl}
-                                  name={rootPost.authorName}
-                                  size="md"
-                                  borderColor="border-slate-100"
-                                  className="mt-0.5"
-                                />
+                    return (
+                      <div key={rootPost.id} className="space-y-3">
+                        {/* Level 1 Comment */}
+                        <div className="flex items-start gap-3">
+                          <UserAvatar
+                            src={rootPost.authorAvatarUrl}
+                            name={rootPost.authorName}
+                            size="md"
+                            borderColor="border-slate-100"
+                            className="mt-0.5"
+                          />
 
-                                <div className="flex-1 min-w-0">
-                                  <div className="bg-slate-50 hover:bg-slate-100/70 transition-colors rounded-2xl p-3 border border-slate-100 inline-block max-w-full">
-                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                      <span className="text-xs font-bold text-slate-900">{rootPost.authorName}</span>
-                                      {isTeacherReply && (
-                                        <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                          Giảng viên
-                                        </span>
-                                      )}
-                                      {isAuthor && (
-                                        <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-slate-200/70 text-slate-700">
-                                          Tác giả
-                                        </span>
-                                      )}
-                                      {rootPost.isAnswer && (
-                                        <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[9px] font-bold bg-emerald-600 text-white">
-                                          <CheckCircle2 className="w-2.5 h-2.5" />
-                                          ĐÁP ÁN ĐÚNG
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-                                      <MentionBadgeText content={rootPost.content} />
-                                    </div>
-                                  </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="bg-slate-50 hover:bg-slate-100/70 transition-colors rounded-2xl p-3 border border-slate-100 inline-block max-w-full">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <span className="text-xs font-bold text-slate-900">{rootPost.authorName}</span>
+                                {isTeacherReply && (
+                                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    Giảng viên
+                                  </span>
+                                )}
+                                {isAuthor && (
+                                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-slate-200/70 text-slate-700">
+                                    Tác giả
+                                  </span>
+                                )}
+                                {rootPost.isAnswer && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[9px] font-bold bg-emerald-600 text-white">
+                                    <CheckCircle2 className="w-2.5 h-2.5" />
+                                    ĐÁP ÁN ĐÚNG
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                                <MentionBadgeText content={rootPost.content} candidates={candidates} />
+                              </div>
+                            </div>
 
-                                  {/* Actions row */}
+                            {/* Actions row */}
                                   <div className="flex items-center gap-3 px-2 pt-1 text-xs text-slate-400">
                                     <span>{formatTime(rootPost.createdAt)}</span>
                                     <button
@@ -843,7 +843,7 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
                                               )}
                                             </div>
                                             <div className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-                                              <MentionBadgeText content={child.content} />
+                                              <MentionBadgeText content={child.content} candidates={candidates} />
                                             </div>
                                           </div>
 
@@ -959,7 +959,6 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
                       Chỉ học viên đã tham gia khóa học mới có thể gửi phản hồi.
                     </div>
                   )}
-                </div>
               </div>
             )}
           </div>
