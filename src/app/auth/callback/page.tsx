@@ -17,6 +17,13 @@ export default function AuthCallbackPage() {
 
     async function handleCallback() {
       try {
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          const sessionId = params.get('session_id');
+          if (sessionId) {
+            localStorage.setItem('auth_session_id', sessionId);
+          }
+        }
         await new Promise((resolve) => setTimeout(resolve, 300));
         const currentUser = await refreshUser();
 

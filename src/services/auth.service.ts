@@ -13,11 +13,20 @@ export const authService = {
 
   getCurrentUser: async (): Promise<User | null> => {
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (typeof window !== 'undefined') {
+        const sessionId = localStorage.getItem('auth_session_id');
+        if (sessionId) {
+          headers['X-Session-Id'] = sessionId;
+          headers['Authorization'] = `Bearer ${sessionId}`;
+        }
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include', // Bắt buộc để gửi kèm JSESSIONID cookie
       });
 
@@ -38,11 +47,21 @@ export const authService = {
   },
 
   logout: async (): Promise<MessageResponse> => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (typeof window !== 'undefined') {
+      const sessionId = localStorage.getItem('auth_session_id');
+      if (sessionId) {
+        headers['X-Session-Id'] = sessionId;
+        headers['Authorization'] = `Bearer ${sessionId}`;
+      }
+      localStorage.removeItem('auth_session_id');
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: 'include', // Bắt buộc để xóa session trên backend
     });
 
