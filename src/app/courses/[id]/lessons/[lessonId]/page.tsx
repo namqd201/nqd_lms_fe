@@ -101,6 +101,18 @@ export default function LessonReaderPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [qaDrawerOpen, setQaDrawerOpen] = useState<boolean>(false);
+  const [targetThreadId, setTargetThreadId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const threadIdParam = urlParams.get('threadId');
+      if (threadIdParam) {
+        setTargetThreadId(threadIdParam);
+        setQaDrawerOpen(true);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (courseId && lessonId) {
@@ -701,6 +713,7 @@ export default function LessonReaderPage() {
         courseId={courseId}
         lessonId={lessonId}
         lessonTitle={lesson?.title || ''}
+        initialThreadId={targetThreadId}
       />
     </div>
   );

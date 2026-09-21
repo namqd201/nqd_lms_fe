@@ -17,6 +17,7 @@ import {
   CornerDownRight,
   Award,
   Megaphone,
+  AtSign,
 } from 'lucide-react';
 import { notificationService } from '@/services/notification.service';
 import { NotificationResponse } from '@/types/notification';
@@ -137,6 +138,8 @@ export const NotificationBell: React.FC = () => {
         return <CornerDownRight className="w-4 h-4 text-sky-500" />;
       case 'DISCUSSION_ANSWER_ACCEPTED':
         return <Award className="w-4 h-4 text-emerald-500" />;
+      case 'DISCUSSION_MENTION':
+        return <AtSign className="w-4 h-4 text-violet-600" />;
       case 'COURSE_ANNOUNCEMENT':
         return <Megaphone className="w-4 h-4 text-amber-500" />;
       default:

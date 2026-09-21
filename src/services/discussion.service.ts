@@ -6,7 +6,8 @@ import {
   CreateDiscussionPostRequest,
   UpdateDiscussionPostRequest,
   DiscussionThreadStatus,
-  PageResponse
+  PageResponse,
+  MentionCandidateResponse,
 } from '@/types/discussion';
 import { handleApiResponse } from '@/utils/errorMessage';
 
@@ -153,6 +154,16 @@ export const discussionService = {
       credentials: 'include',
     });
     const res = await handleApiResponse<any>(response, 'Lỗi thao tác khóa chủ đề');
+    return res.data ?? res;
+  },
+
+  getMentionCandidates: async (courseId: string): Promise<MentionCandidateResponse[]> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/courses/${courseId}/discussions/mention-candidates`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    const res = await handleApiResponse<any>(response, 'Không thể tải danh sách thành viên để nhắc đến');
     return res.data ?? res;
   },
 };

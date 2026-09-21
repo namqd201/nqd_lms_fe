@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { discussionService } from '@/services/discussion.service';
-import { DiscussionThreadResponse, DiscussionPostResponse } from '@/types/discussion';
+import { DiscussionThreadResponse, DiscussionPostResponse, MentionCandidateResponse } from '@/types/discussion';
+import { MentionTextarea } from './MentionTextarea';
+import { MentionBadgeText } from './MentionBadgeText';
 import {
   MessageSquare,
   X,
@@ -17,6 +19,7 @@ import {
   Loader2,
   CornerDownRight,
   Pin,
+  AtSign,
 } from 'lucide-react';
 
 interface LessonDiscussionDrawerProps {
@@ -25,6 +28,7 @@ interface LessonDiscussionDrawerProps {
   courseId: string;
   lessonId: string;
   lessonTitle: string;
+  initialThreadId?: string;
 }
 
 export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
@@ -33,6 +37,7 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
   courseId,
   lessonId,
   lessonTitle,
+  initialThreadId,
 }) => {
   const { user } = useAuth();
   const [threads, setThreads] = useState<DiscussionThreadResponse[]>([]);
@@ -45,6 +50,11 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
   const [replyText, setReplyText] = useState<string>('');
   const [isReplying, setIsReplying] = useState<boolean>(false);
 
+  // Mentions
+  const [candidates, setCandidates] = useState<MentionCandidateResponse[]>([]);
+  const [createMentionedIds, setCreateMentionedIds] = useState<string[]>([]);
+  const [replyMentionedIds, setReplyMentionedIds] = useState<string[]>([]);
+
   // Create question in drawer
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [newTitle, setNewTitle] = useState<string>('');
@@ -52,6 +62,15 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  // Load mention candidates for the course
+  useEffect(() => {
+    if (courseId) {
+      discussionService.getMentionCandidates(courseId)
+        .then(setCandidates)
+        .catch(() => setCandidates([]));
+    }
+  }, [courseId]);
 
   const loadLessonThreads = async () => {
     setIsLoading(true);
@@ -61,7 +80,20 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
         page: 0,
         size: 30,
       });
-      setThreads(res.items || []);
+      const items = res.items || [];
+      setThreads(items);
+
+      // If initialThreadId is provided, auto open it
+      if (initialThreadId) {
+        const found = items.find((t) => t.id === initialThreadId);
+        if (found) {
+          openThread(found);
+        } else {
+          discussionService.getThreadDetail(courseId, initialThreadId)
+            .then(openThread)
+            .catch(() => {});
+        }
+      }
     } catch {
       // ignore
     } finally {
@@ -72,10 +104,12 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
   useEffect(() => {
     if (isOpen && courseId && lessonId) {
       loadLessonThreads();
-      setActiveThread(null);
+      if (!initialThreadId) {
+        setActiveThread(null);
+      }
       setIsCreating(false);
     }
-  }, [isOpen, courseId, lessonId]);
+  }, [isOpen, courseId, lessonId, initialThreadId]);
 
   const openThread = async (thread: DiscussionThreadResponse) => {
     setActiveThread(thread);
@@ -104,9 +138,11 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
         lessonId,
         title: newTitle.trim(),
         content: newContent.trim(),
+        mentionedUserIds: createMentionedIds,
       });
       setNewTitle('');
       setNewContent('');
+      setCreateMentionedIds([]);
       setIsCreating(false);
       loadLessonThreads();
       if (res) {
@@ -128,8 +164,10 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
     try {
       const res = await discussionService.createPost(courseId, activeThread.id, {
         content: replyText.trim(),
+        mentionedUserIds: replyMentionedIds,
       });
       setReplyText('');
+      setReplyMentionedIds([]);
       setPosts((prev) => [...prev, res]);
       setActiveThread((prev) => (prev ? { ...prev, postCount: prev.postCount + 1 } : null));
     } catch (err: any) {
@@ -205,12 +243,14 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
               className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#83C75D]"
             />
 
-            <textarea
+            <MentionTextarea
               required
               rows={4}
               value={newContent}
-              onChange={(e) => setNewContent(e.target.value)}
-              placeholder="Chi tiết câu hỏi..."
+              onChange={setNewContent}
+              candidates={candidates}
+              onMentionedUsersChange={setCreateMentionedIds}
+              placeholder="Chi tiết câu hỏi... (Gõ @ để nhắc đến giảng viên hoặc bạn học)"
               className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#83C75D] resize-none"
             />
 
@@ -239,7 +279,9 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
                 )}
                 <span className="text-xs font-bold text-slate-900">{activeThread.title}</span>
               </div>
-              <p className="text-xs text-slate-700 whitespace-pre-wrap">{activeThread.content}</p>
+              <p className="text-xs text-slate-700 whitespace-pre-wrap">
+                <MentionBadgeText content={activeThread.content} />
+              </p>
               <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-200/60">
                 {activeThread.authorName} • {new Date(activeThread.createdAt).toLocaleDateString('vi-VN')}
               </div>
@@ -281,7 +323,9 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
                         <span>{post.upvoteCount || 0}</span>
                       </button>
                     </div>
-                    <p className="text-slate-700 mt-1 whitespace-pre-wrap">{post.content}</p>
+                    <p className="text-slate-700 mt-1 whitespace-pre-wrap">
+                      <MentionBadgeText content={post.content} />
+                    </p>
                   </div>
                 ))
               )}
@@ -290,11 +334,13 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
             {/* Reply Input */}
             {!activeThread.isLocked ? (
               <form onSubmit={handleSendReply} className="space-y-2 pt-2 border-t border-slate-100">
-                <textarea
+                <MentionTextarea
                   rows={2}
                   value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  placeholder="Viết phản hồi của bạn..."
+                  onChange={setReplyText}
+                  candidates={candidates}
+                  onMentionedUsersChange={setReplyMentionedIds}
+                  placeholder="Viết phản hồi của bạn... (Gõ @ để nhắc đến ai đó)"
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#83C75D] resize-none"
                 />
                 <button

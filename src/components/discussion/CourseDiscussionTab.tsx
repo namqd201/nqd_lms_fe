@@ -7,7 +7,10 @@ import {
   DiscussionThreadResponse,
   DiscussionPostResponse,
   DiscussionThreadStatus,
+  MentionCandidateResponse,
 } from '@/types/discussion';
+import { MentionTextarea } from './MentionTextarea';
+import { MentionBadgeText } from './MentionBadgeText';
 import {
   MessageSquare,
   Plus,
@@ -80,6 +83,20 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
   const [replyContent, setReplyContent] = useState<string>('');
   const [isSubmittingReply, setIsSubmittingReply] = useState<boolean>(false);
 
+  // Mentions
+  const [candidates, setCandidates] = useState<MentionCandidateResponse[]>([]);
+  const [createMentionedIds, setCreateMentionedIds] = useState<string[]>([]);
+  const [replyMentionedIds, setReplyMentionedIds] = useState<string[]>([]);
+
+  // Load mention candidates
+  useEffect(() => {
+    if (courseId) {
+      discussionService.getMentionCandidates(courseId)
+        .then(setCandidates)
+        .catch(() => setCandidates([]));
+    }
+  }, [courseId]);
+
   // Flatten all lessons from chapters
   const allLessons = chapters.flatMap((ch) => ch.lessons || []);
 
@@ -126,12 +143,14 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
         lessonId: newLessonId || undefined,
         title: newTitle.trim(),
         content: newContent.trim(),
+        mentionedUserIds: createMentionedIds,
       });
       showFeedback('Tạo chủ đề thảo luận thành công');
       setCreateModalOpen(false);
       setNewTitle('');
       setNewContent('');
       setNewLessonId('');
+      setCreateMentionedIds([]);
       loadThreads(0);
     } catch (err: any) {
       showFeedback(err.message || 'Lỗi khi tạo chủ đề', 'error');
@@ -165,9 +184,11 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
     try {
       const res = await discussionService.createPost(courseId, activeThread.id, {
         content: replyContent.trim(),
+        mentionedUserIds: replyMentionedIds,
       });
       showFeedback('Đã gửi phản hồi');
       setReplyContent('');
+      setReplyMentionedIds([]);
       setPosts((prev) => [...prev, res]);
       setActiveThread((prev) => (prev ? { ...prev, postCount: prev.postCount + 1 } : null));
     } catch (err: any) {
@@ -603,7 +624,7 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
 
               {/* Main Question Body */}
               <div className="pt-2 text-xs sm:text-sm text-slate-800 whitespace-pre-wrap leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                {activeThread.content}
+                <MentionBadgeText content={activeThread.content} />
               </div>
             </div>
 
@@ -689,7 +710,7 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
 
                         {/* Reply content */}
                         <div className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed mb-3">
-                          {post.content}
+                          <MentionBadgeText content={post.content} />
                         </div>
 
                         {/* Upvote Button */}
@@ -721,11 +742,13 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
               ) : isEnrolled || isTeacherOrAdmin ? (
                 <form onSubmit={handleSendReply} className="space-y-3 pt-2">
                   <div className="relative">
-                    <textarea
+                    <MentionTextarea
                       rows={3}
                       value={replyContent}
-                      onChange={(e) => setReplyContent(e.target.value)}
-                      placeholder="Viết câu trả lời hoặc thảo luận của bạn..."
+                      onChange={setReplyContent}
+                      candidates={candidates}
+                      onMentionedUsersChange={setReplyMentionedIds}
+                      placeholder="Viết câu trả lời hoặc thảo luận của bạn... (Gõ @ để nhắc đến ai đó)"
                       className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#83C75D] focus:ring-2 focus:ring-[#83C75D]/20 transition-all resize-none"
                     />
                   </div>
@@ -815,12 +838,14 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Nội dung chi tiết <span className="text-rose-500">*</span>
                 </label>
-                <textarea
+                <MentionTextarea
                   required
                   rows={5}
                   value={newContent}
-                  onChange={(e) => setNewContent(e.target.value)}
-                  placeholder="Mô tả cụ thể thắc mắc hoặc câu hỏi của bạn..."
+                  onChange={setNewContent}
+                  candidates={candidates}
+                  onMentionedUsersChange={setCreateMentionedIds}
+                  placeholder="Mô tả cụ thể thắc mắc hoặc câu hỏi của bạn... (Gõ @ để tag tên người cần hỏi)"
                   className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#83C75D] focus:ring-2 focus:ring-[#83C75D]/20 resize-none"
                 />
               </div>

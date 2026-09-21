@@ -24,6 +24,7 @@ export interface CreateDiscussionThreadRequest {
   lessonId?: string;
   title: string;
   content: string;
+  mentionedUserIds?: string[];
 }
 
 export interface UpdateDiscussionThreadRequest {
@@ -48,6 +49,15 @@ export interface DiscussionPostResponse {
 
 export interface CreateDiscussionPostRequest {
   content: string;
+  mentionedUserIds?: string[];
+}
+
+export interface MentionCandidateResponse {
+  id: string;
+  fullName: string;
+  email: string;
+  avatarUrl?: string;
+  roleInCourse: 'TEACHER' | 'STUDENT';
 }
 
 export interface UpdateDiscussionPostRequest {
