@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { discussionService } from '@/services/discussion.service';
 import { DiscussionThreadResponse, DiscussionPostResponse, MentionCandidateResponse } from '@/types/discussion';
@@ -20,6 +20,7 @@ import {
   CornerDownRight,
   Pin,
   AtSign,
+  Reply,
 } from 'lucide-react';
 
 interface LessonDiscussionDrawerProps {
@@ -49,6 +50,8 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
   const [isLoadingPosts, setIsLoadingPosts] = useState<boolean>(false);
   const [replyText, setReplyText] = useState<string>('');
   const [isReplying, setIsReplying] = useState<boolean>(false);
+  const [replyingTo, setReplyingTo] = useState<{ id: string; name: string } | null>(null);
+  const replyInputRef = useRef<HTMLTextAreaElement>(null);
 
   // Mentions
   const [candidates, setCandidates] = useState<MentionCandidateResponse[]>([]);
@@ -113,6 +116,9 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
 
   const openThread = async (thread: DiscussionThreadResponse) => {
     setActiveThread(thread);
+    setReplyingTo(null);
+    setReplyText('');
+    setReplyMentionedIds([]);
     setIsLoadingPosts(true);
     try {
       const [detailRes, postsRes] = await Promise.all([
@@ -126,6 +132,28 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
     } finally {
       setIsLoadingPosts(false);
     }
+  };
+
+  const handleReplyToUser = (authorId: string, authorName: string) => {
+    setReplyingTo({ id: authorId, name: authorName });
+    const mentionTag = `@${authorName} `;
+    setReplyText((prev) => {
+      if (prev.includes(`@${authorName}`)) return prev;
+      return `${mentionTag}${prev}`;
+    });
+    setReplyMentionedIds((prev) => Array.from(new Set([...prev, authorId])));
+    setTimeout(() => {
+      replyInputRef.current?.focus();
+      replyInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  };
+
+  const handleCancelReplyingTo = () => {
+    if (replyingTo) {
+      setReplyText((prev) => prev.replace(`@${replyingTo.name} `, '').replace(`@${replyingTo.name}`, ''));
+      setReplyMentionedIds((prev) => prev.filter((id) => id !== replyingTo.id));
+    }
+    setReplyingTo(null);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -162,12 +190,18 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
 
     setIsReplying(true);
     try {
+      const finalMentionedIds = Array.from(new Set([
+        ...replyMentionedIds,
+        ...(replyingTo && replyText.includes(`@${replyingTo.name}`) ? [replyingTo.id] : []),
+      ]));
+
       const res = await discussionService.createPost(courseId, activeThread.id, {
         content: replyText.trim(),
-        mentionedUserIds: replyMentionedIds,
+        mentionedUserIds: finalMentionedIds,
       });
       setReplyText('');
       setReplyMentionedIds([]);
+      setReplyingTo(null);
       setPosts((prev) => [...prev, res]);
       setActiveThread((prev) => (prev ? { ...prev, postCount: prev.postCount + 1 } : null));
     } catch (err: any) {
@@ -282,8 +316,18 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
               <p className="text-xs text-slate-700 whitespace-pre-wrap">
                 <MentionBadgeText content={activeThread.content} />
               </p>
-              <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-200/60">
-                {activeThread.authorName} • {new Date(activeThread.createdAt).toLocaleDateString('vi-VN')}
+              <div className="text-[10px] text-slate-400 pt-1.5 border-t border-slate-200/60 flex items-center justify-between">
+                <span>{activeThread.authorName} • {new Date(activeThread.createdAt).toLocaleDateString('vi-VN')}</span>
+                {!activeThread.isLocked && (
+                  <button
+                    type="button"
+                    onClick={() => handleReplyToUser(activeThread.authorId, activeThread.authorName)}
+                    className="inline-flex items-center gap-1 font-bold text-slate-500 hover:text-[#4e8231] px-1.5 py-0.5 rounded hover:bg-[#83C75D]/10 transition-colors cursor-pointer"
+                  >
+                    <Reply className="w-3 h-3" />
+                    <span>Trả lời</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -326,6 +370,21 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
                     <p className="text-slate-700 mt-1 whitespace-pre-wrap">
                       <MentionBadgeText content={post.content} />
                     </p>
+                    <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-100 text-[10px]">
+                      <span className="text-slate-400">
+                        {new Date(post.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} • {new Date(post.createdAt).toLocaleDateString('vi-VN')}
+                      </span>
+                      {!activeThread.isLocked && (
+                        <button
+                          type="button"
+                          onClick={() => handleReplyToUser(post.authorId, post.authorName)}
+                          className="inline-flex items-center gap-1 font-bold text-slate-500 hover:text-[#4e8231] px-1.5 py-0.5 rounded hover:bg-[#83C75D]/10 transition-colors cursor-pointer"
+                        >
+                          <Reply className="w-3 h-3" />
+                          <span>Trả lời</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))
               )}
@@ -334,7 +393,24 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
             {/* Reply Input */}
             {!activeThread.isLocked ? (
               <form onSubmit={handleSendReply} className="space-y-2 pt-2 border-t border-slate-100">
+                {replyingTo && (
+                  <div className="flex items-center justify-between px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-[11px] text-emerald-800 animate-in fade-in duration-150">
+                    <div className="flex items-center gap-1">
+                      <Reply className="w-3 h-3 text-[#83C75D]" />
+                      <span>Đang trả lời <strong>@{replyingTo.name}</strong></span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCancelReplyingTo}
+                      title="Hủy trả lời người này"
+                      className="text-emerald-600 hover:text-emerald-800 p-0.5 rounded hover:bg-emerald-100 cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
                 <MentionTextarea
+                  ref={replyInputRef}
                   rows={2}
                   value={replyText}
                   onChange={setReplyText}
@@ -346,7 +422,7 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
                 <button
                   type="submit"
                   disabled={isReplying || !replyText.trim()}
-                  className="w-full py-2 bg-[#83C75D] hover:bg-[#72b44e] text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                  className="w-full py-2 bg-[#83C75D] hover:bg-[#72b44e] text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {isReplying ? 'Đang gửi...' : 'Gửi phản hồi'}
                 </button>

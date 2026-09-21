@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { discussionService } from '@/services/discussion.service';
 import {
@@ -33,6 +33,7 @@ import {
   CornerDownRight,
   Sparkles,
   AlertCircle,
+  Reply,
 } from 'lucide-react';
 
 interface CourseDiscussionTabProps {
@@ -82,6 +83,8 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
   const [isLoadingPosts, setIsLoadingPosts] = useState<boolean>(false);
   const [replyContent, setReplyContent] = useState<string>('');
   const [isSubmittingReply, setIsSubmittingReply] = useState<boolean>(false);
+  const [replyingTo, setReplyingTo] = useState<{ id: string; name: string } | null>(null);
+  const replyInputRef = useRef<HTMLTextAreaElement>(null);
 
   // Mentions
   const [candidates, setCandidates] = useState<MentionCandidateResponse[]>([]);
@@ -161,6 +164,9 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
 
   const openThreadDetail = async (thread: DiscussionThreadResponse) => {
     setActiveThread(thread);
+    setReplyingTo(null);
+    setReplyContent('');
+    setReplyMentionedIds([]);
     setIsLoadingPosts(true);
     try {
       const [detailRes, postsRes] = await Promise.all([
@@ -176,19 +182,47 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
     }
   };
 
+  const handleReplyToUser = (authorId: string, authorName: string) => {
+    setReplyingTo({ id: authorId, name: authorName });
+    const mentionTag = `@${authorName} `;
+    setReplyContent((prev) => {
+      if (prev.includes(`@${authorName}`)) return prev;
+      return `${mentionTag}${prev}`;
+    });
+    setReplyMentionedIds((prev) => Array.from(new Set([...prev, authorId])));
+    setTimeout(() => {
+      replyInputRef.current?.focus();
+      replyInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  };
+
+  const handleCancelReplyingTo = () => {
+    if (replyingTo) {
+      setReplyContent((prev) => prev.replace(`@${replyingTo.name} `, '').replace(`@${replyingTo.name}`, ''));
+      setReplyMentionedIds((prev) => prev.filter((id) => id !== replyingTo.id));
+    }
+    setReplyingTo(null);
+  };
+
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeThread || !replyContent.trim()) return;
 
     setIsSubmittingReply(true);
     try {
+      const finalMentionedIds = Array.from(new Set([
+        ...replyMentionedIds,
+        ...(replyingTo && replyContent.includes(`@${replyingTo.name}`) ? [replyingTo.id] : []),
+      ]));
+
       const res = await discussionService.createPost(courseId, activeThread.id, {
         content: replyContent.trim(),
-        mentionedUserIds: replyMentionedIds,
+        mentionedUserIds: finalMentionedIds,
       });
       showFeedback('Đã gửi phản hồi');
       setReplyContent('');
       setReplyMentionedIds([]);
+      setReplyingTo(null);
       setPosts((prev) => [...prev, res]);
       setActiveThread((prev) => (prev ? { ...prev, postCount: prev.postCount + 1 } : null));
     } catch (err: any) {
@@ -623,8 +657,20 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
               </div>
 
               {/* Main Question Body */}
-              <div className="pt-2 text-xs sm:text-sm text-slate-800 whitespace-pre-wrap leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100">
+              <div className="pt-2 text-xs sm:text-sm text-slate-800 whitespace-pre-wrap leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
                 <MentionBadgeText content={activeThread.content} />
+                {!activeThread.isLocked && (isEnrolled || isTeacherOrAdmin) && (
+                  <div className="flex items-center justify-end pt-2 border-t border-slate-200/60">
+                    <button
+                      type="button"
+                      onClick={() => handleReplyToUser(activeThread.authorId, activeThread.authorName)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-600 hover:text-[#4e8231] hover:bg-[#83C75D]/15 transition-all cursor-pointer"
+                    >
+                      <Reply className="w-3.5 h-3.5" />
+                      <span>Trả lời</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -713,7 +759,7 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
                           <MentionBadgeText content={post.content} />
                         </div>
 
-                        {/* Upvote Button */}
+                        {/* Upvote Button & Trả lời */}
                         <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                           <button
                             onClick={() => handleToggleUpvote(post.id)}
@@ -726,6 +772,17 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
                             <ThumbsUp className={'w-3.5 h-3.5 ' + (post.isUpvotedByMe ? 'fill-white' : '')} />
                             <span>{post.upvoteCount || 0}</span>
                           </button>
+
+                          {!activeThread.isLocked && (isEnrolled || isTeacherOrAdmin) && (
+                            <button
+                              type="button"
+                              onClick={() => handleReplyToUser(post.authorId, post.authorName)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold text-slate-600 hover:text-[#4e8231] hover:bg-[#83C75D]/15 transition-all cursor-pointer"
+                            >
+                              <Reply className="w-3.5 h-3.5" />
+                              <span>Trả lời</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -741,8 +798,25 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
                 </div>
               ) : isEnrolled || isTeacherOrAdmin ? (
                 <form onSubmit={handleSendReply} className="space-y-3 pt-2">
+                  {replyingTo && (
+                    <div className="flex items-center justify-between px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-800 animate-in fade-in duration-150">
+                      <div className="flex items-center gap-1.5">
+                        <Reply className="w-3.5 h-3.5 text-[#83C75D]" />
+                        <span>Đang trả lời <strong>@{replyingTo.name}</strong></span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCancelReplyingTo}
+                        title="Hủy trả lời người này"
+                        className="text-emerald-600 hover:text-emerald-800 p-1 rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                   <div className="relative">
                     <MentionTextarea
+                      ref={replyInputRef}
                       rows={3}
                       value={replyContent}
                       onChange={setReplyContent}
