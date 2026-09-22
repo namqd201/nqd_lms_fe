@@ -19,6 +19,7 @@ import {
   TrendingUp,
   Award,
   Dumbbell,
+  BookMarked,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -47,6 +48,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
       href: '/courses',
       label: 'Khóa học',
       icon: BookOpen,
+    },
+    {
+      href: '/knowledge',
+      label: 'Kiến thức cơ bản',
+      icon: BookMarked,
     },
     {
       href: '/ai-tutor',

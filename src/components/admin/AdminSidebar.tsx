@@ -88,6 +88,12 @@ export const AdminSidebar: React.FC = () => {
           badge: 'Courses',
         },
         {
+          href: '/knowledge',
+          label: 'Kiến thức cơ bản',
+          icon: BookMarked,
+          badge: 'Knowledge',
+        },
+        {
           href: '/teacher/questions',
           label: 'Ngân hàng Câu hỏi',
           icon: HelpCircle,
