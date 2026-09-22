@@ -61,11 +61,10 @@ export default function CoursesCatalogPage() {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const [data, marketRes] = await Promise.all([
-        courseService.getPublishedCourses(),
+      const [studentData, marketRes] = await Promise.all([
+        courseService.getPublishedCourses().catch(() => null),
         marketplaceService.searchCourses({ page: 0, size: 100 }).catch(() => null),
       ]);
-      setCourses(data);
 
       if (marketRes && marketRes.content) {
         const map: Record<string, MarketplaceCourseResponse> = {};
@@ -73,6 +72,29 @@ export default function CoursesCatalogPage() {
           map[mc.id] = mc;
         });
         setMarketplaceData(map);
+      }
+
+      if (studentData && studentData.length > 0) {
+        setCourses(studentData);
+      } else if (marketRes && marketRes.content && marketRes.content.length > 0) {
+        // Fallback to public marketplace courses if student API is unauthenticated
+        const fallbackCourses: StudentCourseResponse[] = marketRes.content.map((mc) => ({
+          id: mc.id,
+          name: mc.name,
+          code: mc.code,
+          description: mc.description || '',
+          thumbnailUrl: mc.thumbnailUrl || '',
+          gradeLevel: mc.gradeLevel || '',
+          subjectName: mc.subjectName,
+          creatorName: mc.creatorName || 'Giảng viên',
+          status: 'ACTIVE',
+          isEnrolled: Boolean(mc.isPurchased),
+        }));
+        setCourses(fallbackCourses);
+      } else if (!studentData && !marketRes) {
+        setErrorMessage('Không thể tải danh sách khóa học. Vui lòng thử lại sau.');
+      } else {
+        setCourses([]);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Lỗi khi tải danh sách khóa học';

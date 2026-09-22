@@ -31,6 +31,10 @@ export const authService = {
       });
 
       if (response.status === 401 || response.status === 403) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_session_id');
+        }
         return null;
       }
 

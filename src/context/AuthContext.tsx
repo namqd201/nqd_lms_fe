@@ -5,6 +5,11 @@ import { User } from '@/types/auth';
 import { SubscriptionResponse } from '@/types/membership';
 import { authService } from '@/services/auth.service';
 import { membershipService } from '@/services/membership.service';
+import { initApiInterceptor } from '@/utils/apiInterceptor';
+
+if (typeof window !== 'undefined') {
+  initApiInterceptor();
+}
 
 interface AuthContextType {
   user: User | null;

@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Central API Interceptor and Auth Token Manager for NQD-LMS
  * Ensures that all outgoing requests to the backend API automatically carry the 7-day JWT token
@@ -10,13 +12,21 @@ export function getAuthToken(): string | null {
   if (typeof window === 'undefined') {
     return null;
   }
-  return localStorage.getItem('auth_token') || localStorage.getItem('auth_session_id');
+  let token = localStorage.getItem('auth_token') || localStorage.getItem('auth_session_id');
+  if (token) {
+    token = token.trim();
+    if (token.startsWith('"') && token.endsWith('"')) {
+      token = token.slice(1, -1).trim();
+    }
+  }
+  return token || null;
 }
 
 export function setAuthToken(token: string): void {
   if (typeof window !== 'undefined' && token) {
-    localStorage.setItem('auth_token', token);
-    localStorage.setItem('auth_session_id', token);
+    const cleaned = token.trim();
+    localStorage.setItem('auth_token', cleaned);
+    localStorage.setItem('auth_session_id', cleaned);
   }
 }
 
@@ -68,23 +78,52 @@ export function initApiInterceptor(): void {
     const isBackendApi =
       urlString.startsWith(API_BASE_URL) ||
       urlString.startsWith('/api/') ||
-      urlString.includes('/api/v1/');
+      urlString.includes('/api/v1/') ||
+      urlString.includes('onrender.com') ||
+      urlString.includes('localhost:8080');
 
     if (token && isBackendApi) {
       const clonedInit: RequestInit = { ...(init || {}) };
-      const headers = new Headers(clonedInit.headers || (input instanceof Request ? input.headers : {}));
 
-      if (!headers.has('Authorization')) {
-        headers.set('Authorization', `Bearer ${token}`);
+      // Flatten existing headers into a plain Record to guarantee compatibility
+      const headersObj: Record<string, string> = {};
+
+      if (clonedInit.headers instanceof Headers) {
+        clonedInit.headers.forEach((value, key) => {
+          headersObj[key] = value;
+        });
+      } else if (Array.isArray(clonedInit.headers)) {
+        clonedInit.headers.forEach(([key, value]) => {
+          headersObj[key] = value;
+        });
+      } else if (clonedInit.headers && typeof clonedInit.headers === 'object') {
+        Object.assign(headersObj, clonedInit.headers);
+      } else if (input instanceof Request && input.headers) {
+        input.headers.forEach((value, key) => {
+          headersObj[key] = value;
+        });
       }
-      if (!headers.has('X-Session-Id')) {
-        headers.set('X-Session-Id', token);
+
+      if (!headersObj['Authorization'] && !headersObj['authorization']) {
+        headersObj['Authorization'] = `Bearer ${token}`;
+      }
+      if (!headersObj['X-Session-Id'] && !headersObj['x-session-id']) {
+        headersObj['X-Session-Id'] = token;
+      }
+
+      // Default Content-Type to JSON if not specified and not FormData
+      if (
+        !headersObj['Content-Type'] &&
+        !headersObj['content-type'] &&
+        !(clonedInit.body instanceof FormData)
+      ) {
+        headersObj['Content-Type'] = 'application/json';
       }
 
       if (!clonedInit.credentials) {
         clonedInit.credentials = 'include';
       }
-      clonedInit.headers = headers;
+      clonedInit.headers = headersObj;
 
       return originalFetch.call(this, input, clonedInit);
     }
@@ -93,7 +132,7 @@ export function initApiInterceptor(): void {
   };
 }
 
-// Auto-run interceptor initialization when imported
+// Auto-run interceptor initialization when imported on client
 if (typeof window !== 'undefined') {
   initApiInterceptor();
 }
