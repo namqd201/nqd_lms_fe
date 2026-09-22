@@ -25,16 +25,11 @@ import {
   X,
   MessageCircle,
   Clock,
-  User,
-  ShieldCheck,
-  Award,
-  ChevronRight,
-  Filter,
   Loader2,
   CornerDownRight,
-  Sparkles,
-  AlertCircle,
   Reply,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 interface CourseDiscussionTabProps {
@@ -52,6 +47,7 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
 }) => {
   const { user } = useAuth();
 
+  // Thread list state
   const [threads, setThreads] = useState<DiscussionThreadResponse[]>([]);
   const [totalThreads, setTotalThreads] = useState<number>(0);
   const [page, setPage] = useState<number>(0);
@@ -71,55 +67,47 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
   const [selectedStatus, setSelectedStatus] = useState<DiscussionThreadStatus | ''>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Modals & Active Thread
+  // Modals
   const [createModalOpen, setCreateModalOpen] = useState<boolean>(false);
   const [newTitle, setNewTitle] = useState<string>('');
   const [newContent, setNewContent] = useState<string>('');
   const [newLessonId, setNewLessonId] = useState<string>('');
   const [isSubmittingThread, setIsSubmittingThread] = useState<boolean>(false);
-
-  // Thread detail view
-  const [activeThread, setActiveThread] = useState<DiscussionThreadResponse | null>(null);
-  const [posts, setPosts] = useState<DiscussionPostResponse[]>([]);
-  const [isLoadingPosts, setIsLoadingPosts] = useState<boolean>(false);
-  const [replyContent, setReplyContent] = useState<string>('');
-  const [isSubmittingReply, setIsSubmittingReply] = useState<boolean>(false);
-  const [replyingTo, setReplyingTo] = useState<{ id: string; name: string; parentPostId?: string } | null>(null);
-  const replyInputRef = useRef<HTMLTextAreaElement>(null);
-
-  // Mentions
-  const [candidates, setCandidates] = useState<MentionCandidateResponse[]>([]);
   const [createMentionedIds, setCreateMentionedIds] = useState<string[]>([]);
-  const [replyMentionedIds, setReplyMentionedIds] = useState<string[]>([]);
 
-  // Group posts into hierarchical tree (Level 1: root comments, Level 2: child replies)
-  const { rootPosts, childPostsMap } = useMemo(() => {
-    const roots = posts.filter(
-      (p) => !p.parentId || !posts.some((parent) => parent.id === p.parentId)
-    );
-    const childMap = new Map<string, DiscussionPostResponse[]>();
-    posts.forEach((p) => {
-      if (p.parentId && posts.some((parent) => parent.id === p.parentId)) {
-        const list = childMap.get(p.parentId) || [];
-        list.push(p);
-        childMap.set(p.parentId, list);
-      }
-    });
-    return { rootPosts: roots, childPostsMap: childMap };
-  }, [posts]);
+  // Inline expansion and replies state per thread
+  const [expandedThreadIds, setExpandedThreadIds] = useState<Record<string, boolean>>({});
+  const [postsByThread, setPostsByThread] = useState<Record<string, DiscussionPostResponse[]>>({});
+  const [loadingPostsByThread, setLoadingPostsByThread] = useState<Record<string, boolean>>({});
+
+  // Reply inputs state per thread
+  const [replyContentByThread, setReplyContentByThread] = useState<Record<string, string>>({});
+  const [replyMentionedIdsByThread, setReplyMentionedIdsByThread] = useState<Record<string, string[]>>({});
+  const [replyingToByThread, setReplyingToByThread] = useState<
+    Record<string, { id: string; name: string; parentPostId?: string } | null>
+  >({});
+  const [submittingReplyByThread, setSubmittingReplyByThread] = useState<Record<string, boolean>>({});
+
+  // Refs for reply inputs per thread
+  const replyInputRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+
+  // Mention candidates
+  const [candidates, setCandidates] = useState<MentionCandidateResponse[]>([]);
 
   // Load mention candidates
   useEffect(() => {
     if (courseId) {
-      discussionService.getMentionCandidates(courseId)
+      discussionService
+        .getMentionCandidates(courseId)
         .then(setCandidates)
         .catch(() => setCandidates([]));
     }
   }, [courseId]);
 
   // Flatten all lessons from chapters
-  const allLessons = chapters.flatMap((ch) => ch.lessons || []);
+  const allLessons = useMemo(() => chapters.flatMap((ch) => ch.lessons || []), [chapters]);
 
+  // Fetch threads
   const loadThreads = async (pageNum = 0) => {
     setIsLoading(true);
     try {
@@ -150,6 +138,229 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
     loadThreads(0);
   };
 
+  // Toggle inline replies for a specific thread
+  const toggleThreadReplies = async (threadId: string, forceExpand = false) => {
+    const isCurrentlyExpanded = !!expandedThreadIds[threadId];
+    if (isCurrentlyExpanded && !forceExpand) {
+      setExpandedThreadIds((prev) => ({ ...prev, [threadId]: false }));
+      return;
+    }
+
+    setExpandedThreadIds((prev) => ({ ...prev, [threadId]: true }));
+
+    // Fetch posts if not already loaded or force refresh
+    if (!postsByThread[threadId]) {
+      setLoadingPostsByThread((prev) => ({ ...prev, [threadId]: true }));
+      try {
+        const postsRes = await discussionService.getPosts(courseId, threadId, 0, 50);
+        setPostsByThread((prev) => ({
+          ...prev,
+          [threadId]: postsRes.items || [],
+        }));
+      } catch {
+        showFeedback('Không thể tải phản hồi thảo luận', 'error');
+      } finally {
+        setLoadingPostsByThread((prev) => ({ ...prev, [threadId]: false }));
+      }
+    }
+  };
+
+  // Reply to thread directly (from question card footer)
+  const handleReplyToThread = (thread: DiscussionThreadResponse) => {
+    toggleThreadReplies(thread.id, true);
+    setTimeout(() => {
+      const input = replyInputRefs.current[thread.id];
+      if (input) {
+        input.focus();
+        input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }, 150);
+  };
+
+  // Reply to a specific user inside the replies list
+  const handleReplyToUser = (
+    threadId: string,
+    authorId: string,
+    authorName: string,
+    parentPostId?: string
+  ) => {
+    setReplyingToByThread((prev) => ({
+      ...prev,
+      [threadId]: { id: authorId, name: authorName, parentPostId },
+    }));
+
+    const mentionTag = `@${authorName} `;
+    setReplyContentByThread((prev) => {
+      const current = prev[threadId] || '';
+      const updated = current.includes(`@${authorName}`) ? current : `${mentionTag}${current}`;
+      return { ...prev, [threadId]: updated };
+    });
+
+    setReplyMentionedIdsByThread((prev) => {
+      const current = prev[threadId] || [];
+      const updated = Array.from(new Set([...current, authorId]));
+      return { ...prev, [threadId]: updated };
+    });
+
+    setTimeout(() => {
+      const input = replyInputRefs.current[threadId];
+      if (input) {
+        input.focus();
+        input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }, 100);
+  };
+
+  const handleCancelReplyingTo = (threadId: string) => {
+    const replyingTo = replyingToByThread[threadId];
+    if (replyingTo) {
+      setReplyContentByThread((prev) => {
+        const current = prev[threadId] || '';
+        const updated = current.replace(`@${replyingTo.name} `, '').replace(`@${replyingTo.name}`, '');
+        return { ...prev, [threadId]: updated };
+      });
+      setReplyMentionedIdsByThread((prev) => {
+        const current = prev[threadId] || [];
+        const updated = current.filter((id) => id !== replyingTo.id);
+        return { ...prev, [threadId]: updated };
+      });
+    }
+    setReplyingToByThread((prev) => ({ ...prev, [threadId]: null }));
+  };
+
+  // Submit reply
+  const handleSendReply = async (e: React.FormEvent, threadId: string) => {
+    e.preventDefault();
+    const content = replyContentByThread[threadId]?.trim() || '';
+    if (!content) return;
+
+    setSubmittingReplyByThread((prev) => ({ ...prev, [threadId]: true }));
+    try {
+      const replyingTo = replyingToByThread[threadId];
+      const mentionedIds = replyMentionedIdsByThread[threadId] || [];
+      const finalMentionedIds = Array.from(
+        new Set([
+          ...mentionedIds,
+          ...(replyingTo && content.includes(`@${replyingTo.name}`) ? [replyingTo.id] : []),
+        ])
+      );
+
+      const res = await discussionService.createPost(courseId, threadId, {
+        content,
+        parentId: replyingTo?.parentPostId || undefined,
+        mentionedUserIds: finalMentionedIds,
+      });
+
+      showFeedback('Đã gửi phản hồi thành công');
+      setReplyContentByThread((prev) => ({ ...prev, [threadId]: '' }));
+      setReplyMentionedIdsByThread((prev) => ({ ...prev, [threadId]: [] }));
+      setReplyingToByThread((prev) => ({ ...prev, [threadId]: null }));
+
+      setPostsByThread((prev) => ({
+        ...prev,
+        [threadId]: [...(prev[threadId] || []), res],
+      }));
+
+      // Update thread postCount in list
+      setThreads((prev) =>
+        prev.map((t) => (t.id === threadId ? { ...t, postCount: t.postCount + 1 } : t))
+      );
+    } catch (err: any) {
+      showFeedback(err.message || 'Không thể gửi phản hồi', 'error');
+    } finally {
+      setSubmittingReplyByThread((prev) => ({ ...prev, [threadId]: false }));
+    }
+  };
+
+  // Upvote post
+  const handleToggleUpvote = async (threadId: string, postId: string) => {
+    try {
+      const res = await discussionService.toggleUpvote(courseId, threadId, postId);
+      setPostsByThread((prev) => ({
+        ...prev,
+        [threadId]: (prev[threadId] || []).map((p) => (p.id === postId ? res : p)),
+      }));
+    } catch (err: any) {
+      showFeedback(err.message || 'Lỗi khi thao tác upvote', 'error');
+    }
+  };
+
+  // Mark accepted answer
+  const handleMarkAnswer = async (threadId: string, postId: string) => {
+    try {
+      const res = await discussionService.markAnswer(courseId, threadId, postId);
+      setPostsByThread((prev) => ({
+        ...prev,
+        [threadId]: (prev[threadId] || []).map((p) => {
+          if (p.id === postId) return res;
+          return p.isAnswer ? { ...p, isAnswer: false } : p;
+        }),
+      }));
+      showFeedback('Đã cập nhật câu trả lời được chấp nhận');
+    } catch (err: any) {
+      showFeedback(err.message || 'Lỗi thao tác', 'error');
+    }
+  };
+
+  // Delete post
+  const handleDeletePost = async (threadId: string, postId: string) => {
+    if (!confirm('Bạn có chắc muốn xóa phản hồi này?')) return;
+    try {
+      await discussionService.deletePost(courseId, threadId, postId);
+      setPostsByThread((prev) => ({
+        ...prev,
+        [threadId]: (prev[threadId] || []).filter((p) => p.id !== postId),
+      }));
+      setThreads((prev) =>
+        prev.map((t) => (t.id === threadId ? { ...t, postCount: Math.max(0, t.postCount - 1) } : t))
+      );
+      showFeedback('Đã xóa phản hồi');
+    } catch (err: any) {
+      showFeedback(err.message || 'Lỗi xóa phản hồi', 'error');
+    }
+  };
+
+  // Toggle pin
+  const handleTogglePin = async (thread: DiscussionThreadResponse) => {
+    try {
+      const nextPin = !thread.isPinned;
+      const res = await discussionService.pinThread(courseId, thread.id, nextPin);
+      setThreads((prev) =>
+        prev.map((t) => (t.id === thread.id ? { ...t, isPinned: nextPin } : t))
+      );
+      showFeedback(nextPin ? 'Đã ghim chủ đề' : 'Đã bỏ ghim');
+    } catch (err: any) {
+      showFeedback(err.message || 'Lỗi thao tác ghim', 'error');
+    }
+  };
+
+  // Toggle lock
+  const handleToggleLock = async (thread: DiscussionThreadResponse) => {
+    try {
+      const nextLock = !thread.isLocked;
+      const res = await discussionService.lockThread(courseId, thread.id, nextLock);
+      setThreads((prev) =>
+        prev.map((t) => (t.id === thread.id ? { ...t, isLocked: nextLock } : t))
+      );
+      showFeedback(nextLock ? 'Đã khóa chủ đề' : 'Đã mở khóa');
+    } catch (err: any) {
+      showFeedback(err.message || 'Lỗi thao tác khóa', 'error');
+    }
+  };
+
+  // Delete thread
+  const handleDeleteThread = async (threadId: string) => {
+    if (!confirm('Bạn có chắc muốn xóa chủ đề thảo luận này không?')) return;
+    try {
+      await discussionService.deleteThread(courseId, threadId);
+      showFeedback('Đã xóa chủ đề');
+      loadThreads(page);
+    } catch (err: any) {
+      showFeedback(err.message || 'Lỗi xóa chủ đề', 'error');
+    }
+  };
+
+  // Create new thread
   const handleCreateThread = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !newContent.trim()) {
@@ -179,161 +390,6 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
     }
   };
 
-  const openThreadDetail = async (thread: DiscussionThreadResponse) => {
-    setActiveThread(thread);
-    setReplyingTo(null);
-    setReplyContent('');
-    setReplyMentionedIds([]);
-    setIsLoadingPosts(true);
-    try {
-      const [detailRes, postsRes] = await Promise.all([
-        discussionService.getThreadDetail(courseId, thread.id),
-        discussionService.getPosts(courseId, thread.id, 0, 50),
-      ]);
-      setActiveThread(detailRes);
-      setPosts(postsRes.items || []);
-    } catch {
-      showFeedback('Không thể tải chi tiết chủ đề', 'error');
-    } finally {
-      setIsLoadingPosts(false);
-    }
-  };
-
-  const handleReplyToUser = (authorId: string, authorName: string, parentPostId?: string) => {
-    setReplyingTo({ id: authorId, name: authorName, parentPostId });
-    const mentionTag = `@${authorName} `;
-    setReplyContent((prev) => {
-      if (prev.includes(`@${authorName}`)) return prev;
-      return `${mentionTag}${prev}`;
-    });
-    setReplyMentionedIds((prev) => Array.from(new Set([...prev, authorId])));
-    setTimeout(() => {
-      replyInputRef.current?.focus();
-      replyInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 50);
-  };
-
-  const handleCancelReplyingTo = () => {
-    if (replyingTo) {
-      setReplyContent((prev) => prev.replace(`@${replyingTo.name} `, '').replace(`@${replyingTo.name}`, ''));
-      setReplyMentionedIds((prev) => prev.filter((id) => id !== replyingTo.id));
-    }
-    setReplyingTo(null);
-  };
-
-  const handleSendReply = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeThread || !replyContent.trim()) return;
-
-    setIsSubmittingReply(true);
-    try {
-      const finalMentionedIds = Array.from(new Set([
-        ...replyMentionedIds,
-        ...(replyingTo && replyContent.includes(`@${replyingTo.name}`) ? [replyingTo.id] : []),
-      ]));
-
-      const res = await discussionService.createPost(courseId, activeThread.id, {
-        content: replyContent.trim(),
-        parentId: replyingTo?.parentPostId || undefined,
-        mentionedUserIds: finalMentionedIds,
-      });
-      showFeedback('Đã gửi phản hồi');
-      setReplyContent('');
-      setReplyMentionedIds([]);
-      setReplyingTo(null);
-      setPosts((prev) => [...prev, res]);
-      setActiveThread((prev) => (prev ? { ...prev, postCount: prev.postCount + 1 } : null));
-    } catch (err: any) {
-      showFeedback(err.message || 'Không thể gửi phản hồi', 'error');
-    } finally {
-      setIsSubmittingReply(false);
-    }
-  };
-
-  const handleToggleUpvote = async (postId: string) => {
-    if (!activeThread) return;
-    try {
-      const res = await discussionService.toggleUpvote(courseId, activeThread.id, postId);
-      setPosts((prev) => prev.map((p) => (p.id === postId ? res : p)));
-    } catch (err: any) {
-      showFeedback(err.message || 'Lỗi khi thao tác upvote', 'error');
-    }
-  };
-
-  const handleMarkAnswer = async (postId: string) => {
-    if (!activeThread) return;
-    try {
-      const res = await discussionService.markAnswer(courseId, activeThread.id, postId);
-      setPosts((prev) =>
-        prev.map((p) => {
-          if (p.id === postId) return res;
-          return p.isAnswer ? { ...p, isAnswer: false } : p;
-        })
-      );
-      showFeedback('Đã cập nhật câu trả lời được chấp nhận');
-    } catch (err: any) {
-      showFeedback(err.message || 'Lỗi thao tác', 'error');
-    }
-  };
-
-  const handleTogglePin = async () => {
-    if (!activeThread) return;
-    try {
-      const nextPin = !activeThread.isPinned;
-      const res = await discussionService.pinThread(courseId, activeThread.id, nextPin);
-      setActiveThread(res);
-      setThreads((prev) =>
-        prev.map((t) => (t.id === activeThread.id ? { ...t, isPinned: nextPin } : t))
-      );
-      showFeedback(nextPin ? 'Đã ghim chủ đề' : 'Đã bỏ ghim');
-    } catch (err: any) {
-      showFeedback(err.message || 'Lỗi thao tác ghim', 'error');
-    }
-  };
-
-  const handleToggleLock = async () => {
-    if (!activeThread) return;
-    try {
-      const nextLock = !activeThread.isLocked;
-      const res = await discussionService.lockThread(courseId, activeThread.id, nextLock);
-      setActiveThread(res);
-      setThreads((prev) =>
-        prev.map((t) => (t.id === activeThread.id ? { ...t, isLocked: nextLock } : t))
-      );
-      showFeedback(nextLock ? 'Đã khóa chủ đề' : 'Đã mở khóa');
-    } catch (err: any) {
-      showFeedback(err.message || 'Lỗi thao tác khóa', 'error');
-    }
-  };
-
-  const handleDeleteThread = async (threadId: string) => {
-    if (!confirm('Bạn có chắc muốn xóa chủ đề thảo luận này không?')) return;
-    try {
-      await discussionService.deleteThread(courseId, threadId);
-      showFeedback('Đã xóa chủ đề');
-      if (activeThread?.id === threadId) {
-        setActiveThread(null);
-      }
-      loadThreads(page);
-    } catch (err: any) {
-      showFeedback(err.message || 'Lỗi xóa chủ đề', 'error');
-    }
-  };
-
-  const handleDeletePost = async (postId: string) => {
-    if (!activeThread || !confirm('Bạn có chắc muốn xóa phản hồi này?')) return;
-    try {
-      await discussionService.deletePost(courseId, activeThread.id, postId);
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
-      setActiveThread((prev) =>
-        prev ? { ...prev, postCount: Math.max(0, prev.postCount - 1) } : null
-      );
-      showFeedback('Đã xóa phản hồi');
-    } catch (err: any) {
-      showFeedback(err.message || 'Lỗi xóa phản hồi', 'error');
-    }
-  };
-
   const formatTime = (dateStr: string) => {
     try {
       const date = new Date(dateStr);
@@ -349,16 +405,33 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
     }
   };
 
+  // Helper to structure flat posts into 2-level hierarchy
+  const getThreadPostTree = (threadPosts: DiscussionPostResponse[] = []) => {
+    const rootPosts = threadPosts.filter(
+      (p) => !p.parentId || !threadPosts.some((parent) => parent.id === p.parentId)
+    );
+    const childPostsMap = new Map<string, DiscussionPostResponse[]>();
+    threadPosts.forEach((p) => {
+      if (p.parentId && threadPosts.some((parent) => parent.id === p.parentId)) {
+        const list = childPostsMap.get(p.parentId) || [];
+        list.push(p);
+        childPostsMap.set(p.parentId, list);
+      }
+    });
+    return { rootPosts, childPostsMap };
+  };
+
   return (
     <div className="space-y-6">
       {/* Feedback banner */}
       {feedbackMsg && (
         <div
-          className={'p-4 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ' + (
-            feedbackMsg.type === 'success'
+          className={
+            'p-4 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ' +
+            (feedbackMsg.type === 'success'
               ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-              : 'bg-rose-50 border border-rose-200 text-rose-800'
-          )}
+              : 'bg-rose-50 border border-rose-200 text-rose-800')
+          }
         >
           <span>{feedbackMsg.text}</span>
           <button onClick={() => setFeedbackMsg(null)} className="text-slate-400 hover:text-slate-600">
@@ -436,60 +509,68 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
         </div>
       </div>
 
-      {/* Main Content: Split view or List */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Thread List */}
-        <div className={activeThread ? 'lg:col-span-5 space-y-3' : 'lg:col-span-12 space-y-3'}>
-          {isLoading ? (
-            <div className="p-12 text-center bg-white border border-slate-200 rounded-3xl">
-              <Loader2 className="w-8 h-8 text-[#83C75D] animate-spin mx-auto mb-2" />
-              <p className="text-xs text-slate-500">Đang tải danh sách thảo luận...</p>
+      {/* Main Content: Single Column Inline Flow */}
+      <div className="space-y-4">
+        {isLoading ? (
+          <div className="p-12 text-center bg-white border border-slate-200 rounded-3xl">
+            <Loader2 className="w-8 h-8 text-[#83C75D] animate-spin mx-auto mb-2" />
+            <p className="text-xs text-slate-500">Đang tải danh sách thảo luận...</p>
+          </div>
+        ) : threads.length === 0 ? (
+          <div className="p-12 text-center bg-white border border-slate-200 rounded-3xl">
+            <div className="w-12 h-12 rounded-2xl bg-[#83C75D]/10 text-[#4e8231] flex items-center justify-center mx-auto mb-3">
+              <MessageCircle className="w-6 h-6" />
             </div>
-          ) : threads.length === 0 ? (
-            <div className="p-12 text-center bg-white border border-slate-200 rounded-3xl">
-              <div className="w-12 h-12 rounded-2xl bg-[#83C75D]/10 text-[#4e8231] flex items-center justify-center mx-auto mb-3">
-                <MessageCircle className="w-6 h-6" />
-              </div>
-              <h3 className="text-sm font-bold text-slate-800 mb-1">Chưa có chủ đề thảo luận nào</h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto mb-4">
-                Hãy là người đầu tiên đặt câu hỏi hoặc chia sẻ thắc mắc về khóa học này nhé!
-              </p>
-              {isEnrolled && (
-                <button
-                  onClick={() => setCreateModalOpen(true)}
-                  className="px-4 py-2 bg-[#83C75D] text-white rounded-xl text-xs font-bold hover:bg-[#72b44e] transition-colors"
+            <h3 className="text-sm font-bold text-slate-800 mb-1">Chưa có chủ đề thảo luận nào</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto mb-4">
+              Hãy là người đầu tiên đặt câu hỏi hoặc chia sẻ thắc mắc về khóa học này nhé!
+            </p>
+            {isEnrolled && (
+              <button
+                onClick={() => setCreateModalOpen(true)}
+                className="px-4 py-2 bg-[#83C75D] text-white rounded-xl text-xs font-bold hover:bg-[#72b44e] transition-colors cursor-pointer"
+              >
+                Tạo thảo luận ngay
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {threads.map((thread) => {
+              const isExpanded = !!expandedThreadIds[thread.id];
+              const threadPosts = postsByThread[thread.id] || [];
+              const isLoadingPosts = !!loadingPostsByThread[thread.id];
+              const { rootPosts, childPostsMap } = getThreadPostTree(threadPosts);
+
+              const isTeacher = thread.authorRole === 'TEACHER' || thread.authorRole === 'ADMIN';
+              const replyingTo = replyingToByThread[thread.id];
+              const replyContent = replyContentByThread[thread.id] || '';
+              const isSubmittingReply = !!submittingReplyByThread[thread.id];
+
+              return (
+                <div
+                  key={thread.id}
+                  className={`bg-white border rounded-3xl shadow-xs transition-all overflow-hidden ${
+                    thread.isPinned
+                      ? 'border-amber-200 ring-1 ring-amber-200/50'
+                      : isExpanded
+                      ? 'border-[#83C75D] ring-2 ring-[#83C75D]/20 shadow-md'
+                      : 'border-slate-200 hover:border-slate-300 hover:shadow-xs'
+                  }`}
                 >
-                  Tạo thảo luận ngay
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {threads.map((thread) => {
-                const isActive = activeThread?.id === thread.id;
-                const isTeacher = thread.authorRole === 'TEACHER' || thread.authorRole === 'ADMIN';
-
-                return (
-                  <div
-                    key={thread.id}
-                    onClick={() => openThreadDetail(thread)}
-                    className={'p-5 bg-white border rounded-3xl shadow-xs transition-all cursor-pointer relative overflow-hidden ' + (
-                      isActive
-                        ? 'border-[#83C75D] ring-2 ring-[#83C75D]/20 shadow-md'
-                        : 'border-slate-200 hover:border-slate-300 hover:shadow-sm'
-                    )}
-                  >
-                    {thread.isPinned && (
-                      <div className="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-black px-3 py-0.5 rounded-bl-xl flex items-center gap-1">
-                        <Pin className="w-3 h-3 fill-white" />
-                        <span>GHIM</span>
-                      </div>
-                    )}
-
-                    <div className="flex items-start justify-between gap-3 mb-2">
+                  {/* Thread Question Section */}
+                  <div className="p-5 sm:p-6 space-y-3">
+                    {/* Header info & Moderation buttons */}
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
                       <div className="flex items-center gap-2 flex-wrap">
+                        {thread.isPinned && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-800 flex items-center gap-1">
+                            <Pin className="w-3 h-3 fill-amber-700 text-amber-700" />
+                            <span>GHIM</span>
+                          </span>
+                        )}
                         {thread.lessonTitle && (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 truncate max-w-[200px]">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#83C75D]/15 text-[#4e8231] truncate max-w-[280px]">
                             {thread.lessonTitle}
                           </span>
                         )}
@@ -509,459 +590,477 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
                           </span>
                         )}
                       </div>
+
+                      {/* Moderation Controls */}
+                      <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                        {isTeacherOrAdmin && (
+                          <>
+                            <button
+                              onClick={() => handleTogglePin(thread)}
+                              title={thread.isPinned ? 'Bỏ ghim' : 'Ghim chủ đề'}
+                              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                                thread.isPinned
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                              }`}
+                            >
+                              <Pin className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleToggleLock(thread)}
+                              title={thread.isLocked ? 'Mở khóa' : 'Khóa chủ đề'}
+                              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                                thread.isLocked
+                                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                  : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                              }`}
+                            >
+                              {thread.isLocked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                            </button>
+                          </>
+                        )}
+                        {(isTeacherOrAdmin || user?.id === thread.authorId) && (
+                          <button
+                            onClick={() => handleDeleteThread(thread.id)}
+                            title="Xóa chủ đề"
+                            className="p-1.5 rounded-lg text-rose-500 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
-                    <h3 className="font-extrabold text-sm text-slate-900 line-clamp-1 mb-1 group-hover:text-[#4e8231] transition-colors">
+                    {/* Question Title */}
+                    <h3 className="font-black text-base text-slate-900 leading-snug">
                       {thread.title}
                     </h3>
-                    <p className="text-xs text-slate-500 line-clamp-2 mb-3">
-                      {thread.content}
-                    </p>
 
-                    <div className="flex items-center justify-between text-xs text-slate-400 border-t border-slate-100 pt-3">
+                    {/* Question Content */}
+                    <div className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                      <MentionBadgeText content={thread.content} candidates={candidates} />
+                    </div>
+
+                    {/* Footer: Author info & Action buttons */}
+                    <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs text-slate-400 flex-wrap">
                       <div className="flex items-center gap-2">
                         <UserAvatar
                           src={thread.authorAvatarUrl}
                           name={thread.authorName}
-                          size="xs"
+                          size="sm"
                           borderColor="border-slate-100"
                         />
-                        <span className="font-semibold text-slate-700 truncate max-w-[120px]">
-                          {thread.authorName || 'Người dùng'}
-                        </span>
-                        {isTeacher && (
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            Giáo viên
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-slate-800 truncate max-w-[150px]">
+                            {thread.authorName || 'Người dùng'}
                           </span>
-                        )}
+                          {isTeacher && (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Giảng viên
+                            </span>
+                          )}
+                          <span className="text-slate-300">•</span>
+                          <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            <span>{formatTime(thread.createdAt)}</span>
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-3 font-medium">
-                        <span className="flex items-center gap-1">
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          <span>{thread.postCount}</span>
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>{formatTime(thread.createdAt)}</span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 pt-4">
-                  <button
-                    disabled={page === 0}
-                    onClick={() => loadThreads(page - 1)}
-                    className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold disabled:opacity-40"
-                  >
-                    Trang trước
-                  </button>
-                  <span className="text-xs text-slate-500">
-                    Trang {page + 1} / {totalPages}
-                  </span>
-                  <button
-                    disabled={page >= totalPages - 1}
-                    onClick={() => loadThreads(page + 1)}
-                    className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold disabled:opacity-40"
-                  >
-                    Trang sau
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Thread Detail Pane (when a thread is selected) */}
-        {activeThread && (
-          <div className="lg:col-span-7 bg-white border border-slate-200 rounded-3xl shadow-sm sticky top-24 self-start max-h-[85vh] overflow-y-auto divide-y divide-slate-100">
-            {/* 1. Question Section (Unified inside same card, no isolated box border) */}
-            <div className="p-5 sm:p-6 space-y-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    {activeThread.isPinned && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-100 text-amber-800 flex items-center gap-1">
-                        <Pin className="w-3 h-3" />
-                        <span>ĐÃ GHIM</span>
-                      </span>
-                    )}
-                    {activeThread.isLocked && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-black bg-rose-100 text-rose-800 flex items-center gap-1">
-                        <Lock className="w-3 h-3" />
-                        <span>ĐÃ KHÓA</span>
-                      </span>
-                    )}
-                    {activeThread.lessonTitle && (
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#83C75D]/15 text-[#4e8231]">
-                        {activeThread.lessonTitle}
-                      </span>
-                    )}
-                  </div>
-                  <h2 className="text-lg font-black text-slate-900">{activeThread.title}</h2>
-                </div>
-
-                <button
-                  onClick={() => setActiveThread(null)}
-                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors shrink-0 cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Author & moderation actions */}
-              <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
-                <div className="flex items-center gap-2">
-                  <UserAvatar
-                    src={activeThread.authorAvatarUrl}
-                    name={activeThread.authorName}
-                    size="sm"
-                    borderColor="border-slate-100"
-                  />
-                  <div>
-                    <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                      <span>{activeThread.authorName}</span>
-                      {activeThread.authorRole === 'TEACHER' && (
-                        <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          Giáo viên
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[11px] text-slate-400">{formatTime(activeThread.createdAt)}</span>
-                  </div>
-                </div>
-
-                {/* Moderation Controls */}
-                <div className="flex items-center gap-2">
-                  {isTeacherOrAdmin && (
-                    <>
-                      <button
-                        onClick={handleTogglePin}
-                        title={activeThread.isPinned ? 'Bỏ ghim' : 'Ghim chủ đề'}
-                        className={'p-2 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1 cursor-pointer ' + (
-                          activeThread.isPinned
-                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                        )}
-                      >
-                        <Pin className="w-3.5 h-3.5" />
-                        <span>{activeThread.isPinned ? 'Bỏ ghim' : 'Ghim'}</span>
-                      </button>
-
-                      <button
-                        onClick={handleToggleLock}
-                        title={activeThread.isLocked ? 'Mở khóa' : 'Khóa chủ đề'}
-                        className={'p-2 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1 cursor-pointer ' + (
-                          activeThread.isLocked
-                            ? 'bg-rose-50 text-rose-700 border-rose-200'
-                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                        )}
-                      >
-                        {activeThread.isLocked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-                        <span>{activeThread.isLocked ? 'Mở khóa' : 'Khóa'}</span>
-                      </button>
-                    </>
-                  )}
-
-                  {(isTeacherOrAdmin || user?.id === activeThread.authorId) && (
-                    <button
-                      onClick={() => handleDeleteThread(activeThread.id)}
-                      title="Xóa chủ đề"
-                      className="p-2 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Main Question Body (Clean, no inner border box) */}
-              <div className="pt-1 text-xs sm:text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">
-                <MentionBadgeText content={activeThread.content} candidates={candidates} />
-              </div>
-
-              {/* Question Reply Action */}
-              {!activeThread.isLocked && (isEnrolled || isTeacherOrAdmin) && (
-                <div className="flex items-center gap-3 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => handleReplyToUser(activeThread.authorId, activeThread.authorName, undefined)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold text-slate-600 hover:text-[#4e8231] hover:bg-[#83C75D]/15 transition-all cursor-pointer"
-                  >
-                    <Reply className="w-3.5 h-3.5" />
-                    <span>Trả lời</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* 2. Replies section (Unified in same card, separated by divide-y) */}
-            <div className="p-5 sm:p-6 space-y-4">
-              <h3 className="font-extrabold text-sm text-slate-900 flex items-center justify-between pb-2 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <CornerDownRight className="w-4 h-4 text-[#83C75D]" />
-                  <span>Phản hồi ({posts.length})</span>
-                </div>
-              </h3>
-
-              {isLoadingPosts ? (
-                <div className="p-8 text-center">
-                  <Loader2 className="w-6 h-6 text-[#83C75D] animate-spin mx-auto" />
-                </div>
-              ) : posts.length === 0 ? (
-                <div className="p-6 text-center text-xs text-slate-400 py-6">
-                  Chưa có ai phản hồi cho câu hỏi này. Bạn hãy là người đầu tiên trả lời nhé!
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {rootPosts.map((rootPost) => {
-                    const childReplies = childPostsMap.get(rootPost.id) || [];
-                    const isTeacherReply = rootPost.authorRole === 'TEACHER' || rootPost.authorRole === 'ADMIN';
-                    const isAuthor = rootPost.authorId === activeThread.authorId;
-
-                    return (
-                      <div key={rootPost.id} className="space-y-3">
-                        {/* Level 1 Comment */}
-                        <div className="flex items-start gap-3">
-                          <UserAvatar
-                            src={rootPost.authorAvatarUrl}
-                            name={rootPost.authorName}
-                            size="md"
-                            borderColor="border-slate-100"
-                            className="mt-0.5"
-                          />
-
-                          <div className="flex-1 min-w-0">
-                            <div className="bg-slate-50 hover:bg-slate-100/70 transition-colors rounded-2xl p-3 border border-slate-100 inline-block max-w-full">
-                              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <span className="text-xs font-bold text-slate-900">{rootPost.authorName}</span>
-                                {isTeacherReply && (
-                                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    Giảng viên
-                                  </span>
-                                )}
-                                {isAuthor && (
-                                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-slate-200/70 text-slate-700">
-                                    Tác giả
-                                  </span>
-                                )}
-                                {rootPost.isAnswer && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[9px] font-bold bg-emerald-600 text-white">
-                                    <CheckCircle2 className="w-2.5 h-2.5" />
-                                    ĐÁP ÁN ĐÚNG
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-                                <MentionBadgeText content={rootPost.content} candidates={candidates} />
-                              </div>
-                            </div>
-
-                            {/* Actions row */}
-                                  <div className="flex items-center gap-3 px-2 pt-1 text-xs text-slate-400">
-                                    <span>{formatTime(rootPost.createdAt)}</span>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleToggleUpvote(rootPost.id)}
-                                      className={`font-semibold hover:underline flex items-center gap-1 cursor-pointer ${
-                                        rootPost.isUpvotedByMe ? 'text-[#4e8231] font-bold' : 'text-slate-500'
-                                      }`}
-                                    >
-                                      <ThumbsUp className={`w-3.5 h-3.5 ${rootPost.isUpvotedByMe ? 'fill-[#4e8231]' : ''}`} />
-                                      <span>{rootPost.upvoteCount > 0 ? rootPost.upvoteCount : 'Thích'}</span>
-                                    </button>
-
-                                    {!activeThread.isLocked && (isEnrolled || isTeacherOrAdmin) && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleReplyToUser(rootPost.authorId, rootPost.authorName, rootPost.id)}
-                                        className="font-bold text-slate-500 hover:text-[#4e8231] hover:underline cursor-pointer"
-                                      >
-                                        Trả lời
-                                      </button>
-                                    )}
-
-                                    {/* Mark accepted answer (Teacher or Thread author) */}
-                                    {(isTeacherOrAdmin || user?.id === activeThread.authorId) && (
-                                      <button
-                                        onClick={() => handleMarkAnswer(rootPost.id)}
-                                        className={'text-[10px] font-bold hover:underline cursor-pointer ' + (
-                                          rootPost.isAnswer ? 'text-emerald-700' : 'text-slate-400 hover:text-emerald-600'
-                                        )}
-                                      >
-                                        {rootPost.isAnswer ? 'Bỏ đáp án đúng' : 'Chọn làm đáp án'}
-                                      </button>
-                                    )}
-
-                                    {(isTeacherOrAdmin || user?.id === rootPost.authorId) && (
-                                      <button
-                                        onClick={() => handleDeletePost(rootPost.id)}
-                                        className="text-slate-400 hover:text-rose-600 text-[10px] font-semibold hover:underline cursor-pointer"
-                                      >
-                                        Xóa
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Level 2 Nested Replies (Indented Facebook style) */}
-                              {childReplies.length > 0 && (
-                                <div className="ml-8 sm:ml-11 pl-3.5 border-l-2 border-slate-200/80 space-y-3 pt-1">
-                                  {childReplies.map((child) => {
-                                    const isChildTeacher = child.authorRole === 'TEACHER' || child.authorRole === 'ADMIN';
-                                    const isChildAuthor = child.authorId === activeThread.authorId;
-
-                                    return (
-                                      <div key={child.id} className="flex items-start gap-2.5">
-                                        <UserAvatar
-                                          src={child.authorAvatarUrl}
-                                          name={child.authorName}
-                                          size="xs"
-                                          borderColor="border-slate-100"
-                                          className="mt-0.5"
-                                        />
-
-                                        <div className="flex-1 min-w-0">
-                                          <div className="bg-slate-50 hover:bg-slate-100/70 transition-colors rounded-2xl p-2.5 border border-slate-100 inline-block max-w-full">
-                                            <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                                              <span className="text-xs font-bold text-slate-900">{child.authorName}</span>
-                                              {isChildTeacher && (
-                                                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                  Giảng viên
-                                                </span>
-                                              )}
-                                              {isChildAuthor && (
-                                                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-slate-200/70 text-slate-700">
-                                                  Tác giả
-                                                </span>
-                                              )}
-                                            </div>
-                                            <div className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-                                              <MentionBadgeText content={child.content} candidates={candidates} />
-                                            </div>
-                                          </div>
-
-                                          {/* Actions row */}
-                                          <div className="flex items-center gap-3 px-2 pt-0.5 text-[11px] text-slate-400">
-                                            <span>{formatTime(child.createdAt)}</span>
-                                            <button
-                                              type="button"
-                                              onClick={() => handleToggleUpvote(child.id)}
-                                              className={`font-semibold hover:underline flex items-center gap-1 cursor-pointer ${
-                                                child.isUpvotedByMe ? 'text-[#4e8231] font-bold' : 'text-slate-500'
-                                              }`}
-                                            >
-                                              <ThumbsUp className={`w-3 h-3 ${child.isUpvotedByMe ? 'fill-[#4e8231]' : ''}`} />
-                                              <span>{child.upvoteCount > 0 ? child.upvoteCount : 'Thích'}</span>
-                                            </button>
-
-                                            {!activeThread.isLocked && (isEnrolled || isTeacherOrAdmin) && (
-                                              <button
-                                                type="button"
-                                                onClick={() => handleReplyToUser(child.authorId, child.authorName, rootPost.id)}
-                                                className="font-bold text-slate-500 hover:text-[#4e8231] hover:underline cursor-pointer"
-                                              >
-                                                Trả lời
-                                              </button>
-                                            )}
-
-                                            {(isTeacherOrAdmin || user?.id === child.authorId) && (
-                                              <button
-                                                onClick={() => handleDeletePost(child.id)}
-                                                className="text-slate-400 hover:text-rose-600 text-[10px] font-semibold hover:underline cursor-pointer"
-                                              >
-                                                Xóa
-                                              </button>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Reply Form (Integrated at bottom of SAME card) */}
-                  {activeThread.isLocked ? (
-                    <div className="p-4 bg-rose-50 border-t border-rose-100 text-xs font-bold text-rose-700 flex items-center justify-center gap-2">
-                      <Lock className="w-4 h-4" />
-                      <span>Chủ đề thảo luận này đã bị khóa phản hồi bởi giảng viên.</span>
-                    </div>
-                  ) : isEnrolled || isTeacherOrAdmin ? (
-                    <form onSubmit={handleSendReply} className="p-4 sm:p-5 bg-slate-50/60 border-t border-slate-100 space-y-3">
-                      {replyingTo && (
-                        <div className="flex items-center justify-between px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-800 animate-in fade-in duration-150">
-                          <div className="flex items-center gap-1.5">
-                            <Reply className="w-3.5 h-3.5 text-[#83C75D]" />
-                            <span>Đang trả lời <strong>@{replyingTo.name}</strong></span>
-                          </div>
+                      {/* Action buttons: Trả lời & Xem thêm phản hồi */}
+                      <div className="flex items-center gap-2">
+                        {!thread.isLocked && (isEnrolled || isTeacherOrAdmin) && (
                           <button
                             type="button"
-                            onClick={handleCancelReplyingTo}
-                            title="Hủy trả lời người này"
-                            className="text-emerald-600 hover:text-emerald-800 p-1 rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer"
+                            onClick={() => handleReplyToThread(thread)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-[#4e8231] hover:bg-[#83C75D]/15 transition-all cursor-pointer"
                           >
-                            <X className="w-3.5 h-3.5" />
+                            <Reply className="w-3.5 h-3.5" />
+                            <span>Trả lời</span>
                           </button>
-                        </div>
-                      )}
-                      <div className="flex items-start gap-3">
-                        <UserAvatar
-                          src={user?.avatarUrl}
-                          name={user?.fullName}
-                          size="md"
-                          className="mt-0.5"
-                        />
-                        <div className="flex-1 relative">
-                          <MentionTextarea
-                            ref={replyInputRef}
-                            rows={3}
-                            value={replyContent}
-                            onChange={setReplyContent}
-                            candidates={candidates}
-                            onMentionedUsersChange={setReplyMentionedIds}
-                            placeholder="Viết câu trả lời hoặc thảo luận của bạn... (Gõ @ để nhắc đến ai đó)"
-                            className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#83C75D] focus:ring-2 focus:ring-[#83C75D]/20 transition-all resize-none"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex justify-end">
+                        )}
+
                         <button
-                          type="submit"
-                          disabled={isSubmittingReply || !replyContent.trim()}
-                          className="px-5 py-2.5 bg-[#83C75D] hover:bg-[#72b44e] text-white rounded-xl text-xs font-bold shadow-md shadow-[#83C75D]/25 transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                          type="button"
+                          onClick={() => toggleThreadReplies(thread.id)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            isExpanded
+                              ? 'bg-[#83C75D]/20 text-[#4e8231]'
+                              : 'bg-slate-100 hover:bg-slate-200/80 text-slate-700'
+                          }`}
                         >
-                          {isSubmittingReply ? (
-                            <>
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              <span>Đang gửi...</span>
-                            </>
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>
+                            {isExpanded
+                              ? 'Thu gọn'
+                              : thread.postCount > 0
+                              ? `Xem thêm (${thread.postCount})`
+                              : 'Xem thêm'}
+                          </span>
+                          {isExpanded ? (
+                            <ChevronUp className="w-3.5 h-3.5" />
                           ) : (
-                            <span>Gửi phản hồi</span>
+                            <ChevronDown className="w-3.5 h-3.5" />
                           )}
                         </button>
                       </div>
-                    </form>
-                  ) : (
-                    <div className="p-4 bg-slate-50 border-t border-slate-100 text-xs text-slate-500 text-center font-semibold">
-                      Chỉ học viên đã tham gia khóa học mới có thể gửi phản hồi.
+                    </div>
+                  </div>
+
+                  {/* INLINE REPLIES SECTION (Directly beneath the question) */}
+                  {isExpanded && (
+                    <div className="border-t border-slate-100 bg-slate-50/50 p-4 sm:p-6 space-y-4 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-200/70">
+                        <div className="flex items-center gap-2 font-black text-xs sm:text-sm text-slate-800">
+                          <CornerDownRight className="w-4 h-4 text-[#83C75D]" />
+                          <span>Phản hồi ({threadPosts.length})</span>
+                        </div>
+                      </div>
+
+                      {isLoadingPosts ? (
+                        <div className="p-6 text-center">
+                          <Loader2 className="w-6 h-6 text-[#83C75D] animate-spin mx-auto mb-1" />
+                          <p className="text-xs text-slate-400">Đang tải phản hồi...</p>
+                        </div>
+                      ) : threadPosts.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-slate-400">
+                          Chưa có phản hồi nào. Hãy là người đầu tiên trả lời nhé!
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {rootPosts.map((rootPost) => {
+                            const childReplies = childPostsMap.get(rootPost.id) || [];
+                            const isTeacherReply =
+                              rootPost.authorRole === 'TEACHER' || rootPost.authorRole === 'ADMIN';
+                            const isAuthor = rootPost.authorId === thread.authorId;
+
+                            return (
+                              <div key={rootPost.id} className="space-y-2.5">
+                                {/* Level 1 Comment */}
+                                <div className="flex items-start gap-2.5">
+                                  <UserAvatar
+                                    src={rootPost.authorAvatarUrl}
+                                    name={rootPost.authorName}
+                                    size="sm"
+                                    borderColor="border-slate-100"
+                                    className="mt-0.5"
+                                  />
+
+                                  <div className="flex-1 min-w-0">
+                                    <div className="bg-white hover:bg-slate-50/80 transition-colors rounded-2xl p-3 border border-slate-200/80 inline-block max-w-full shadow-2xs">
+                                      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                                        <span className="text-xs font-bold text-slate-900">
+                                          {rootPost.authorName}
+                                        </span>
+                                        {isTeacherReply && (
+                                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            Giảng viên
+                                          </span>
+                                        )}
+                                        {isAuthor && (
+                                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-slate-200/70 text-slate-700">
+                                            Tác giả
+                                          </span>
+                                        )}
+                                        {rootPost.isAnswer && (
+                                          <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[9px] font-bold bg-emerald-600 text-white">
+                                            <CheckCircle2 className="w-2.5 h-2.5" />
+                                            ĐÁP ÁN ĐÚNG
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                                        <MentionBadgeText
+                                          content={rootPost.content}
+                                          candidates={candidates}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Action Row */}
+                                    <div className="flex items-center gap-3 px-2 pt-1 text-[11px] text-slate-400">
+                                      <span>{formatTime(rootPost.createdAt)}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleUpvote(thread.id, rootPost.id)}
+                                        className={`font-semibold hover:underline flex items-center gap-1 cursor-pointer ${
+                                          rootPost.isUpvotedByMe ? 'text-[#4e8231] font-bold' : 'text-slate-500'
+                                        }`}
+                                      >
+                                        <ThumbsUp
+                                          className={`w-3 h-3 ${
+                                            rootPost.isUpvotedByMe ? 'fill-[#4e8231]' : ''
+                                          }`}
+                                        />
+                                        <span>
+                                          {rootPost.upvoteCount > 0 ? rootPost.upvoteCount : 'Thích'}
+                                        </span>
+                                      </button>
+
+                                      {!thread.isLocked && (isEnrolled || isTeacherOrAdmin) && (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handleReplyToUser(
+                                              thread.id,
+                                              rootPost.authorId,
+                                              rootPost.authorName,
+                                              rootPost.id
+                                            )
+                                          }
+                                          className="font-bold text-slate-500 hover:text-[#4e8231] hover:underline cursor-pointer"
+                                        >
+                                          Trả lời
+                                        </button>
+                                      )}
+
+                                      {/* Mark accepted answer */}
+                                      {(isTeacherOrAdmin || user?.id === thread.authorId) && (
+                                        <button
+                                          onClick={() => handleMarkAnswer(thread.id, rootPost.id)}
+                                          className={
+                                            'text-[10px] font-bold hover:underline cursor-pointer ' +
+                                            (rootPost.isAnswer
+                                              ? 'text-emerald-700'
+                                              : 'text-slate-400 hover:text-emerald-600')
+                                          }
+                                        >
+                                          {rootPost.isAnswer ? 'Bỏ đáp án đúng' : 'Chọn làm đáp án'}
+                                        </button>
+                                      )}
+
+                                      {(isTeacherOrAdmin || user?.id === rootPost.authorId) && (
+                                        <button
+                                          onClick={() => handleDeletePost(thread.id, rootPost.id)}
+                                          className="text-slate-400 hover:text-rose-600 text-[10px] font-semibold hover:underline cursor-pointer"
+                                        >
+                                          Xóa
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Level 2 Nested Replies */}
+                                {childReplies.length > 0 && (
+                                  <div className="ml-7 sm:ml-10 pl-3.5 border-l-2 border-slate-200/80 space-y-2.5 pt-1">
+                                    {childReplies.map((child) => {
+                                      const isChildTeacher =
+                                        child.authorRole === 'TEACHER' || child.authorRole === 'ADMIN';
+                                      const isChildAuthor = child.authorId === thread.authorId;
+
+                                      return (
+                                        <div key={child.id} className="flex items-start gap-2">
+                                          <UserAvatar
+                                            src={child.authorAvatarUrl}
+                                            name={child.authorName}
+                                            size="xs"
+                                            borderColor="border-slate-100"
+                                            className="mt-0.5"
+                                          />
+
+                                          <div className="flex-1 min-w-0">
+                                            <div className="bg-white hover:bg-slate-50/80 transition-colors rounded-2xl p-2.5 border border-slate-200/80 inline-block max-w-full shadow-2xs">
+                                              <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                                                <span className="text-xs font-bold text-slate-900">
+                                                  {child.authorName}
+                                                </span>
+                                                {isChildTeacher && (
+                                                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                    Giảng viên
+                                                  </span>
+                                                )}
+                                                {isChildAuthor && (
+                                                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-slate-200/70 text-slate-700">
+                                                    Tác giả
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <div className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                                                <MentionBadgeText
+                                                  content={child.content}
+                                                  candidates={candidates}
+                                                />
+                                              </div>
+                                            </div>
+
+                                            {/* Actions row */}
+                                            <div className="flex items-center gap-3 px-2 pt-0.5 text-[11px] text-slate-400">
+                                              <span>{formatTime(child.createdAt)}</span>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleToggleUpvote(thread.id, child.id)}
+                                                className={`font-semibold hover:underline flex items-center gap-1 cursor-pointer ${
+                                                  child.isUpvotedByMe ? 'text-[#4e8231] font-bold' : 'text-slate-500'
+                                                }`}
+                                              >
+                                                <ThumbsUp
+                                                  className={`w-3 h-3 ${
+                                                    child.isUpvotedByMe ? 'fill-[#4e8231]' : ''
+                                                  }`}
+                                                />
+                                                <span>
+                                                  {child.upvoteCount > 0 ? child.upvoteCount : 'Thích'}
+                                                </span>
+                                              </button>
+
+                                              {!thread.isLocked && (isEnrolled || isTeacherOrAdmin) && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    handleReplyToUser(
+                                                      thread.id,
+                                                      child.authorId,
+                                                      child.authorName,
+                                                      rootPost.id
+                                                    )
+                                                  }
+                                                  className="font-bold text-slate-500 hover:text-[#4e8231] hover:underline cursor-pointer"
+                                                >
+                                                  Trả lời
+                                                </button>
+                                              )}
+
+                                              {(isTeacherOrAdmin || user?.id === child.authorId) && (
+                                                <button
+                                                  onClick={() => handleDeletePost(thread.id, child.id)}
+                                                  className="text-slate-400 hover:text-rose-600 text-[10px] font-semibold hover:underline cursor-pointer"
+                                                >
+                                                  Xóa
+                                                </button>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Reply Form inside this thread */}
+                      {thread.isLocked ? (
+                        <div className="p-3 bg-rose-50 border border-rose-100 rounded-2xl text-xs font-bold text-rose-700 flex items-center justify-center gap-2">
+                          <Lock className="w-4 h-4" />
+                          <span>Chủ đề thảo luận này đã bị khóa phản hồi bởi giảng viên.</span>
+                        </div>
+                      ) : isEnrolled || isTeacherOrAdmin ? (
+                        <form
+                          onSubmit={(e) => handleSendReply(e, thread.id)}
+                          className="pt-2 space-y-3"
+                        >
+                          {replyingTo && (
+                            <div className="flex items-center justify-between px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 animate-in fade-in duration-150">
+                              <div className="flex items-center gap-1.5">
+                                <Reply className="w-3.5 h-3.5 text-[#83C75D]" />
+                                <span>
+                                  Đang trả lời <strong>@{replyingTo.name}</strong>
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleCancelReplyingTo(thread.id)}
+                                title="Hủy trả lời người này"
+                                className="text-emerald-600 hover:text-emerald-800 p-0.5 rounded hover:bg-emerald-100 transition-colors cursor-pointer"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+
+                          <div className="flex items-start gap-2.5">
+                            <UserAvatar
+                              src={user?.avatarUrl}
+                              name={user?.fullName}
+                              size="sm"
+                              className="mt-0.5"
+                            />
+                            <div className="flex-1 relative">
+                              <MentionTextarea
+                                ref={(el) => {
+                                  replyInputRefs.current[thread.id] = el;
+                                }}
+                                rows={2}
+                                value={replyContent}
+                                onChange={(val) =>
+                                  setReplyContentByThread((prev) => ({
+                                    ...prev,
+                                    [thread.id]: val,
+                                  }))
+                                }
+                                candidates={candidates}
+                                onMentionedUsersChange={(ids) =>
+                                  setReplyMentionedIdsByThread((prev) => ({
+                                    ...prev,
+                                    [thread.id]: ids,
+                                  }))
+                                }
+                                placeholder="Viết câu trả lời hoặc thảo luận của bạn... (Gõ @ để tag tên)"
+                                className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#83C75D] focus:ring-2 focus:ring-[#83C75D]/20 transition-all resize-none shadow-2xs"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex justify-end">
+                            <button
+                              type="submit"
+                              disabled={isSubmittingReply || !replyContent.trim()}
+                              className="px-4 py-2 bg-[#83C75D] hover:bg-[#72b44e] text-white rounded-xl text-xs font-bold shadow-sm shadow-[#83C75D]/25 transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                            >
+                              {isSubmittingReply ? (
+                                <>
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  <span>Đang gửi...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Reply className="w-3.5 h-3.5" />
+                                  <span>Gửi phản hồi</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="p-3 bg-slate-100/70 border border-slate-200/60 rounded-2xl text-xs text-slate-500 text-center font-medium">
+                          Chỉ học viên đã tham gia khóa học mới có thể gửi phản hồi.
+                        </div>
+                      )}
                     </div>
                   )}
+                </div>
+              );
+            })}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-4">
+                <button
+                  disabled={page === 0}
+                  onClick={() => loadThreads(page - 1)}
+                  className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold disabled:opacity-40 cursor-pointer"
+                >
+                  Trang trước
+                </button>
+                <span className="text-xs text-slate-500">
+                  Trang {page + 1} / {totalPages}
+                </span>
+                <button
+                  disabled={page >= totalPages - 1}
+                  onClick={() => loadThreads(page + 1)}
+                  className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold disabled:opacity-40 cursor-pointer"
+                >
+                  Trang sau
+                </button>
               </div>
             )}
           </div>
+        )}
+      </div>
 
       {/* Create Discussion Thread Modal */}
       {createModalOpen && (
@@ -974,12 +1073,14 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
                 </div>
                 <div>
                   <h3 className="font-black text-slate-900 text-base">Đặt câu hỏi thảo luận mới</h3>
-                  <p className="text-xs text-slate-400">Giảng viên và các bạn học viên sẽ giải đáp câu hỏi của bạn</p>
+                  <p className="text-xs text-slate-400">
+                    Giảng viên và các bạn học viên sẽ giải đáp câu hỏi của bạn
+                  </p>
                 </div>
               </div>
               <button
                 onClick={() => setCreateModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100"
+                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1038,7 +1139,7 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
                 <button
                   type="button"
                   onClick={() => setCreateModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                 >
                   Hủy
                 </button>
