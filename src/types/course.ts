@@ -126,7 +126,9 @@ export interface StudentCourseResponse {
   creatorId?: string | null;
   creatorName?: string | null;
   isOwner?: boolean;
+  owner?: boolean;
   isEnrolled: boolean;
+  enrolled?: boolean;
   enrollmentStatus?: EnrollmentStatus | null;
 }
 

@@ -69,6 +69,10 @@ export interface MarketplaceCourseDetailResponse extends MarketplaceCourseRespon
   reviews: CourseReviewResponse[];
   userReview?: CourseReviewResponse;
   hasAccess: boolean;
+  isEnrolled?: boolean;
+  hasPurchased?: boolean;
+  isOwner?: boolean;
+  enrollmentStatus?: 'ENROLLED' | 'PENDING' | 'REJECTED' | 'COMPLETED' | 'DROPPED' | null;
   totalLessons: number;
   totalDurationSeconds?: number;
   proDiscountPrice?: number;

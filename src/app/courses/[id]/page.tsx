@@ -345,7 +345,12 @@ export default function StudentCourseDetailPage() {
   const originalPrice = marketplaceDetail?.price;
   const hasDiscount = !!(isPaid && marketplaceDetail?.salePrice && marketplaceDetail?.price && marketplaceDetail.salePrice < marketplaceDetail.price);
 
-  const isEnrolled = !isPaid || !!courseProgress || (marketplaceDetail && marketplaceDetail.hasAccess);
+  const isEnrolled =
+    !isPaid ||
+    !!courseProgress ||
+    (marketplaceDetail && (marketplaceDetail.hasAccess || marketplaceDetail.isEnrolled || marketplaceDetail.hasPurchased)) ||
+    Boolean(course?.isEnrolled) ||
+    Boolean((course as any)?.enrolled);
   const isUltraMember = Boolean(isUltra || marketplaceDetail?.isUltraMember);
   const isProMember = Boolean(isPro && !isUltraMember);
   const proDiscountPrice = marketplaceDetail?.proDiscountPrice ?? (isPaid && price > 0 ? Math.round(price * 0.8) : undefined);

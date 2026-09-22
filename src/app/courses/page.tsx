@@ -195,7 +195,7 @@ export default function CoursesCatalogPage() {
         setCourses((prev) =>
           prev.map((c) =>
             c.id === course.id
-              ? { ...c, isEnrolled: false, enrollmentStatus: 'PENDING' }
+              ? { ...c, isEnrolled: false, enrolled: false, enrollmentStatus: 'PENDING' }
               : c
           )
         );
@@ -204,7 +204,7 @@ export default function CoursesCatalogPage() {
         setCourses((prev) =>
           prev.map((c) =>
             c.id === course.id
-              ? { ...c, isEnrolled: true, enrollmentStatus: 'ENROLLED' }
+              ? { ...c, isEnrolled: true, enrolled: true, enrollmentStatus: 'ENROLLED' }
               : c
           )
         );
@@ -404,9 +404,15 @@ export default function CoursesCatalogPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCourses.map((course) => {
-              const isOwner = course.isOwner || (user?.id && course.creatorId === user.id);
+              const isOwner = Boolean(course.isOwner || (course as any).owner || (user?.id && course.creatorId === user.id));
               const isPending = course.enrollmentStatus === 'PENDING';
-              const isEnrolled = course.enrollmentStatus === 'ENROLLED' || (course.isEnrolled && !isPending && !isOwner);
+              const isEnrolled =
+                !isOwner &&
+                !isPending &&
+                (course.enrollmentStatus === 'ENROLLED' ||
+                  course.enrollmentStatus === 'COMPLETED' ||
+                  Boolean(course.isEnrolled) ||
+                  Boolean((course as any).enrolled));
 
               const mItem = marketplaceData[course.id];
               const isPaid = mItem ? mItem.pricingType === 'PAID' : false;
