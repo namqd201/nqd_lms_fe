@@ -17,10 +17,10 @@ export const authService = {
         'Content-Type': 'application/json',
       };
       if (typeof window !== 'undefined') {
-        const sessionId = localStorage.getItem('auth_session_id');
-        if (sessionId) {
-          headers['X-Session-Id'] = sessionId;
-          headers['Authorization'] = `Bearer ${sessionId}`;
+        const token = localStorage.getItem('auth_token') || localStorage.getItem('auth_session_id');
+        if (token) {
+          headers['X-Session-Id'] = token;
+          headers['Authorization'] = `Bearer ${token}`;
         }
       }
 
@@ -51,11 +51,12 @@ export const authService = {
       'Content-Type': 'application/json',
     };
     if (typeof window !== 'undefined') {
-      const sessionId = localStorage.getItem('auth_session_id');
-      if (sessionId) {
-        headers['X-Session-Id'] = sessionId;
-        headers['Authorization'] = `Bearer ${sessionId}`;
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('auth_session_id');
+      if (token) {
+        headers['X-Session-Id'] = token;
+        headers['Authorization'] = `Bearer ${token}`;
       }
+      localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_session_id');
     }
 
