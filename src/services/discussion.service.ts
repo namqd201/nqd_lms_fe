@@ -6,6 +6,7 @@ import {
   CreateDiscussionPostRequest,
   UpdateDiscussionPostRequest,
   DiscussionThreadStatus,
+  ReactionType,
   PageResponse,
   MentionCandidateResponse,
 } from '@/types/discussion';
@@ -115,6 +116,26 @@ export const discussionService = {
       credentials: 'include',
     });
     await handleApiResponse<any>(response, 'Không thể xóa phản hồi');
+  },
+
+  reactToThread: async (courseId: string, threadId: string, type: ReactionType = 'LIKE'): Promise<DiscussionThreadResponse> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/courses/${courseId}/discussions/${threadId}/react?type=${type}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    const res = await handleApiResponse<any>(response, 'Lỗi thao tác thả cảm xúc');
+    return res.data ?? res;
+  },
+
+  reactToPost: async (courseId: string, threadId: string, postId: string, type: ReactionType = 'LIKE'): Promise<DiscussionPostResponse> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/courses/${courseId}/discussions/${threadId}/posts/${postId}/react?type=${type}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    const res = await handleApiResponse<any>(response, 'Lỗi thao tác thả cảm xúc');
+    return res.data ?? res;
   },
 
   toggleUpvote: async (courseId: string, threadId: string, postId: string): Promise<DiscussionPostResponse> => {

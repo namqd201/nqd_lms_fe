@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { discussionService } from '@/services/discussion.service';
-import { DiscussionThreadResponse, DiscussionPostResponse, MentionCandidateResponse } from '@/types/discussion';
+import { DiscussionThreadResponse, DiscussionPostResponse, MentionCandidateResponse, ReactionType } from '@/types/discussion';
+import { FacebookReactionButton, ReactionSummaryBadge } from './FacebookReactions';
 import { MentionTextarea } from './MentionTextarea';
 import { MentionBadgeText } from './MentionBadgeText';
 import { UserAvatar } from '../UserAvatar';
@@ -230,6 +231,86 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
     }
   };
 
+  const handleReactToThread = async (threadId: string, type: ReactionType) => {
+    if (!user) {
+      setFeedback('Vui lòng đăng nhập để thả cảm xúc');
+      setTimeout(() => setFeedback(null), 3000);
+      return;
+    }
+
+    setActiveThread((prev) => {
+      if (!prev || prev.id !== threadId) return prev;
+      const isUnreact = prev.myReaction === type;
+      const newReaction = isUnreact ? null : type;
+      const currentCount = prev.reactionCount || 0;
+      const newCount = isUnreact ? Math.max(0, currentCount - 1) : (!prev.myReaction ? currentCount + 1 : currentCount);
+      const newBreakdown = { ...(prev.reactionBreakdown || {}) };
+      if (prev.myReaction && newBreakdown[prev.myReaction]) {
+        newBreakdown[prev.myReaction] = Math.max(0, newBreakdown[prev.myReaction] - 1);
+      }
+      if (!isUnreact) {
+        newBreakdown[type] = (newBreakdown[type] || 0) + 1;
+      }
+      return {
+        ...prev,
+        myReaction: newReaction,
+        reactionCount: newCount,
+        reactionBreakdown: newBreakdown,
+      };
+    });
+
+    try {
+      const updated = await discussionService.reactToThread(courseId, threadId, type);
+      setActiveThread((prev) => (prev && prev.id === threadId ? { ...prev, ...updated } : prev));
+      setThreads((prev) => prev.map((t) => (t.id === threadId ? { ...t, ...updated } : t)));
+    } catch (err: any) {
+      setFeedback(err?.message || 'Lỗi thả cảm xúc');
+      setTimeout(() => setFeedback(null), 3000);
+    }
+  };
+
+  const handleReactToPost = async (postId: string, type: ReactionType) => {
+    if (!activeThread) return;
+    if (!user) {
+      setFeedback('Vui lòng đăng nhập để thả cảm xúc');
+      setTimeout(() => setFeedback(null), 3000);
+      return;
+    }
+
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        const isUnreact = p.myReaction === type;
+        const newReaction = isUnreact ? null : type;
+        const currentCount = p.reactionCount !== undefined ? p.reactionCount : (p.upvoteCount || 0);
+        const newCount = isUnreact ? Math.max(0, currentCount - 1) : (!p.myReaction ? currentCount + 1 : currentCount);
+        const newBreakdown = { ...(p.reactionBreakdown || {}) };
+        if (p.myReaction && newBreakdown[p.myReaction]) {
+          newBreakdown[p.myReaction] = Math.max(0, newBreakdown[p.myReaction] - 1);
+        }
+        if (!isUnreact) {
+          newBreakdown[type] = (newBreakdown[type] || 0) + 1;
+        }
+        return {
+          ...p,
+          myReaction: newReaction,
+          reactionCount: newCount,
+          upvoteCount: newCount,
+          isUpvotedByMe: !isUnreact,
+          reactionBreakdown: newBreakdown,
+        };
+      })
+    );
+
+    try {
+      const updated = await discussionService.reactToPost(courseId, activeThread.id, postId, type);
+      setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, ...updated } : p)));
+    } catch (err: any) {
+      setFeedback(err?.message || 'Lỗi thả cảm xúc');
+      setTimeout(() => setFeedback(null), 3000);
+    }
+  };
+
   const handleUpvote = async (postId: string) => {
     if (!activeThread) return;
     try {
@@ -361,7 +442,15 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
                     </div>
 
                     {/* Question actions */}
-                    <div className="flex items-center gap-3 pt-1 text-[11px] text-slate-500">
+                    <div className="flex items-center gap-2 pt-1 text-[11px] text-slate-500">
+                      <FacebookReactionButton
+                        myReaction={activeThread.myReaction}
+                        reactionCount={activeThread.reactionCount}
+                        reactionBreakdown={activeThread.reactionBreakdown}
+                        onReact={(type) => handleReactToThread(activeThread.id, type)}
+                        size="sm"
+                        showSummaryInline
+                      />
                       {!activeThread.isLocked && (
                         <button
                           type="button"
@@ -429,16 +518,14 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
                                   {/* Actions */}
                                   <div className="flex items-center gap-3 px-1.5 pt-1 text-[11px] text-slate-400">
                                     <span>{new Date(rootPost.createdAt).toLocaleDateString('vi-VN')}</span>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleUpvote(rootPost.id)}
-                                      className={`font-semibold hover:underline flex items-center gap-1 cursor-pointer ${
-                                        rootPost.isUpvotedByMe ? 'text-[#4e8231] font-bold' : 'text-slate-500'
-                                      }`}
-                                    >
-                                      <ThumbsUp className={`w-3 h-3 ${rootPost.isUpvotedByMe ? 'fill-[#4e8231]' : ''}`} />
-                                      <span>{rootPost.upvoteCount > 0 ? rootPost.upvoteCount : 'Thích'}</span>
-                                    </button>
+                                    <FacebookReactionButton
+                                      myReaction={rootPost.myReaction}
+                                      reactionCount={rootPost.reactionCount ?? rootPost.upvoteCount}
+                                      reactionBreakdown={rootPost.reactionBreakdown}
+                                      onReact={(type) => handleReactToPost(rootPost.id, type)}
+                                      size="sm"
+                                      showSummaryInline
+                                    />
                                     {!activeThread.isLocked && (
                                       <button
                                         type="button"
@@ -498,16 +585,14 @@ export const LessonDiscussionDrawer: React.FC<LessonDiscussionDrawerProps> = ({
                                           {/* Actions */}
                                           <div className="flex items-center gap-3 px-1.5 pt-0.5 text-[10px] text-slate-400">
                                             <span>{new Date(child.createdAt).toLocaleDateString('vi-VN')}</span>
-                                            <button
-                                              type="button"
-                                              onClick={() => handleUpvote(child.id)}
-                                              className={`font-semibold hover:underline flex items-center gap-1 cursor-pointer ${
-                                                child.isUpvotedByMe ? 'text-[#4e8231] font-bold' : 'text-slate-500'
-                                              }`}
-                                            >
-                                              <ThumbsUp className={`w-2.5 h-2.5 ${child.isUpvotedByMe ? 'fill-[#4e8231]' : ''}`} />
-                                              <span>{child.upvoteCount > 0 ? child.upvoteCount : 'Thích'}</span>
-                                            </button>
+                                            <FacebookReactionButton
+                                              myReaction={child.myReaction}
+                                              reactionCount={child.reactionCount ?? child.upvoteCount}
+                                              reactionBreakdown={child.reactionBreakdown}
+                                              onReact={(type) => handleReactToPost(child.id, type)}
+                                              size="sm"
+                                              showSummaryInline
+                                            />
                                             {!activeThread.isLocked && (
                                               <button
                                                 type="button"

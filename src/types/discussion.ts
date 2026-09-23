@@ -1,5 +1,7 @@
 export type DiscussionThreadStatus = 'OPEN' | 'RESOLVED' | 'CLOSED';
 
+export type ReactionType = 'LIKE' | 'LOVE' | 'CARE' | 'HAHA' | 'WOW' | 'SAD' | 'ANGRY';
+
 export interface DiscussionThreadResponse {
   id: string;
   courseId: string;
@@ -17,6 +19,9 @@ export interface DiscussionThreadResponse {
   status: DiscussionThreadStatus;
   postCount: number;
   viewCount: number;
+  reactionCount?: number;
+  myReaction?: ReactionType | null;
+  reactionBreakdown?: Record<string, number>;
   createdAt: string;
   updatedAt: string;
 }
@@ -46,6 +51,9 @@ export interface DiscussionPostResponse {
   isAnswer: boolean;
   upvoteCount: number;
   isUpvotedByMe: boolean;
+  reactionCount?: number;
+  myReaction?: ReactionType | null;
+  reactionBreakdown?: Record<string, number>;
   createdAt: string;
   updatedAt: string;
 }
