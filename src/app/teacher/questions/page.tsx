@@ -96,8 +96,11 @@ const SUBJECT_ICONS: Record<string, string> = {
   CHEM: '🧪',
   BIO: '🌿',
   LIT: '📚',
+  VAN: '📚',
   HIST: '🏛️',
+  SU: '🏛️',
   GEO: '🌍',
+  DIA: '🌍',
 };
 
 export default function TeacherQuestionBankPage() {
