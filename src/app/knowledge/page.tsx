@@ -9,6 +9,9 @@ import { courseService } from '@/services/course.service';
 import { SubjectResponse } from '@/types/admin';
 import { StudentCourseResponse, StudentCourseDetailResponse } from '@/types/course';
 import { GRADE_LEVEL_GROUPS, isGradeMatching, getGradeGroup } from '@/constants/gradeLevels';
+import toanLop1Data from '@/data/curriculum/toan_lop_1_course_data.json';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   BookOpen,
   GraduationCap,
@@ -30,6 +33,11 @@ import {
   Sparkles,
   Share2,
   ExternalLink,
+  X,
+  HelpCircle,
+  Check,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 
 const SUBJECT_ICONS: Record<string, string> = {
@@ -143,66 +151,22 @@ function generateStandardCurriculum(subjectName: string, gradeLevel: string) {
 
   if (subjectName.toLowerCase().includes('toán')) {
     if (gradeLevel === 'Lớp 1') {
-      return [
-        {
-          id: 'ch-1',
-          displayOrder: 1,
-          title: 'Chương 1: Cộng trừ phạm vi 100',
-          description: 'Học sinh nắm vững cấu trúc số và các phép tính cộng trừ cơ bản không nhớ và có nhớ trong phạm vi 100.',
-          lessons: [
-            {
-              id: 'les-1',
-              displayOrder: 1,
-              title: 'BÀI 1 — CỘNG TRONG PHẠM VI 100',
-              summary: 'Học sinh biết cách cộng trừ trong phạm vi 100, rèn luyện kỹ năng đặt tính rồi tính.',
-              estimatedMinutes: 45,
-            },
-            {
-              id: 'les-2',
-              displayOrder: 2,
-              title: 'BÀI 2 — TRỪ TRONG PHẠM VI 100',
-              summary: 'Quy tắc trừ số có hai chữ số, giải bài toán có lời văn một phép trừ.',
-              estimatedMinutes: 45,
-            },
-            {
-              id: 'les-3',
-              displayOrder: 3,
-              title: 'BÀI 3 — LUYỆN TẬP CHUNG VẬN DỤNG CỘNG TRỪ',
-              summary: 'Tổng hợp các dạng bài tập tính nhẩm nhanh và toán đố tư duy thực tế.',
-              estimatedMinutes: 40,
-            },
-          ],
-        },
-        {
-          id: 'ch-2',
-          displayOrder: 2,
-          title: 'Chương 2: Hình học cơ bản và Đo lường thời gian',
-          description: 'Nhận biết điểm, đoạn thẳng, hình tam giác, hình tròn, đơn vị đo xăng-ti-mét và xem đồng hồ.',
-          lessons: [
-            {
-              id: 'les-4',
-              displayOrder: 1,
-              title: 'BÀI 1 — ĐIỂM VÀ ĐOẠN THẲNG',
-              summary: 'Cách dùng thước thẳng để đo và vẽ đoạn thẳng có độ dài cho trước.',
-              estimatedMinutes: 35,
-            },
-            {
-              id: 'les-5',
-              displayOrder: 2,
-              title: 'BÀI 2 — ĐƠN VỊ ĐO XĂNG-TI-MÉT (cm)',
-              summary: 'Làm quen với thước kẻ cm, ước lượng độ dài đồ vật xung quanh.',
-              estimatedMinutes: 35,
-            },
-            {
-              id: 'les-6',
-              displayOrder: 3,
-              title: 'BÀI 3 — XEM ĐỒNG HỒ & THỜI KHÓA BIỂU HÀNG NGÀY',
-              summary: 'Xem giờ đúng trên mặt đồng hồ kim, sắp xếp thời gian biểu học tập và vui chơi.',
-              estimatedMinutes: 30,
-            },
-          ],
-        },
-      ];
+      return toanLop1Data.chapters.map((ch: any) => ({
+        id: `ch-toan1-${ch.chapterOrder}`,
+        displayOrder: ch.chapterOrder,
+        title: ch.title,
+        description: ch.description,
+        lessons: ch.lessons.map((les: any) => ({
+          id: `les-toan1-${les.displayOrder}`,
+          displayOrder: les.displayOrder,
+          title: les.title,
+          slug: les.slug,
+          summary: les.summary,
+          theory: les.theory,
+          exercises: les.exercises,
+          estimatedMinutes: les.estimatedMinutes || 40,
+        })),
+      }));
     }
 
     if (isElementary) {
@@ -340,7 +304,20 @@ export default function KnowledgePage() {
 
   // Class Content View states
   const [activeTab, setActiveTab] = useState<'syllabus' | 'discussions' | 'announcements'>('syllabus');
-  const [openChapters, setOpenChapters] = useState<Record<string, boolean>>({ 'ch-1': true, '0': true });
+  const [openChapters, setOpenChapters] = useState<Record<string, boolean>>({ 'ch-toan1-1': true, 'ch-1': true, '0': true });
+
+  // Interactive Lesson Study Modal states
+  const [selectedLessonForStudy, setSelectedLessonForStudy] = useState<any | null>(null);
+  const [studyTab, setStudyTab] = useState<'theory' | 'exercises'>('theory');
+  const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({});
+  const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
+
+  const openLessonStudyModal = (lesson: any) => {
+    setSelectedLessonForStudy(lesson);
+    setStudyTab('theory');
+    setQuizAnswers({});
+    setQuizSubmitted(false);
+  };
 
   // Load initial data
   useEffect(() => {
@@ -716,7 +693,7 @@ export default function KnowledgePage() {
                       onClick={() => {
                         const firstChapter = chapters[0];
                         if (firstChapter && firstChapter.lessons && firstChapter.lessons.length > 0) {
-                          alert(`Bắt đầu học bài: ${firstChapter.lessons[0].title}`);
+                          openLessonStudyModal(firstChapter.lessons[0]);
                         }
                       }}
                       className="w-full py-3.5 rounded-2xl bg-[#83C75D] hover:bg-[#72b44e] text-white font-bold text-xs shadow-md shadow-[#83C75D]/25 transition-all inline-flex items-center justify-center gap-2 transform active:scale-95 cursor-pointer"
@@ -955,23 +932,13 @@ export default function KnowledgePage() {
                                           </span>
                                         )}
 
-                                        {matchingCourse ? (
-                                          <Link
-                                            href={`/courses/${matchingCourse.id}/lessons/${lesson.id}`}
-                                            className="px-3 py-1.5 rounded-xl bg-[#83C75D]/15 text-[#4e8231] text-xs font-bold hover:bg-[#83C75D] hover:text-white transition-all inline-flex items-center gap-1"
-                                          >
-                                            <span>Học bài</span>
-                                            <ChevronRight className="w-3.5 h-3.5" />
-                                          </Link>
-                                        ) : (
-                                          <button
-                                            onClick={() => alert(`Xem bài học: ${lesson.title}`)}
-                                            className="px-3 py-1.5 rounded-xl bg-[#83C75D]/15 text-[#4e8231] text-xs font-bold hover:bg-[#83C75D] hover:text-white transition-all inline-flex items-center gap-1 cursor-pointer"
-                                          >
-                                            <span>Học bài</span>
-                                            <ChevronRight className="w-3.5 h-3.5" />
-                                          </button>
-                                        )}
+                                        <button
+                                          onClick={() => openLessonStudyModal(lesson)}
+                                          className="px-3 py-1.5 rounded-xl bg-[#83C75D]/15 text-[#4e8231] text-xs font-bold hover:bg-[#83C75D] hover:text-white transition-all inline-flex items-center gap-1 cursor-pointer"
+                                        >
+                                          <span>Học bài</span>
+                                          <ChevronRight className="w-3.5 h-3.5" />
+                                        </button>
                                       </div>
                                     </div>
                                   );
@@ -1018,6 +985,303 @@ export default function KnowledgePage() {
                 </p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* INTERACTIVE LESSON STUDY MODAL (Theory + 3-Question Practice Quiz)       */}
+        {/* ========================================================================= */}
+        {selectedLessonForStudy && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
+              {/* Modal Header */}
+              <div className="p-4 sm:p-6 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-between gap-4 shrink-0">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-11 h-11 rounded-2xl bg-[#83C75D] text-white flex items-center justify-center font-bold text-xl shadow-md shadow-[#83C75D]/20 shrink-0">
+                    📐
+                  </div>
+                  <div className="truncate">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#83C75D] bg-[#83C75D]/20 border border-[#83C75D]/30 px-2.5 py-0.5 rounded-full">
+                        {selectedGradeLevel || 'Lớp 1'} • {activeSubject?.name || 'Toán Học'}
+                      </span>
+                      <span className="text-xs text-slate-300 flex items-center gap-1 font-medium">
+                        <Clock className="w-3.5 h-3.5 text-[#83C75D]" />
+                        <span>{selectedLessonForStudy.estimatedMinutes || 40} phút</span>
+                      </span>
+                    </div>
+                    <h2 className="text-base sm:text-lg font-extrabold text-white mt-1 truncate">
+                      {selectedLessonForStudy.title}
+                    </h2>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedLessonForStudy(null)}
+                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer shrink-0"
+                  title="Đóng cửa sổ"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Tabs */}
+              <div className="flex items-center gap-2 px-6 pt-3 border-b border-slate-200 bg-slate-50 shrink-0">
+                <button
+                  onClick={() => setStudyTab('theory')}
+                  className={`pb-3 px-3 text-xs sm:text-sm font-bold border-b-2 flex items-center gap-2 transition cursor-pointer ${
+                    studyTab === 'theory'
+                      ? 'border-[#83C75D] text-[#4e8231]'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>Lý thuyết bài học</span>
+                </button>
+
+                <button
+                  onClick={() => setStudyTab('exercises')}
+                  className={`pb-3 px-3 text-xs sm:text-sm font-bold border-b-2 flex items-center gap-2 transition cursor-pointer ${
+                    studyTab === 'exercises'
+                      ? 'border-[#83C75D] text-[#4e8231]'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <ListChecks className="w-4 h-4" />
+                  <span>Bài tập củng cố (3 câu)</span>
+                  {selectedLessonForStudy.exercises && (
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-[#83C75D]/20 text-[#4e8231]">
+                      {selectedLessonForStudy.exercises.length} câu
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6">
+                {studyTab === 'theory' && (
+                  <div className="space-y-4">
+                    {selectedLessonForStudy.summary && (
+                      <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-amber-900 text-xs sm:text-sm font-medium flex items-start gap-3">
+                        <Sparkles className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold">Mục tiêu bài học: </span>
+                          <span>{selectedLessonForStudy.summary}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="prose prose-slate max-w-none text-slate-800 text-sm sm:text-base leading-relaxed space-y-3 bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-2xs">
+                      {selectedLessonForStudy.theory ? (
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {selectedLessonForStudy.theory}
+                        </ReactMarkdown>
+                      ) : selectedLessonForStudy.content ? (
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {selectedLessonForStudy.content}
+                        </ReactMarkdown>
+                      ) : (
+                        <p className="text-slate-500 italic">
+                          {selectedLessonForStudy.summary || 'Nội dung lý thuyết đang được cập nhật.'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {studyTab === 'exercises' && (
+                  <div className="space-y-6">
+                    {!selectedLessonForStudy.exercises || selectedLessonForStudy.exercises.length === 0 ? (
+                      <div className="text-center py-12 text-slate-400 text-sm">
+                        Bài học này chưa có bài tập trắc nghiệm củng cố.
+                      </div>
+                    ) : (
+                      <>
+                        {/* Exercise Banner */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100">
+                          <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs sm:text-sm">
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                            <span>Em hãy đọc kỹ đề bài và chọn 1 đáp án chính xác nhất nhé!</span>
+                          </div>
+                          {quizSubmitted && (
+                            <div className="px-3 py-1 rounded-full bg-emerald-600 text-white font-extrabold text-xs">
+                              Điểm: {Object.entries(quizAnswers).filter(([idx, ans]) => selectedLessonForStudy.exercises[Number(idx)]?.correct_answer === ans).length} / {selectedLessonForStudy.exercises.length}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Question List */}
+                        <div className="space-y-6">
+                          {selectedLessonForStudy.exercises.map((ex: any, qIdx: number) => {
+                            const chosenAnswer = quizAnswers[qIdx];
+                            const isCorrect = quizSubmitted && chosenAnswer === ex.correct_answer;
+                            const isWrong = quizSubmitted && chosenAnswer && chosenAnswer !== ex.correct_answer;
+
+                            return (
+                              <div
+                                key={qIdx}
+                                className={`p-4 sm:p-6 rounded-2xl border transition-all ${
+                                  quizSubmitted
+                                    ? isCorrect
+                                      ? 'bg-emerald-50/40 border-emerald-300'
+                                      : 'bg-rose-50/40 border-rose-300'
+                                    : 'bg-white border-slate-200 shadow-2xs'
+                                }`}
+                              >
+                                <div className="flex items-start gap-3 mb-4">
+                                  <span className="w-7 h-7 rounded-xl bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center shrink-0">
+                                    {qIdx + 1}
+                                  </span>
+                                  <h4 className="font-extrabold text-slate-900 text-sm sm:text-base leading-snug">
+                                    {ex.question}
+                                  </h4>
+                                </div>
+
+                                {/* Options */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  {ex.options.map((opt: string, optIdx: number) => {
+                                    const optKey = String.fromCharCode(65 + optIdx); // A, B, C, D
+                                    const isSelected = chosenAnswer === optKey;
+                                    const isThisCorrect = quizSubmitted && ex.correct_answer === optKey;
+                                    const isThisSelectedWrong = quizSubmitted && isSelected && !isThisCorrect;
+
+                                    let cardStyle = 'border-slate-200 bg-slate-50/50 hover:bg-slate-100/70 hover:border-slate-300 text-slate-700';
+                                    if (quizSubmitted) {
+                                      if (isThisCorrect) {
+                                        cardStyle = 'border-emerald-500 bg-emerald-100/70 text-emerald-900 font-bold';
+                                      } else if (isThisSelectedWrong) {
+                                        cardStyle = 'border-rose-400 bg-rose-100/70 text-rose-900';
+                                      } else {
+                                        cardStyle = 'border-slate-200 bg-white opacity-60 text-slate-500';
+                                      }
+                                    } else if (isSelected) {
+                                      cardStyle = 'border-[#83C75D] bg-[#83C75D]/15 text-[#4e8231] font-bold shadow-2xs';
+                                    }
+
+                                    return (
+                                      <button
+                                        key={optIdx}
+                                        disabled={quizSubmitted}
+                                        onClick={() => {
+                                          setQuizAnswers((prev) => ({
+                                            ...prev,
+                                            [qIdx]: optKey,
+                                          }));
+                                        }}
+                                        className={`p-3.5 rounded-xl border text-left text-xs sm:text-sm transition-all flex items-center justify-between gap-3 cursor-pointer disabled:cursor-default ${cardStyle}`}
+                                      >
+                                        <span>{opt}</span>
+                                        {quizSubmitted && isThisCorrect && (
+                                          <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                                        )}
+                                        {quizSubmitted && isThisSelectedWrong && (
+                                          <X className="w-4 h-4 text-rose-600 shrink-0" />
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                {/* Explanation Callout when submitted */}
+                                {quizSubmitted && ex.explanation && (
+                                  <div className="mt-4 p-3.5 rounded-xl bg-white border border-slate-200/80 text-xs text-slate-700 space-y-1">
+                                    <div className="flex items-center gap-1.5 font-bold text-amber-700">
+                                      <HelpCircle className="w-3.5 h-3.5" />
+                                      <span>Giải thích chi tiết của Chuyên gia sư phạm:</span>
+                                    </div>
+                                    <p className="leading-relaxed pl-5 text-slate-600">
+                                      {ex.explanation}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Quiz Actions */}
+                        <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-200">
+                          {quizSubmitted ? (
+                            <button
+                              onClick={() => {
+                                setQuizAnswers({});
+                                setQuizSubmitted(false);
+                              }}
+                              className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs flex items-center gap-2 transition cursor-pointer"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                              <span>Làm lại bài tập</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                if (Object.keys(quizAnswers).length < selectedLessonForStudy.exercises.length) {
+                                  alert('Em hãy chọn đáp án cho tất cả 3 câu hỏi trước khi kiểm tra nhé!');
+                                  return;
+                                }
+                                setQuizSubmitted(true);
+                              }}
+                              className="px-6 py-3 rounded-2xl bg-[#83C75D] hover:bg-[#72b44e] text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-md shadow-[#83C75D]/25 transition cursor-pointer"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>Kiểm tra kết quả</span>
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => setStudyTab('theory')}
+                            className="px-4 py-2 rounded-xl text-slate-600 hover:text-slate-900 text-xs font-semibold cursor-pointer"
+                          >
+                            ← Xem lại lý thuyết
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 sm:px-6 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
+                <div className="text-xs text-slate-500">
+                  {studyTab === 'theory' ? (
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <ListChecks className="w-3.5 h-3.5 text-[#83C75D]" />
+                      <span>Sau khi đọc lý thuyết, chuyển sang tab bài tập để làm 3 câu trắc nghiệm nhé!</span>
+                    </span>
+                  ) : (
+                    <span>Luyện tập chăm chỉ để ghi nhớ bài sâu hơn! 🌟</span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {studyTab === 'theory' && selectedLessonForStudy.exercises && selectedLessonForStudy.exercises.length > 0 && (
+                    <button
+                      onClick={() => setStudyTab('exercises')}
+                      className="px-4 py-2 rounded-xl bg-[#83C75D] hover:bg-[#72b44e] text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      <span>Làm bài tập ngay</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {matchingCourse && (
+                    <Link
+                      href={`/courses/${matchingCourse.id}/lessons/${selectedLessonForStudy.id}`}
+                      className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition"
+                    >
+                      <span>Mở phòng học</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => setSelectedLessonForStudy(null)}
+                    className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-xs transition cursor-pointer"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
