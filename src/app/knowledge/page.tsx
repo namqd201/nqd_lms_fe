@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { subjectService } from '@/services/subject.service';
-import { courseService } from '@/services/course.service';
+import { knowledgeService } from '@/services/knowledge.service';
 import { SubjectResponse } from '@/types/admin';
-import { StudentCourseResponse, StudentCourseDetailResponse } from '@/types/course';
+import { KnowledgeCurriculum } from '@/types/knowledge';
 import { GRADE_LEVEL_GROUPS, isGradeMatching, getGradeGroup } from '@/constants/gradeLevels';
 import toanLop1Data from '@/data/curriculum/toan_lop_1_course_data.json';
 import ReactMarkdown from 'react-markdown';
@@ -297,8 +297,8 @@ export default function KnowledgePage() {
 
   // Data states
   const [subjects, setSubjects] = useState<SubjectResponse[]>([]);
-  const [publishedCourses, setPublishedCourses] = useState<StudentCourseResponse[]>([]);
-  const [activeCourseDetail, setActiveCourseDetail] = useState<StudentCourseDetailResponse | null>(null);
+  const [knowledgeCurriculum, setKnowledgeCurriculum] = useState<KnowledgeCurriculum | null>(null);
+  const [isCurriculumLoading, setIsCurriculumLoading] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [subjectSearchQuery, setSubjectSearchQuery] = useState<string>('');
 
@@ -319,24 +319,16 @@ export default function KnowledgePage() {
     setQuizSubmitted(false);
   };
 
-  // Load initial data
+  // Load initial subjects
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchSubjects = async () => {
       setIsLoading(true);
       try {
-        const [subsData, coursesData] = await Promise.all([
-          subjectService.getActiveSubjects().catch(() => []),
-          courseService.getPublishedCourses().catch(() => []),
-        ]);
-
+        const subsData = await subjectService.getActiveSubjects().catch(() => []);
         if (subsData && subsData.length > 0) {
           setSubjects(subsData);
         } else {
           setSubjects(FALLBACK_SUBJECTS);
-        }
-
-        if (coursesData && coursesData.length > 0) {
-          setPublishedCourses(coursesData);
         }
       } catch {
         setSubjects(FALLBACK_SUBJECTS);
@@ -345,7 +337,7 @@ export default function KnowledgePage() {
       }
     };
 
-    fetchData();
+    fetchSubjects();
   }, []);
 
   // Active Subject object
@@ -361,45 +353,25 @@ export default function KnowledgePage() {
     );
   }, [activeSubject, selectedGradeLevel]);
 
-  // Find if there is an exact published course matching this subject & grade
-  const matchingCourse = useMemo(() => {
-    if (!activeSubject || !selectedGradeLevel) return null;
-
-    // Đối với môn Toán Lớp 1 trong Kiến thức cơ bản:
-    // Chỉ liên kết với khóa học chính thức chuẩn GDPT (code: MATH_GRADE_1).
-    // Tuyệt đối không match với các lớp cá nhân thử nghiệm của giáo viên (như TOAN4594 - cô Bình).
-    if (isMathGrade1) {
-      return publishedCourses.find((c) => c.code === 'MATH_GRADE_1') || null;
-    }
-
-    return (
-      publishedCourses.find((c) => {
-        const matchSub =
-          (c.subjectName && c.subjectName.toLowerCase() === activeSubject.name.toLowerCase()) ||
-          c.code?.toLowerCase().includes(activeSubject.code.toLowerCase());
-        const matchGrade = isGradeMatching(c.gradeLevel, selectedGradeLevel);
-        return matchSub && matchGrade;
-      }) || null
-    );
-  }, [activeSubject, selectedGradeLevel, publishedCourses, isMathGrade1]);
-
-  // When selectedGradeLevel changes, attempt to load real course structure if available
+  // Load official standard curriculum from Knowledge Base API (PostgreSQL knowledge_* tables)
   useEffect(() => {
-    if (matchingCourse) {
-      courseService
-        .getStudentCourseStructure(matchingCourse.id)
-        .then((detail) => {
-          setActiveCourseDetail(detail);
-          if (detail.chapters && detail.chapters.length > 0) {
-            setOpenChapters({ [detail.chapters[0].id]: true });
-          }
-        })
-        .catch(() => setActiveCourseDetail(null));
-    } else {
-      setActiveCourseDetail(null);
-      setOpenChapters({ 'ch-toan1-1': true, 'ch-1': true, 'ch-elem-1': true, 'ch-hs-1': true, 'ch-gen-1': true });
+    if (!activeSubject || !selectedGradeLevel) {
+      setKnowledgeCurriculum(null);
+      return;
     }
-  }, [matchingCourse, selectedGradeLevel]);
+
+    setIsCurriculumLoading(true);
+    knowledgeService
+      .getCurriculum(activeSubject.code || activeSubject.name, selectedGradeLevel)
+      .then((data) => {
+        setKnowledgeCurriculum(data);
+        if (data && data.chapters && data.chapters.length > 0) {
+          setOpenChapters({ [data.chapters[0].id]: true, 'ch-toan1-1': true, '0': true });
+        }
+      })
+      .catch(() => setKnowledgeCurriculum(null))
+      .finally(() => setIsCurriculumLoading(false));
+  }, [activeSubject, selectedGradeLevel]);
 
   // Toggle chapter accordion
   const toggleChapter = (chapterId: string) => {
@@ -409,22 +381,42 @@ export default function KnowledgePage() {
     }));
   };
 
-  // Compute curriculum chapters: either from real course detail or generated standard
+  // Compute curriculum chapters:
+  // 1. From official Knowledge Base in Database (knowledge_curriculums table)
+  // 2. Or standard fallback for Math 1 (toanLop1Data - 8 chapters, 34 lessons, 102 questions)
+  // 3. Or standard fallback for other subjects/grades
   const chapters = useMemo(() => {
-    // Với môn Toán Lớp 1: Luôn ưu tiên hiển thị trọn vẹn 8 chương, 34 bài học chuẩn Sư phạm
+    if (knowledgeCurriculum && knowledgeCurriculum.chapters && knowledgeCurriculum.chapters.length > 0) {
+      return knowledgeCurriculum.chapters.map((ch) => ({
+        id: ch.id,
+        displayOrder: ch.chapterOrder,
+        title: ch.title,
+        description: ch.description,
+        lessons: (ch.lessons || []).map((les) => ({
+          id: les.id,
+          displayOrder: les.lessonOrder,
+          title: les.title,
+          slug: les.slug,
+          summary: les.summary,
+          theory: les.theoryMarkdown,
+          exercises: (les.questions || []).map((q) => ({
+            question: q.questionText,
+            options: q.options || [],
+            correct_answer: q.correctAnswer,
+            explanation: q.explanation,
+          })),
+          estimatedMinutes: les.estimatedMinutes || 40,
+        })),
+      }));
+    }
+
     if (isMathGrade1) {
-      if (activeCourseDetail && activeCourseDetail.chapters && activeCourseDetail.chapters.length >= 8) {
-        return activeCourseDetail.chapters;
-      }
       return generateStandardCurriculum('Toán Học', 'Lớp 1');
     }
 
-    if (activeCourseDetail && activeCourseDetail.chapters && activeCourseDetail.chapters.length > 0) {
-      return activeCourseDetail.chapters;
-    }
     if (!activeSubject || !selectedGradeLevel) return [];
     return generateStandardCurriculum(activeSubject.name, selectedGradeLevel);
-  }, [activeCourseDetail, activeSubject, selectedGradeLevel, isMathGrade1]);
+  }, [knowledgeCurriculum, activeSubject, selectedGradeLevel, isMathGrade1]);
 
   const totalLessons = useMemo(() => {
     return chapters.reduce((acc, ch) => acc + (ch.lessons ? ch.lessons.length : 0), 0);
@@ -640,7 +632,7 @@ export default function KnowledgePage() {
                   {/* Badges */}
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-slate-100 text-slate-700">
-                      {isMathGrade1 ? 'MATH_GRADE_1' : (matchingCourse?.code || `${activeSubject.code}${selectedGradeLevel.replace(/\D/g, '') || '01'}`)}
+                      {knowledgeCurriculum?.code || (isMathGrade1 ? 'MATH_GRADE_1' : `${activeSubject.code}${selectedGradeLevel.replace(/\D/g, '') || '01'}`)}
                     </span>
                     <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#83C75D]/15 text-[#4e8231] border border-[#83C75D]/30">
                       {activeSubject.name}
@@ -656,15 +648,14 @@ export default function KnowledgePage() {
                   {/* Title & Description */}
                   <div>
                     <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                      {isMathGrade1
+                      {knowledgeCurriculum?.title || (isMathGrade1
                         ? 'Toán 1 — Nền tảng tư duy Toán học Tiểu học'
-                        : (matchingCourse ? matchingCourse.name : `${activeSubject.name} ${selectedGradeLevel} cơ bản`)}
+                        : `${activeSubject.name} ${selectedGradeLevel} cơ bản`)}
                     </h1>
                     <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                      {isMathGrade1
+                      {knowledgeCurriculum?.description || (isMathGrade1
                         ? 'Chương trình chuẩn kiến thức kỹ năng môn Toán Lớp 1 theo định hướng GDPT 2018 (Kết nối tri thức & Cánh diều) gồm 8 chương, 34 bài học và 102 bài tập trắc nghiệm củng cố sinh động.'
-                        : (matchingCourse?.description ||
-                          `Hệ thống kiến thức nền tảng, bài giảng lý thuyết và bài tập rèn luyện kỹ năng cốt lõi dành cho học sinh ${selectedGradeLevel}.`)}
+                        : `Hệ thống kiến thức nền tảng, bài giảng lý thuyết và bài tập rèn luyện kỹ năng cốt lõi dành cho học sinh ${selectedGradeLevel}.`)}
                     </p>
                   </div>
 
@@ -672,12 +663,12 @@ export default function KnowledgePage() {
                   <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-2 text-xs text-slate-500 font-medium">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-[#83C75D]/20 text-[#4e8231] flex items-center justify-center font-bold text-xs">
-                        {isMathGrade1 ? 'N' : (matchingCourse?.creatorName ? matchingCourse.creatorName.charAt(0) : 'T')}
+                        N
                       </div>
                       <span>
                         Giảng viên:{' '}
                         <strong className="text-slate-800">
-                          {isMathGrade1 ? 'Ban chuyên môn Sư phạm NQD-LMS' : (matchingCourse?.creatorName || 'Ban chuyên môn NQD-LMS')}
+                          Ban chuyên môn Sư phạm NQD-LMS (Admin Quản trị)
                         </strong>
                       </span>
                     </div>
@@ -1283,15 +1274,6 @@ export default function KnowledgePage() {
                       <span>Làm bài tập ngay</span>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </button>
-                  )}
-                  {matchingCourse && (
-                    <Link
-                      href={`/courses/${matchingCourse.id}/lessons/${selectedLessonForStudy.id}`}
-                      className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition"
-                    >
-                      <span>Mở phòng học</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </Link>
                   )}
                   <button
                     onClick={() => setSelectedLessonForStudy(null)}
