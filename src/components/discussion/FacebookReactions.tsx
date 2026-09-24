@@ -230,7 +230,7 @@ export const ReactionDock: React.FC<ReactionDockProps> = ({
     <div
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className="absolute bottom-full left-0 mb-2 z-50 flex items-center gap-1 sm:gap-1.5 p-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-full border border-slate-200/90 dark:border-slate-800 shadow-[0_12px_28px_rgba(0,0,0,0.18)] animate-in fade-in zoom-in-95 duration-150 select-none"
+      className="absolute bottom-full left-0 mb-2 z-50 flex items-center gap-1 sm:gap-1.5 p-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-full border border-slate-200/90 dark:border-slate-800 shadow-[0_12px_28px_rgba(0,0,0,0.18)] animate-in fade-in zoom-in-95 duration-150 select-none whitespace-nowrap max-w-none"
       style={{ transformOrigin: 'bottom left' }}
     >
       {REACTION_ORDER.map((type) => {

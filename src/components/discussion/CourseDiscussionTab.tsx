@@ -647,7 +647,7 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
               return (
                 <div
                   key={thread.id}
-                  className={`bg-white border rounded-3xl shadow-xs transition-all overflow-hidden ${
+                  className={`bg-white border rounded-3xl shadow-xs transition-all ${
                     thread.isPinned
                       ? 'border-amber-200 ring-1 ring-amber-200/50'
                       : isExpanded
@@ -656,40 +656,60 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
                   }`}
                 >
                   {/* Thread Question Section */}
-                  <div className="p-5 sm:p-6 space-y-3">
-                    {/* Header info & Moderation buttons */}
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {thread.isPinned && (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-800 flex items-center gap-1">
-                            <Pin className="w-3 h-3 fill-amber-700 text-amber-700" />
-                            <span>GHIM</span>
-                          </span>
-                        )}
-                        {thread.lessonTitle && (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#83C75D]/15 text-[#4e8231] truncate max-w-[280px]">
-                            {thread.lessonTitle}
-                          </span>
-                        )}
-                        {thread.status === 'RESOLVED' ? (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" />
-                            <span>Đã giải quyết</span>
-                          </span>
-                        ) : thread.isLocked ? (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-800 flex items-center gap-1">
-                            <Lock className="w-3 h-3" />
-                            <span>Đã khóa</span>
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-800">
-                            Đang mở
-                          </span>
-                        )}
+                  <div className="p-5 sm:p-6 space-y-3.5">
+                    {/* Header: Author info on Left, Moderation Controls on Right */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <UserAvatar
+                          src={thread.authorAvatarUrl}
+                          name={thread.authorName}
+                          size="md"
+                          borderColor="border-slate-100"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-sm text-slate-900 truncate max-w-[200px]">
+                              {thread.authorName || 'Người dùng'}
+                            </span>
+                            {isTeacher && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                Giảng viên
+                              </span>
+                            )}
+                            {thread.isPinned && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-100 text-amber-800 flex items-center gap-0.5">
+                                <Pin className="w-2.5 h-2.5 fill-amber-700 text-amber-700" />
+                                <span>GHIM</span>
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 flex-wrap mt-0.5">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              <span>{formatTime(thread.createdAt)}</span>
+                            </span>
+                            {thread.lessonTitle && (
+                              <>
+                                <span className="text-slate-300">•</span>
+                                <span className="px-2 py-0.2 rounded-full font-semibold bg-[#83C75D]/15 text-[#4e8231] truncate max-w-[220px]">
+                                  {thread.lessonTitle}
+                                </span>
+                              </>
+                            )}
+                            <span className="text-slate-300">•</span>
+                            {thread.status === 'RESOLVED' ? (
+                              <span className="text-emerald-600 font-bold">Đã giải quyết</span>
+                            ) : thread.isLocked ? (
+                              <span className="text-rose-600 font-bold">Đã khóa</span>
+                            ) : (
+                              <span className="text-blue-600 font-medium">Đang mở</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
                       {/* Moderation Controls */}
-                      <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-400 shrink-0">
                         {isTeacherOrAdmin && (
                           <>
                             <button
@@ -728,14 +748,14 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
                       </div>
                     </div>
 
-                    {/* Question Title */}
-                    <h3 className="font-black text-base text-slate-900 leading-snug">
-                      {thread.title}
-                    </h3>
-
-                    {/* Question Content */}
-                    <div className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-                      <MentionBadgeText content={thread.content} candidates={candidates} />
+                    {/* Question Title & Content */}
+                    <div className="space-y-1.5 pt-1">
+                      <h3 className="font-black text-base text-slate-900 leading-snug">
+                        {thread.title}
+                      </h3>
+                      <div className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                        <MentionBadgeText content={thread.content} candidates={candidates} />
+                      </div>
                     </div>
 
                     {/* Facebook Reaction Summary & Post Count Summary Bar */}
@@ -758,77 +778,50 @@ export const CourseDiscussionTab: React.FC<CourseDiscussionTabProps> = ({
                       </div>
                     )}
 
-                    {/* Footer: Author info & Action buttons */}
-                    <div className="flex items-center justify-between gap-3 pt-2.5 border-t border-slate-100 text-xs text-slate-400 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <UserAvatar
-                          src={thread.authorAvatarUrl}
-                          name={thread.authorName}
-                          size="sm"
-                          borderColor="border-slate-100"
-                        />
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-slate-800 truncate max-w-[150px]">
-                            {thread.authorName || 'Người dùng'}
-                          </span>
-                          {isTeacher && (
-                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              Giảng viên
-                            </span>
-                          )}
-                          <span className="text-slate-300">•</span>
-                          <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            <span>{formatTime(thread.createdAt)}</span>
-                          </span>
-                        </div>
-                      </div>
+                    {/* Action buttons (Directly beneath comment/content, aligned to the LEFT!) */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-100 text-xs text-slate-500 flex-wrap">
+                      <FacebookReactionButton
+                        myReaction={thread.myReaction}
+                        reactionCount={thread.reactionCount}
+                        reactionBreakdown={thread.reactionBreakdown}
+                        onReact={(type) => handleReactToThread(thread.id, type)}
+                        size="sm"
+                      />
 
-                      {/* Action buttons: Facebook Reactions, Trả lời & Xem thêm phản hồi */}
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        <FacebookReactionButton
-                          myReaction={thread.myReaction}
-                          reactionCount={thread.reactionCount}
-                          reactionBreakdown={thread.reactionBreakdown}
-                          onReact={(type) => handleReactToThread(thread.id, type)}
-                          size="sm"
-                        />
-
-                        {!thread.isLocked && (isEnrolled || isTeacherOrAdmin) && (
-                          <button
-                            type="button"
-                            onClick={() => handleReplyToThread(thread)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-[#4e8231] hover:bg-[#83C75D]/15 transition-all cursor-pointer"
-                          >
-                            <Reply className="w-3.5 h-3.5" />
-                            <span>Trả lời</span>
-                          </button>
-                        )}
-
+                      {!thread.isLocked && (isEnrolled || isTeacherOrAdmin) && (
                         <button
                           type="button"
-                          onClick={() => toggleThreadReplies(thread.id)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            isExpanded
-                              ? 'bg-[#83C75D]/20 text-[#4e8231]'
-                              : 'bg-slate-100 hover:bg-slate-200/80 text-slate-700'
-                          }`}
+                          onClick={() => handleReplyToThread(thread)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-[#4e8231] hover:bg-[#83C75D]/15 transition-all cursor-pointer"
                         >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          <span>
-                            {isExpanded
-                              ? 'Thu gọn'
-                              : thread.postCount > 0
-                              ? `Xem thêm (${thread.postCount})`
-                              : 'Xem thêm'}
-                          </span>
-                          {isExpanded ? (
-                            <ChevronUp className="w-3.5 h-3.5" />
-                          ) : (
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          )}
+                          <Reply className="w-3.5 h-3.5" />
+                          <span>Trả lời</span>
                         </button>
-                      </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => toggleThreadReplies(thread.id)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          isExpanded
+                            ? 'bg-[#83C75D]/20 text-[#4e8231]'
+                            : 'bg-slate-100 hover:bg-slate-200/80 text-slate-700'
+                        }`}
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span>
+                          {isExpanded
+                            ? 'Thu gọn'
+                            : thread.postCount > 0
+                            ? `Xem thêm (${thread.postCount})`
+                            : 'Xem thêm'}
+                        </span>
+                        {isExpanded ? (
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        )}
+                      </button>
                     </div>
                   </div>
 
