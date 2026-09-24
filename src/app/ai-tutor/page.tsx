@@ -117,7 +117,7 @@ export default function AiTutorPage() {
         id: 'welcome',
         role: 'ASSISTANT',
         content:
-          '👋 **Xin chào! Mình là NQD AI Tutor.**\n\nMình có thể hỗ trợ bạn giải đáp bài học, hướng dẫn giải bài tập và ôn luyện kiến thức. Bạn cần mình giúp gì hôm nay?',
+          '👋 **Xin chào! Mình là NQD AI Tutor.**\n\nMình có thể hỗ trợ bạn giải đáp bài học, hướng dẫn giải bài tập và ôn luyện kiến thức.\n\n💡 *Mẹo: Đối với các môn Toán học, Vật lý..., mình sẽ hướng dẫn chi tiết từng bước tư duy để bạn tự tìm ra đáp số cuối cùng nhé!* Bạn cần mình giúp gì hôm nay?',
         createdAt: new Date().toISOString(),
       },
     ]);
@@ -708,7 +708,7 @@ export default function AiTutorPage() {
           </div>
 
           <p className="text-[10px] text-slate-400 text-center mt-2">
-            NQD AI Tutor có thể mắc lỗi. Vui lòng kiểm tra lại các thông tin quan trọng. Nhấn Shift + Enter để xuống dòng.
+            NQD AI Tutor hướng dẫn giải chi tiết từng bước cho các môn Toán, Lý để bạn tự thực hiện bước tính cuối. Nhấn Shift + Enter để xuống dòng.
           </p>
         </div>
       </main>

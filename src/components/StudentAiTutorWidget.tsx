@@ -45,7 +45,7 @@ export default function StudentAiTutorWidget() {
     {
       role: 'ASSISTANT',
       content:
-        '👋 Chào bạn! Mình là **NQD AI Tutor** - Gia sư học tập thông minh của bạn. Bạn có thể hỏi bất kỳ bài học nào, hoặc **tải ảnh bài tập / tệp tài liệu** lên để mình giải đáp nhé!',
+        '👋 Chào bạn! Mình là **NQD AI Tutor** - Gia sư học tập thông minh của bạn. Bạn có thể hỏi bất kỳ bài học nào, hoặc **tải ảnh bài tập / tệp tài liệu** lên để mình giải đáp nhé!\n\n💡 *Lưu ý: Đối với các môn Toán học, Vật lý..., mình sẽ hướng dẫn chi tiết từng bước phương pháp để bạn tự thực hiện bước tính cuối và nắm chắc bài học nhé!*',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
