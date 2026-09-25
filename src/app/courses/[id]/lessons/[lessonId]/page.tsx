@@ -208,9 +208,9 @@ export default function LessonReaderPage() {
   };
 
   return (
-    <div className="min-h-full flex-1 flex flex-col bg-slate-50 font-sans">
+    <div className="min-h-full flex-1 flex flex-col bg-white font-sans">
       {/* Top Sticky Header */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 sm:px-6 h-14 flex items-center justify-between shadow-xs">
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 sm:px-6 h-14 flex items-center justify-between shadow-2xs">
         <div className="flex items-center gap-3 truncate">
           <Link
             href={`/courses/${courseId}`}
@@ -231,7 +231,7 @@ export default function LessonReaderPage() {
           {/* Q&A Drawer Toggle Button */}
           <button
             onClick={() => setQaDrawerOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-[#83C75D]/15 text-slate-700 hover:text-[#4e8231] text-xs font-bold transition-all border border-slate-200"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-[#83C75D]/15 text-slate-700 hover:text-[#4e8231] text-xs font-bold transition-all border border-slate-200 cursor-pointer"
             title="Mở bảng hỏi đáp bài học"
           >
             <MessageSquare className="w-3.5 h-3.5 text-[#83C75D]" />
@@ -242,7 +242,7 @@ export default function LessonReaderPage() {
           <button
             onClick={handleToggleComplete}
             disabled={isUpdatingProgress}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer ${
               isCompleted
                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                 : 'bg-white border border-slate-300 hover:border-emerald-500 text-slate-700 hover:text-emerald-700 hover:bg-emerald-50'
@@ -254,7 +254,7 @@ export default function LessonReaderPage() {
 
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
+            className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
             title="Đóng/mở danh mục bài học"
           >
             {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -263,16 +263,16 @@ export default function LessonReaderPage() {
       </header>
 
       {/* Main Container */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Lesson Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-8 max-w-4xl mx-auto w-full space-y-6">
+      <div className="flex-1 flex overflow-hidden min-h-0 bg-white">
+        {/* Lesson Content Area - Seamless Full-Bleed Canvas */}
+        <main className="flex-1 overflow-y-auto w-full min-w-0 bg-white flex flex-col justify-between">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
               <div className="w-10 h-10 border-4 border-[#83C75D]/30 border-t-[#83C75D] rounded-full animate-spin" />
               <p className="text-xs font-medium text-slate-500">Đang tải nội dung bài học...</p>
             </div>
           ) : errorMessage ? (
-            <div className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-12 text-center max-w-lg mx-auto shadow-sm space-y-4">
+            <div className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-12 text-center max-w-lg mx-auto shadow-sm space-y-4 my-auto">
               <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
                 <Lock className="w-8 h-8" />
               </div>
@@ -293,31 +293,28 @@ export default function LessonReaderPage() {
               </div>
             </div>
           ) : lesson ? (
-            <div className="space-y-6 animate-in fade-in">
-              {/* Lesson Title Card - Sticky Header */}
-              <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4 transition-all">
-                <div className="flex items-center gap-3 text-xs text-slate-500">
-                  <span className="px-2.5 py-0.5 rounded-full font-bold bg-[#83C75D]/15 text-[#4e8231]">
-                    Bài {lesson.displayOrder}
-                  </span>
-                  {lesson.estimatedMinutes && (
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>{lesson.estimatedMinutes} phút học</span>
-                    </span>
-                  )}
-                  {isCompleted && (
-                    <span className="flex items-center gap-1 text-emerald-600 font-bold ml-auto">
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Đã học xong</span>
-                    </span>
-                  )}
-                </div>
-
+            <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 lg:px-12 py-8 space-y-8 flex-1">
+              {/* Seamless Integrated Document Header (No Border Box) */}
+              <div className="space-y-5 pb-6 border-b border-slate-100">
+                {/* Meta row: Order, Time, Status & AI Tutor */}
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-                    {lesson.title}
-                  </h1>
+                  <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                    <span className="px-3 py-1 rounded-full font-black tracking-wide bg-[#83C75D]/15 text-[#4e8231] uppercase">
+                      Bài {lesson.displayOrder}
+                    </span>
+                    {lesson.estimatedMinutes && (
+                      <span className="flex items-center gap-1.5 text-xs text-slate-500 font-semibold bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{lesson.estimatedMinutes} phút học</span>
+                      </span>
+                    )}
+                    {isCompleted && (
+                      <span className="flex items-center gap-1.5 text-xs text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Đã học xong</span>
+                      </span>
+                    )}
+                  </div>
 
                   <button
                     onClick={() => {
@@ -334,7 +331,7 @@ export default function LessonReaderPage() {
                         );
                       }
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-2xl text-xs sm:text-sm font-bold shadow-md shadow-indigo-500/20 hover:scale-105 transition-all"
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer"
                     title="Nhờ AI Tutor giải thích bài học này"
                   >
                     <span>🤖</span>
@@ -342,21 +339,30 @@ export default function LessonReaderPage() {
                   </button>
                 </div>
 
+                {/* Lesson Main Heading */}
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-tight">
+                  {lesson.title}
+                </h1>
+
+                {/* Elegant Summary Callout */}
                 {lesson.summary && (
-                  <p className="text-xs sm:text-sm text-slate-600 font-medium bg-slate-50/90 p-3 sm:p-3.5 rounded-2xl border border-slate-100 leading-relaxed">
-                    {lesson.summary}
-                  </p>
+                  <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50/40 border-l-4 border-[#83C75D] text-slate-700 text-sm leading-relaxed space-y-1">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4e8231] block">
+                      Mục tiêu & Tóm tắt bài học
+                    </span>
+                    <p className="font-medium text-slate-700">{lesson.summary}</p>
+                  </div>
                 )}
 
-                {/* Sub Navigation Tabs */}
-                <div className="flex items-center gap-2 pt-2 border-t border-slate-100/90 overflow-x-auto">
+                {/* Modern Underline Tab Bar */}
+                <div className="flex items-center gap-6 sm:gap-8 pt-3 border-b border-slate-200 overflow-x-auto">
                   <button
                     type="button"
                     onClick={() => setActiveTab('content')}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all shrink-0 ${
+                    className={`pb-3 text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer border-b-2 -mb-[2px] shrink-0 ${
                       activeTab === 'content'
-                        ? 'bg-[#83C75D] text-white shadow-md shadow-[#83C75D]/25'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900'
+                        ? 'border-[#83C75D] text-[#4e8231]'
+                        : 'border-transparent text-slate-500 hover:text-slate-900'
                     }`}
                   >
                     <BookOpen className="w-4 h-4" />
@@ -366,67 +372,70 @@ export default function LessonReaderPage() {
                   <button
                     type="button"
                     onClick={() => setActiveTab('video')}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all shrink-0 ${
+                    className={`pb-3 text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer border-b-2 -mb-[2px] shrink-0 ${
                       activeTab === 'video'
-                        ? 'bg-[#83C75D] text-white shadow-md shadow-[#83C75D]/25'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900'
+                        ? 'border-[#83C75D] text-[#4e8231]'
+                        : 'border-transparent text-slate-500 hover:text-slate-900'
                     }`}
                   >
                     <Video className="w-4 h-4" />
-                    <span>Video</span>
+                    <span>Video bài giảng</span>
                     {effectiveVideoUrl && (
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     )}
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setActiveTab('exercises')}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all shrink-0 ${
+                    className={`pb-3 text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer border-b-2 -mb-[2px] shrink-0 ${
                       activeTab === 'exercises'
-                        ? 'bg-[#83C75D] text-white shadow-md shadow-[#83C75D]/25'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900'
+                        ? 'border-[#83C75D] text-[#4e8231]'
+                        : 'border-transparent text-slate-500 hover:text-slate-900'
                     }`}
                   >
                     <Dumbbell className="w-4 h-4" />
-                    <span>Bài tập ({exercises.length})</span>
+                    <span>Bài tập củng cố</span>
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700">
+                      {exercises.length}
+                    </span>
                   </button>
                 </div>
               </div>
 
-              {/* Tab 1: Nội dung */}
+              {/* Tab 1: Nội dung (Seamless Prose, No Outer Card Border) */}
               {activeTab === 'content' && (
-                <div className="space-y-6 animate-in fade-in">
-                  <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm">
+                <div className="space-y-8 animate-in fade-in">
+                  <div className="min-h-[300px]">
                     {lesson.content ? (
                       <MathMarkdownRenderer content={lesson.content} />
                     ) : (
-                      <div className="p-8 text-center text-slate-400">
-                        <BookOpen className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                        <p className="text-xs">Bài học này chưa có nội dung văn bản chi tiết.</p>
+                      <div className="py-16 text-center text-slate-400">
+                        <BookOpen className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+                        <p className="text-sm font-medium">Bài học này chưa có nội dung văn bản chi tiết.</p>
                       </div>
                     )}
                   </div>
 
                   {/* Lesson Attached Resources */}
                   {resources.length > 0 && (
-                    <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
-                      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="pt-8 border-t border-slate-200 space-y-4">
+                      <div className="flex items-center justify-between pb-2">
                         <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
                           <FileText className="w-4 h-4 text-[#83C75D]" />
                           <span>Tài liệu & Học liệu đính kèm ({resources.length})</span>
                         </h3>
-                        <span className="text-[11px] text-slate-400 font-medium">Được cung cấp bởi giảng viên</span>
+                        <span className="text-xs text-slate-400 font-medium">Tài liệu tham khảo chính thức</span>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                         {resources.map((res) => (
                           <a
                             key={res.id}
                             href={res.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-300 transition-all group"
+                            className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200/80 bg-slate-50/60 hover:bg-slate-50 hover:border-slate-300 transition-all group"
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
@@ -451,39 +460,41 @@ export default function LessonReaderPage() {
                 </div>
               )}
 
-              {/* Tab 2: Video */}
+              {/* Tab 2: Video (Seamless Full Canvas) */}
               {activeTab === 'video' && (
-                <div className="animate-in fade-in">
+                <div className="space-y-6 animate-in fade-in">
                   {effectiveVideoUrl ? (
-                    <LessonVideoPlayer
-                      videoUrl={effectiveVideoUrl}
-                      lessonTitle={lesson.title}
-                      videoWatched={Boolean(progress?.videoWatched)}
-                      onVideoComplete={handleMarkVideoWatched}
-                    />
+                    <div className="rounded-2xl overflow-hidden shadow-sm border border-slate-200 bg-black">
+                      <LessonVideoPlayer
+                        videoUrl={effectiveVideoUrl}
+                        lessonTitle={lesson.title}
+                        videoWatched={Boolean(progress?.videoWatched)}
+                        onVideoComplete={handleMarkVideoWatched}
+                      />
+                    </div>
                   ) : (
-                    <div className="bg-white border border-slate-200/80 rounded-3xl p-12 text-center shadow-sm space-y-3">
-                      <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 text-blue-600 flex items-center justify-center mx-auto">
+                    <div className="py-20 text-center space-y-3">
+                      <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-200 text-blue-600 flex items-center justify-center mx-auto">
                         <Video className="w-8 h-8 text-slate-300" />
                       </div>
                       <h4 className="text-base font-bold text-slate-900">Bài học này chưa có video bài giảng</h4>
-                      <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
-                        Giảng viên chưa cập nhật đường dẫn video cho bài học này. Bạn có thể xem lý thuyết ở tab &quot;Nội dung&quot; hoặc làm câu hỏi ở tab &quot;Bài tập&quot;.
+                      <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+                        Giảng viên chưa cập nhật đường dẫn video cho bài học này. Bạn có thể xem lý thuyết ở tab &quot;Nội dung&quot; hoặc làm câu hỏi ở tab &quot;Bài tập củng cố&quot;.
                       </p>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Tab 3: Bài tập */}
+              {/* Tab 3: Bài tập (Clean Borderless Cards) */}
               {activeTab === 'exercises' && (
-                <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4 animate-in fade-in">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="space-y-6 animate-in fade-in">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
                       <Dumbbell className="w-4 h-4 text-indigo-600" />
-                      <span>Bài tập & Luyện tập ({exercises.length})</span>
+                      <span>Danh sách bài tập củng cố ({exercises.length})</span>
                     </h3>
-                    <span className="text-[11px] text-amber-600 font-bold bg-amber-50 px-2.5 py-1 rounded-lg">
+                    <span className="text-[11px] text-amber-700 font-bold bg-amber-50 border border-amber-200/60 px-3 py-1 rounded-full">
                       Yêu cầu đúng 100% để mở khóa bài tiếp
                     </span>
                   </div>
@@ -493,7 +504,7 @@ export default function LessonReaderPage() {
                       {exercises.map((ex) => (
                         <div
                           key={ex.id}
-                          className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-50 hover:border-indigo-300 transition-all flex flex-col justify-between space-y-3"
+                          className="p-4 rounded-2xl border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-3"
                         >
                           <div>
                             <div className="flex items-center justify-between gap-2 mb-1">
@@ -523,7 +534,7 @@ export default function LessonReaderPage() {
                             )}
                           </div>
 
-                          <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-xs text-slate-500">
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
                             <span>{ex.questionCount || 0} câu hỏi</span>
                             <Link
                               href={`/courses/${courseId}/exercises/${ex.id}`}
@@ -537,7 +548,7 @@ export default function LessonReaderPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="p-12 text-center space-y-3">
+                    <div className="py-16 text-center space-y-3">
                       <div className="w-16 h-16 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
                         <Dumbbell className="w-8 h-8" />
                       </div>
@@ -550,18 +561,17 @@ export default function LessonReaderPage() {
                 </div>
               )}
 
-
               {/* Bottom Lesson Navigation */}
-              <div className="flex items-center justify-between gap-4 pt-4 border-t border-slate-200/80">
+              <div className="flex items-center justify-between gap-4 pt-8 mt-12 pb-16 border-t border-slate-200">
                 {prevLesson ? (
                   <Link
                     href={`/courses/${courseId}/lessons/${prevLesson.id}`}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 shadow-sm transition-all"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 shadow-2xs hover:shadow-xs transition-all"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     <div className="text-left hidden sm:block">
                       <p className="text-[10px] text-slate-400 font-semibold">Bài trước</p>
-                      <p className="truncate max-w-[150px]">{prevLesson.title}</p>
+                      <p className="truncate max-w-[160px]">{prevLesson.title}</p>
                     </div>
                   </Link>
                 ) : (
@@ -578,7 +588,7 @@ export default function LessonReaderPage() {
                         <p className="text-[10px] text-slate-400 font-semibold flex items-center justify-end gap-1">
                           <Lock className="w-3 h-3" /> Bài tiếp theo (Đang khóa)
                         </p>
-                        <p className="truncate max-w-[150px] text-slate-500">{nextLesson.title}</p>
+                        <p className="truncate max-w-[160px] text-slate-500">{nextLesson.title}</p>
                       </div>
                       <Lock className="w-4 h-4 text-slate-400 sm:hidden" />
                     </div>
@@ -589,7 +599,7 @@ export default function LessonReaderPage() {
                     >
                       <div className="text-right hidden sm:block">
                         <p className="text-[10px] text-emerald-100 font-semibold">Bài tiếp theo</p>
-                        <p className="truncate max-w-[150px]">{nextLesson.title}</p>
+                        <p className="truncate max-w-[160px]">{nextLesson.title}</p>
                       </div>
                       <ArrowRight className="w-4 h-4" />
                     </Link>
@@ -607,7 +617,7 @@ export default function LessonReaderPage() {
 
         {/* Right Sticky Syllabus & Progress Sidebar */}
         {sidebarOpen && course && (
-          <aside className="w-80 border-l border-slate-200 bg-white overflow-y-auto hidden md:flex flex-col shrink-0 h-[calc(100vh-7.5rem)]">
+          <aside className="w-80 border-l border-slate-200 bg-white overflow-y-auto hidden md:flex flex-col shrink-0 h-full">
             <div className="p-4 border-b border-slate-100 bg-slate-50/50 space-y-3">
               <div>
                 <h2 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">

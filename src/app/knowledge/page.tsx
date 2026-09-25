@@ -12,6 +12,7 @@ import { GRADE_LEVEL_GROUPS, isGradeMatching, getGradeGroup } from '@/constants/
 import toanLop1Data from '@/data/curriculum/toan_lop_1_course_data.json';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { MathMarkdownRenderer } from '@/components/MathMarkdownRenderer';
 import {
   BookOpen,
   GraduationCap,
@@ -1082,17 +1083,13 @@ export default function KnowledgePage() {
                       </div>
                     )}
 
-                    <div className="prose prose-slate max-w-none text-slate-800 text-sm sm:text-base leading-relaxed space-y-3 bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-2xs">
+                    <div className="py-2">
                       {selectedLessonForStudy.theory ? (
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {selectedLessonForStudy.theory}
-                        </ReactMarkdown>
+                        <MathMarkdownRenderer content={selectedLessonForStudy.theory} />
                       ) : selectedLessonForStudy.content ? (
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {selectedLessonForStudy.content}
-                        </ReactMarkdown>
+                        <MathMarkdownRenderer content={selectedLessonForStudy.content} />
                       ) : (
-                        <p className="text-slate-500 italic">
+                        <p className="text-slate-500 italic text-sm">
                           {selectedLessonForStudy.summary || 'Nội dung lý thuyết đang được cập nhật.'}
                         </p>
                       )}
