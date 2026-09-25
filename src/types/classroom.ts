@@ -84,20 +84,31 @@ export interface ClassroomMaterial {
   id: string;
   classroomId: string;
   title: string;
+  chapterTitle?: string;
+  lessonOrder?: number;
   description?: string;
-  materialType: 'PDF' | 'SLIDE' | 'TEXTBOOK' | 'EXAM_PREP' | 'LINK' | 'OTHER' | string;
-  fileUrl: string;
+  content?: string;
+  videoUrl?: string;
+  materialType: 'LESSON' | 'THEORY' | 'PDF' | 'SLIDE' | 'VIDEO' | 'OTHER' | string;
+  fileUrl?: string;
+  attachmentName?: string;
   uploadedById: string;
   uploadedByName: string;
   downloadCount: number;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface CreateMaterialRequest {
   title: string;
+  chapterTitle?: string;
+  lessonOrder?: number;
   description?: string;
+  content?: string;
+  videoUrl?: string;
   materialType?: string;
-  fileUrl: string;
+  fileUrl?: string;
+  attachmentName?: string;
 }
 
 export interface ClassroomAssignment {

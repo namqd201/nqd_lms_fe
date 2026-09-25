@@ -189,7 +189,7 @@ export const classroomService = {
   },
 
   // ==========================================
-  // 1. MATERIALS (TÀI LIỆU)
+  // 1. MATERIALS (BÀI HỌC & BÀI GIẢNG)
   // ==========================================
   getMaterials: async (classroomId: string): Promise<ClassroomMaterial[]> => {
     const response = await fetch(`${API_BASE_URL}/api/v1/classrooms/${classroomId}/materials`, {
@@ -197,7 +197,16 @@ export const classroomService = {
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
     });
-    return handleApiResponse<ClassroomMaterial[]>(response, 'Không thể tải tài liệu học tập');
+    return handleApiResponse<ClassroomMaterial[]>(response, 'Không thể tải danh sách bài học');
+  },
+
+  getMaterialById: async (classroomId: string, materialId: string): Promise<ClassroomMaterial> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/classrooms/${classroomId}/materials/${materialId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    return handleApiResponse<ClassroomMaterial>(response, 'Không thể tải thông tin bài học');
   },
 
   createMaterial: async (classroomId: string, data: CreateMaterialRequest): Promise<ClassroomMaterial> => {
@@ -207,7 +216,17 @@ export const classroomService = {
       credentials: 'include',
       body: JSON.stringify(data),
     });
-    return handleApiResponse<ClassroomMaterial>(response, 'Không thể đăng tài liệu mới');
+    return handleApiResponse<ClassroomMaterial>(response, 'Không thể tạo bài học mới');
+  },
+
+  updateMaterial: async (classroomId: string, materialId: string, data: CreateMaterialRequest): Promise<ClassroomMaterial> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/classrooms/${classroomId}/materials/${materialId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(data),
+    });
+    return handleApiResponse<ClassroomMaterial>(response, 'Không thể cập nhật bài học');
   },
 
   deleteMaterial: async (classroomId: string, materialId: string): Promise<void> => {
@@ -216,7 +235,7 @@ export const classroomService = {
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
     });
-    return handleApiResponse<void>(response, 'Không thể xóa tài liệu');
+    return handleApiResponse<void>(response, 'Không thể xóa bài học');
   },
 
   // ==========================================
