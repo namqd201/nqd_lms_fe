@@ -20,6 +20,7 @@ import {
   Award,
   Dumbbell,
   BookMarked,
+  GraduationCap,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -43,6 +44,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
       href: '/',
       label: 'Trang chủ',
       icon: Home,
+    },
+    {
+      href: '/classrooms',
+      label: 'Lớp học',
+      icon: GraduationCap,
     },
     {
       href: '/courses',

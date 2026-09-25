@@ -219,6 +219,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
                         <span>Khám phá Khóa học</span>
                       </Link>
 
+                      <Link
+                        href="/classrooms"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium transition-colors"
+                      >
+                        <GraduationCap className="w-4 h-4 text-[#4e8231]" />
+                        <span>Lớp học của tôi</span>
+                      </Link>
+
                       {(isTeacher || isAdmin) ? (
                         <>
                           <Link
