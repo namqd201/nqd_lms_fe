@@ -26,6 +26,11 @@ export interface ClassroomResponse {
   currentUserRole: 'TEACHER' | 'STUDENT' | 'NONE';
   currentUserEnrollmentStatus?: ClassEnrollmentStatus;
   coverImageUrl?: string;
+  larkMeetingUrl?: string;
+  meetingId?: string;
+  passcode?: string;
+  meetingNote?: string;
+  isLiveNow?: boolean;
   createdAt: string;
   updatedAt?: string;
 }
@@ -69,5 +74,125 @@ export interface UserSuggestionResponse {
   fullName: string;
   email: string;
   avatarUrl?: string;
-  roles?: string;
+}
+
+// ==========================================
+// CLASSROOM FEATURES TYPES
+// ==========================================
+
+export interface ClassroomMaterial {
+  id: string;
+  classroomId: string;
+  title: string;
+  description?: string;
+  materialType: 'PDF' | 'SLIDE' | 'TEXTBOOK' | 'EXAM_PREP' | 'LINK' | 'OTHER' | string;
+  fileUrl: string;
+  uploadedById: string;
+  uploadedByName: string;
+  downloadCount: number;
+  createdAt: string;
+}
+
+export interface CreateMaterialRequest {
+  title: string;
+  description?: string;
+  materialType?: string;
+  fileUrl: string;
+}
+
+export interface ClassroomAssignment {
+  id: string;
+  classroomId: string;
+  title: string;
+  description?: string;
+  deadline?: string;
+  maxScore: number;
+  attachmentUrl?: string;
+  status: string;
+  assignedById: string;
+  assignedByName: string;
+  createdAt: string;
+}
+
+export interface CreateAssignmentRequest {
+  title: string;
+  description?: string;
+  deadline?: string;
+  maxScore?: number;
+  attachmentUrl?: string;
+}
+
+export interface ClassroomMeeting {
+  classroomId: string;
+  larkMeetingUrl?: string;
+  meetingId?: string;
+  passcode?: string;
+  meetingNote?: string;
+  isLiveNow?: boolean;
+}
+
+export interface UpdateMeetingRequest {
+  larkMeetingUrl?: string;
+  meetingId?: string;
+  passcode?: string;
+  meetingNote?: string;
+  isLiveNow?: boolean;
+}
+
+export interface ClassroomRecordedVideo {
+  id: string;
+  classroomId: string;
+  title: string;
+  videoUrl: string;
+  sessionDate?: string;
+  durationMinutes?: number;
+  description?: string;
+  uploadedById: string;
+  uploadedByName: string;
+  createdAt: string;
+}
+
+export interface CreateRecordedVideoRequest {
+  title: string;
+  videoUrl: string;
+  sessionDate?: string;
+  durationMinutes?: number;
+  description?: string;
+}
+
+export interface ClassroomSchedule {
+  id: string;
+  classroomId: string;
+  dayOfWeek: 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY' | string;
+  startTime: string; // e.g. "19:30"
+  endTime: string; // e.g. "21:00"
+  title: string;
+  roomNote?: string;
+}
+
+export interface CreateScheduleRequest {
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  title: string;
+  roomNote?: string;
+}
+
+export interface ClassroomFile {
+  id: string;
+  classroomId: string;
+  fileName: string;
+  fileUrl: string;
+  fileSize?: number;
+  fileType?: string;
+  uploadedById: string;
+  uploadedByName: string;
+  createdAt: string;
+}
+
+export interface CreateFileRequest {
+  fileName: string;
+  fileUrl: string;
+  fileSize?: number;
+  fileType?: string;
 }
