@@ -15,7 +15,9 @@ import {
   FileCheck,
   RefreshCw,
   Check,
+  Headphones,
 } from 'lucide-react';
+import { ListeningAudioPlayer } from '@/components/ListeningAudioPlayer';
 import { SubjectResponse } from '@/types/admin';
 import { TeacherCourseResponse } from '@/types/course';
 import { QuestionType, QuestionDifficulty } from '@/types/question';
@@ -57,11 +59,32 @@ export const AiExamGeneratorModal: React.FC<AiExamGeneratorModalProps> = ({
   ]);
 
   const [additionalInstructions, setAdditionalInstructions] = useState<string>('');
+  const [isListening, setIsListening] = useState<boolean>(false);
+  const [listeningPassageType, setListeningPassageType] = useState<string>('DIALOGUE');
+  const [maxListeningPlays, setMaxListeningPlays] = useState<number>(2);
+
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isCreatingExam, setIsCreatingExam] = useState<boolean>(false);
   const [jobDetail, setJobDetail] = useState<TeacherAiJobDetailResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Auto-detect English subject
+  const isEnglishSubject = React.useMemo(() => {
+    const currentSubj = subjects.find((s) => s.id === subjectId);
+    return Boolean(
+      currentSubj &&
+        (currentSubj.name.toLowerCase().includes('tiếng anh') ||
+          currentSubj.name.toLowerCase().includes('english') ||
+          currentSubj.code.toLowerCase().includes('eng'))
+    );
+  }, [subjects, subjectId]);
+
+  useEffect(() => {
+    if (isEnglishSubject) {
+      setIsListening(true);
+    }
+  }, [isEnglishSubject]);
 
   useEffect(() => {
     if (subjects.length > 0 && !subjectId) {
@@ -114,6 +137,9 @@ export const AiExamGeneratorModal: React.FC<AiExamGeneratorModalProps> = ({
         totalMarks: totalBlueprintMarks,
         blueprintItems,
         additionalInstructions: additionalInstructions.trim() || undefined,
+        isListening: isListening || undefined,
+        listeningPassageType: isListening ? listeningPassageType : undefined,
+        maxListeningPlays: isListening ? maxListeningPlays : undefined,
       });
 
       setJobDetail(res);
@@ -399,6 +425,67 @@ export const AiExamGeneratorModal: React.FC<AiExamGeneratorModalProps> = ({
                 </div>
               </div>
 
+              {/* Listening Exam Settings */}
+              <div className="p-4 bg-gradient-to-r from-blue-50/80 via-indigo-50/80 to-purple-50/80 border border-indigo-200 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="p-2 rounded-xl bg-indigo-600 text-white shadow-xs">
+                      <Headphones className="w-4 h-4" />
+                    </span>
+                    <div>
+                      <h4 className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                        <span>Đề thi kỹ năng Nghe tiếng Anh (Listening Exam)</span>
+                        {isEnglishSubject && (
+                          <span className="px-2 py-0.5 rounded-full bg-indigo-200/80 text-indigo-800 text-[10px] font-black">
+                            Khuyên dùng cho Tiếng Anh
+                          </span>
+                        )}
+                      </h4>
+                      <p className="text-[11px] text-indigo-700/80">
+                        AI sẽ tự động tạo bài nghe âm thanh tự nhiên và thiết lập số lần nghe tối đa khi học sinh làm bài thi.
+                      </p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={isListening}
+                      onChange={(e) => setIsListening(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                {isListening && (
+                  <div className="pt-2 border-t border-indigo-100 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="block font-bold text-indigo-900 mb-1">Thể loại bài nghe:</label>
+                      <select
+                        value={listeningPassageType}
+                        onChange={(e) => setListeningPassageType(e.target.value)}
+                        className="w-full px-3 py-1.5 rounded-xl border border-indigo-200 bg-white text-indigo-900 text-xs font-bold focus:outline-none"
+                      >
+                        <option value="DIALOGUE">👥 Hội thoại 2 người (Conversations / Interviews)</option>
+                        <option value="MONOLOGUE">📢 Đoạn văn ngắn / Độc thoại (Short Talks / Announcements)</option>
+                        <option value="INTERVIEW">🎙️ Tin tức / Thảo luận (News / Discussions)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-bold text-indigo-900 mb-1">Số lượt nghe tối đa của học sinh:</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={5}
+                        value={maxListeningPlays}
+                        onChange={(e) => setMaxListeningPlays(Number(e.target.value))}
+                        className="w-full px-3 py-1.5 rounded-xl border border-indigo-200 bg-white text-indigo-900 text-xs font-bold focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Additional Instructions */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
@@ -498,6 +585,18 @@ export const AiExamGeneratorModal: React.FC<AiExamGeneratorModalProps> = ({
                         Hợp lệ
                       </span>
                     </div>
+
+                    {/* Listening Audio Player Preview */}
+                    {(q.audioUrl || q.audioScript) && (
+                      <div className="py-1">
+                        <ListeningAudioPlayer
+                          audioUrl={q.audioUrl}
+                          audioScript={q.audioScript}
+                          allowTranscript={true}
+                          title={`Bài nghe câu ${idx + 1}`}
+                        />
+                      </div>
+                    )}
 
                     <p className="text-xs font-bold text-slate-800">{q.content}</p>
 

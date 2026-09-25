@@ -17,6 +17,7 @@ import {
   ListChecks,
 } from 'lucide-react';
 import { MathMarkdownRenderer } from '@/components/MathMarkdownRenderer';
+import { ListeningAudioPlayer } from '@/components/ListeningAudioPlayer';
 
 interface StudentAttemptReviewModalProps {
   reviewData: StudentExamAttemptReviewResponse | null;
@@ -188,6 +189,18 @@ export default function StudentAttemptReviewModal({
                         : `✕ Sai (0 / ${ans.maxMarks}đ)`}
                     </span>
                   </div>
+
+                  {/* Listening Audio Player with Transcript enabled */}
+                  {(ans.audioUrl || ans.audioScript) && (
+                    <div className="py-1">
+                      <ListeningAudioPlayer
+                        audioUrl={ans.audioUrl}
+                        audioScript={ans.audioScript}
+                        allowTranscript={true}
+                        title={`Bài nghe: Câu ${idx + 1}`}
+                      />
+                    </div>
+                  )}
 
                   <div className="text-sm font-bold text-slate-900 leading-relaxed">
                     <MathMarkdownRenderer content={ans.content} />

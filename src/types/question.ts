@@ -65,6 +65,8 @@ export interface TeacherQuestionRequest {
   questionType: QuestionType;
   difficulty: QuestionDifficulty;
   content: string;
+  audioUrl?: string;
+  audioScript?: string;
   explanation?: string;
   defaultMarks?: number;
   status?: QuestionStatus;
@@ -86,6 +88,8 @@ export interface TeacherQuestionResponse {
   questionType: QuestionType;
   difficulty: QuestionDifficulty;
   content: string;
+  audioUrl?: string;
+  audioScript?: string;
   explanation?: string;
   defaultMarks: number;
   status: QuestionStatus;

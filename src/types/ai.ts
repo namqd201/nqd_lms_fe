@@ -25,6 +25,8 @@ export interface TeacherAiGenerateQuestionsRequest {
   numberOfQuestions?: number;
   marksPerQuestion?: number;
   additionalInstructions?: string;
+  isListening?: boolean;
+  listeningPassageType?: string;
 }
 
 export interface ExamBlueprintItemRequest {
@@ -46,6 +48,9 @@ export interface TeacherAiGenerateExamRequest {
   totalMarks?: number;
   blueprintItems?: ExamBlueprintItemRequest[];
   additionalInstructions?: string;
+  isListening?: boolean;
+  listeningPassageType?: string;
+  maxListeningPlays?: number;
 }
 
 export interface TeacherAiGeneratedOptionResponse {
@@ -64,6 +69,8 @@ export interface TeacherAiGeneratedQuestionResponse {
   marks: number;
   explanation?: string;
   tags?: string;
+  audioUrl?: string;
+  audioScript?: string;
   displayOrder: number;
   validationStatus: AiValidationStatus;
   validationFeedback?: string;
@@ -113,6 +120,8 @@ export interface TeacherAiUpdateGeneratedQuestionRequest {
   marks: number;
   explanation?: string;
   tags?: string;
+  audioUrl?: string;
+  audioScript?: string;
   options: GeneratedOptionDraft[];
 }
 

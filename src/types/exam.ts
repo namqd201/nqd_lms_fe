@@ -49,6 +49,9 @@ export interface TeacherExamRequest {
   totalMarks?: number;
   passingMarks?: number;
   maxAttempts?: number;
+  maxListeningPlays?: number;
+  audioUrl?: string;
+  audioScript?: string;
   shuffleQuestions?: boolean;
   shuffleOptions?: boolean;
   enableProctoring?: boolean;
@@ -73,6 +76,9 @@ export interface TeacherExamResponse {
   totalMarks: number;
   passingMarks: number;
   maxAttempts: number;
+  maxListeningPlays?: number;
+  audioUrl?: string;
+  audioScript?: string;
   shuffleQuestions?: boolean;
   shuffleOptions?: boolean;
   enableProctoring?: boolean;
@@ -156,6 +162,7 @@ export interface StudentQuestionTakingResponse {
   difficulty: QuestionDifficulty;
   marks: number;
   displayOrder: number;
+  audioUrl?: string;
   options: StudentOptionTakingResponse[];
 }
 
@@ -170,6 +177,8 @@ export interface StudentExamTakingResponse {
   passingMarks: number;
   attemptNumber: number;
   startedAt: string;
+  audioUrl?: string;
+  maxListeningPlays?: number;
   enableProctoring?: boolean;
   maxViolationCount?: number;
   violationCount?: number;
@@ -262,6 +271,8 @@ export interface TeacherExamAttemptAnswerDetailResponse {
   correctOptionKey?: string;
   correctOptionText?: string;
   explanation?: string;
+  audioUrl?: string;
+  audioScript?: string;
   options: {
     id?: string;
     optionKey: string;
@@ -311,6 +322,8 @@ export interface StudentExamAnswerReviewResponse {
   correctOptionKey?: string;
   correctOptionText?: string;
   explanation?: string;
+  audioUrl?: string;
+  audioScript?: string;
   options: {
     id?: string;
     optionKey: string;
@@ -334,6 +347,9 @@ export interface StudentExamAttemptReviewResponse {
   maxScore?: number;
   percentage?: number;
   passed?: boolean;
+  audioUrl?: string;
+  audioScript?: string;
+  maxListeningPlays?: number;
   answers: StudentExamAnswerReviewResponse[];
 }
 

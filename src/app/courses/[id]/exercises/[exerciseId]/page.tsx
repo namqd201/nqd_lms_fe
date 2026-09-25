@@ -37,6 +37,7 @@ import {
 import { MathMarkdownRenderer } from '@/components/MathMarkdownRenderer';
 import { RichMathEditor } from '@/components/RichMathEditor';
 import { StudentEssayAnswerEditor } from '@/components/StudentEssayAnswerEditor';
+import { ListeningAudioPlayer } from '@/components/ListeningAudioPlayer';
 
 export default function StudentExercisePracticePage() {
   const params = useParams();
@@ -544,6 +545,19 @@ export default function StudentExercisePracticePage() {
                     </button>
                   )}
                 </div>
+
+                {/* Listening Audio Player */}
+                {(currentQuestion.audioUrl || currentQuestion.audioScript) && (
+                  <div className="mb-2">
+                    <ListeningAudioPlayer
+                      key={currentQuestion.questionId}
+                      audioUrl={currentQuestion.audioUrl}
+                      audioScript={currentQuestion.audioScript}
+                      allowTranscript={Boolean(currentResult || attemptResult)}
+                      title={`Bài nghe: Câu ${currentQIndex + 1}`}
+                    />
+                  </div>
+                )}
 
                 {/* Question Content */}
                 <div className="text-base sm:text-lg font-medium text-slate-900 leading-relaxed">

@@ -37,6 +37,7 @@ import {
 import { MathMarkdownRenderer } from '@/components/MathMarkdownRenderer';
 import { RichMathEditor } from '@/components/RichMathEditor';
 import { StudentEssayAnswerEditor } from '@/components/StudentEssayAnswerEditor';
+import { ListeningAudioPlayer } from '@/components/ListeningAudioPlayer';
 
 export default function StudentExamTakingPage() {
   const params = useParams();
@@ -648,6 +649,20 @@ export default function StudentExamTakingPage() {
                     {currentQ.marks} điểm
                   </span>
                 </div>
+
+                {/* Listening Audio Player (Exam mode: audioScript hidden from student) */}
+                {(currentQ.audioUrl || examData.audioUrl) && (
+                  <div className="mb-2">
+                    <ListeningAudioPlayer
+                      key={currentQ.questionId}
+                      audioUrl={currentQ.audioUrl || examData.audioUrl}
+                      audioScript={null}
+                      allowTranscript={false}
+                      maxPlays={examData.maxListeningPlays || 2}
+                      title={`Bài nghe: Câu ${currentQIndex + 1}`}
+                    />
+                  </div>
+                )}
 
                 {/* Content */}
                 <div className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed select-none">

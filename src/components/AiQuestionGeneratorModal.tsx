@@ -17,7 +17,9 @@ import {
   GraduationCap,
   Save,
   Folder,
+  Headphones,
 } from 'lucide-react';
+import { ListeningAudioPlayer } from '@/components/ListeningAudioPlayer';
 import { SubjectResponse } from '@/types/admin';
 import { TeacherCourseResponse, TeacherLessonResponse } from '@/types/course';
 import { QuestionType, QuestionDifficulty, QuestionCategoryResponse } from '@/types/question';
@@ -105,11 +107,30 @@ export const AiQuestionGeneratorModal: React.FC<AiQuestionGeneratorModalProps> =
   const [numberOfQuestions, setNumberOfQuestions] = useState<number>(5);
   const [marksPerQuestion, setMarksPerQuestion] = useState<number>(1);
   const [additionalInstructions, setAdditionalInstructions] = useState<string>('');
+  const [isListening, setIsListening] = useState<boolean>(false);
+  const [listeningPassageType, setListeningPassageType] = useState<string>('DIALOGUE');
 
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [jobDetail, setJobDetail] = useState<TeacherAiJobDetailResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Auto-detect English subject
+  const isEnglishSubject = React.useMemo(() => {
+    const currentSubj = subjects.find((s) => s.id === subjectId);
+    return Boolean(
+      currentSubj &&
+        (currentSubj.name.toLowerCase().includes('tiếng anh') ||
+          currentSubj.name.toLowerCase().includes('english') ||
+          currentSubj.code.toLowerCase().includes('eng'))
+    );
+  }, [subjects, subjectId]);
+
+  useEffect(() => {
+    if (isEnglishSubject) {
+      setIsListening(true);
+    }
+  }, [isEnglishSubject]);
 
   // Edit question state
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
@@ -234,6 +255,8 @@ export const AiQuestionGeneratorModal: React.FC<AiQuestionGeneratorModalProps> =
         numberOfQuestions: typeSelectionMode === 'MIXED' ? undefined : numberOfQuestions,
         marksPerQuestion: typeSelectionMode === 'MIXED' ? undefined : marksPerQuestion,
         additionalInstructions: additionalInstructions.trim() || undefined,
+        isListening: isListening || undefined,
+        listeningPassageType: isListening ? listeningPassageType : undefined,
       });
 
       setJobDetail(res);
@@ -301,6 +324,8 @@ export const AiQuestionGeneratorModal: React.FC<AiQuestionGeneratorModalProps> =
       marks: q.marks,
       explanation: q.explanation || '',
       tags: q.tags || '',
+      audioUrl: q.audioUrl || '',
+      audioScript: q.audioScript || '',
       options: q.options.map((opt) => ({
         optionKey: opt.optionKey,
         optionText: opt.optionText,
@@ -630,6 +655,64 @@ export const AiQuestionGeneratorModal: React.FC<AiQuestionGeneratorModalProps> =
                 </div>
               )}
 
+              {/* Listening Mode Option */}
+              <div className="p-4 bg-gradient-to-r from-blue-50/80 via-indigo-50/80 to-purple-50/80 border border-indigo-200 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="p-2 rounded-xl bg-indigo-600 text-white shadow-xs">
+                      <Headphones className="w-4 h-4" />
+                    </span>
+                    <div>
+                      <h4 className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                        <span>Chế độ bài tập Nghe tiếng Anh (Listening Comprehension)</span>
+                        {isEnglishSubject && (
+                          <span className="px-2 py-0.5 rounded-full bg-indigo-200/80 text-indigo-800 text-[10px] font-black">
+                            Khuyên dùng cho Tiếng Anh
+                          </span>
+                        )}
+                      </h4>
+                      <p className="text-[11px] text-indigo-700/80">
+                        AI sẽ tự động biên soạn kịch bản hội thoại/đoạn đọc tự nhiên và tạo file âm thanh giọng bản xứ.
+                      </p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={isListening}
+                      onChange={(e) => setIsListening(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                {isListening && (
+                  <div className="pt-2 border-t border-indigo-100 flex items-center gap-3 flex-wrap text-xs">
+                    <span className="font-bold text-indigo-900">Thể loại bài nghe:</span>
+                    {[
+                      { type: 'DIALOGUE', label: 'Hội thoại (2 người nói)', icon: '👥' },
+                      { type: 'MONOLOGUE', label: 'Đoạn văn / Thông báo ngắn', icon: '📢' },
+                      { type: 'INTERVIEW', label: 'Phỏng vấn / Tin tức', icon: '🎙️' },
+                    ].map((item) => (
+                      <button
+                        type="button"
+                        key={item.type}
+                        onClick={() => setListeningPassageType(item.type)}
+                        className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                          listeningPassageType === item.type
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                            : 'bg-white text-indigo-800 border-indigo-200 hover:bg-indigo-50'
+                        }`}
+                      >
+                        <span>{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Additional Instructions */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
@@ -901,6 +984,22 @@ export const AiQuestionGeneratorModal: React.FC<AiQuestionGeneratorModalProps> =
                             />
                           </div>
 
+                          {(q.audioScript !== undefined || editForm.audioScript !== undefined) && (
+                            <div>
+                              <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                                <Headphones className="w-3.5 h-3.5 text-indigo-600" />
+                                <span>Kịch bản bài nghe tiếng Anh (Transcript)</span>
+                              </label>
+                              <textarea
+                                rows={3}
+                                value={editForm.audioScript || ''}
+                                onChange={(e) => setEditForm({ ...editForm, audioScript: e.target.value })}
+                                placeholder="Nhập kịch bản hội thoại / đoạn văn đọc tiếng Anh..."
+                                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none"
+                              />
+                            </div>
+                          )}
+
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => setEditingQuestionId(null)}
@@ -919,6 +1018,16 @@ export const AiQuestionGeneratorModal: React.FC<AiQuestionGeneratorModalProps> =
                         </div>
                       ) : (
                         <div className="space-y-3">
+                          {/* Listening Audio Player Preview */}
+                          {(q.audioUrl || q.audioScript) && (
+                            <ListeningAudioPlayer
+                              audioUrl={q.audioUrl}
+                              audioScript={q.audioScript}
+                              allowTranscript={true}
+                              title={`Bài nghe câu ${idx + 1}`}
+                            />
+                          )}
+
                           <div className="text-xs font-bold text-slate-900 leading-relaxed">
                             <MathMarkdownRenderer content={q.content} />
                           </div>
