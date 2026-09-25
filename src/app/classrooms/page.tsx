@@ -88,12 +88,24 @@ export default function ClassroomsPage() {
     setIsLoading(true);
     setErrorMessage(null);
     try {
+      let fetchError: string | null = null;
       const [teachRes, enrolRes, inviteRes, subs] = await Promise.all([
-        classroomService.getTeachingClassrooms().catch(() => []),
-        classroomService.getEnrolledClassrooms().catch(() => []),
+        classroomService.getTeachingClassrooms().catch((err) => {
+          console.error('Lỗi tải danh sách lớp giảng dạy:', err);
+          if (isTeacher) fetchError = err instanceof Error ? err.message : 'Không thể tải danh sách lớp giảng dạy';
+          return [];
+        }),
+        classroomService.getEnrolledClassrooms().catch((err) => {
+          console.error('Lỗi tải danh sách lớp tham gia:', err);
+          return [];
+        }),
         classroomService.getMyInvitations().catch(() => []),
         subjectService.getActiveSubjects().catch(() => []),
       ]);
+
+      if (fetchError) {
+        setErrorMessage(fetchError);
+      }
 
       setTeachingClasses(teachRes);
       setEnrolledClasses(enrolRes);
