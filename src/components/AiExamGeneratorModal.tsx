@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Check,
   Headphones,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { ListeningAudioPlayer } from '@/components/ListeningAudioPlayer';
 import { SubjectResponse } from '@/types/admin';
@@ -27,6 +28,7 @@ import {
 } from '@/types/ai';
 import { aiService } from '@/services/ai.service';
 import { GRADE_LEVEL_GROUPS } from '@/constants/gradeLevels';
+import { MathMarkdownRenderer } from '@/components/MathMarkdownRenderer';
 
 interface AiExamGeneratorModalProps {
   isOpen: boolean;
@@ -62,6 +64,7 @@ export const AiExamGeneratorModal: React.FC<AiExamGeneratorModalProps> = ({
   const [isListening, setIsListening] = useState<boolean>(false);
   const [listeningPassageType, setListeningPassageType] = useState<string>('DIALOGUE');
   const [maxListeningPlays, setMaxListeningPlays] = useState<number>(2);
+  const [includeImages, setIncludeImages] = useState<boolean>(false);
 
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isCreatingExam, setIsCreatingExam] = useState<boolean>(false);
@@ -140,6 +143,7 @@ export const AiExamGeneratorModal: React.FC<AiExamGeneratorModalProps> = ({
         isListening: isListening || undefined,
         listeningPassageType: isListening ? listeningPassageType : undefined,
         maxListeningPlays: isListening ? maxListeningPlays : undefined,
+        includeImages: includeImages || undefined,
       });
 
       setJobDetail(res);
@@ -486,6 +490,37 @@ export const AiExamGeneratorModal: React.FC<AiExamGeneratorModalProps> = ({
                 )}
               </div>
 
+              {/* Educational Image / Diagram Generation Option */}
+              <div className="p-4 bg-gradient-to-r from-emerald-50/80 via-teal-50/80 to-cyan-50/80 border border-emerald-200 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="p-2 rounded-xl bg-emerald-600 text-white shadow-xs">
+                      <ImageIcon className="w-4 h-4" />
+                    </span>
+                    <div>
+                      <h4 className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                        <span>Tạo kèm hình ảnh minh họa cho đề thi (AI Diagram Generator)</span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-800 text-[10px] font-black">
+                          Toán, Lý, Hóa, Sinh, Địa, Anh...
+                        </span>
+                      </h4>
+                      <p className="text-[11px] text-emerald-700/80">
+                        AI tự động vẽ sơ đồ hình học, mạch điện, biểu đồ, cấu tạo tế bào hoặc tranh tình huống tương ứng đúng nội dung câu hỏi.
+                      </p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={includeImages}
+                      onChange={(e) => setIncludeImages(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                  </label>
+                </div>
+              </div>
+
               {/* Additional Instructions */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
@@ -578,6 +613,12 @@ export const AiExamGeneratorModal: React.FC<AiExamGeneratorModalProps> = ({
                         <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 text-[11px] font-bold">
                           {q.marks} điểm
                         </span>
+                        {(q.imageUrl || q.content.includes('![')) && (
+                          <span className="px-2 py-0.5 rounded bg-teal-50 text-teal-800 text-[11px] font-bold border border-teal-200 flex items-center gap-1">
+                            <ImageIcon className="w-3 h-3 text-teal-600" />
+                            Hình minh họa
+                          </span>
+                        )}
                       </div>
 
                       <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center gap-1">
@@ -598,16 +639,18 @@ export const AiExamGeneratorModal: React.FC<AiExamGeneratorModalProps> = ({
                       </div>
                     )}
 
-                    <p className="text-xs font-bold text-slate-800">{q.content}</p>
+                    <div className="text-xs font-bold text-slate-800 leading-relaxed">
+                      <MathMarkdownRenderer content={q.content} />
+                    </div>
 
                     {q.options && q.options.length > 0 && (
                       <div className="pt-1">
                         {q.options.some((o) => o.optionKey === 'ANS') ? (
                           <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs">
-                            <span className="font-bold text-purple-700">💡 Đáp án điền:</span>
-                            <span className="font-extrabold text-emerald-800 text-sm">
-                              {q.options.find((o) => o.optionKey === 'ANS')?.optionText}
-                            </span>
+                            <span className="font-bold text-purple-700 shrink-0">💡 Đáp án điền:</span>
+                            <div className="font-extrabold text-emerald-800 text-sm">
+                              <MathMarkdownRenderer content={q.options.find((o) => o.optionKey === 'ANS')?.optionText || ''} />
+                            </div>
                           </div>
                         ) : (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -620,10 +663,14 @@ export const AiExamGeneratorModal: React.FC<AiExamGeneratorModalProps> = ({
                                     : 'bg-slate-50 border border-slate-100 text-slate-600'
                                 }`}
                               >
-                                <span className="font-bold">{opt.optionKey}.</span>
-                                <span>{opt.optionText}</span>
+                                <span className="font-bold shrink-0">{opt.optionKey}.</span>
+                                <div className="flex-1 min-w-0">
+                                  <MathMarkdownRenderer content={opt.optionText} />
+                                </div>
                                 {opt.isCorrect && (
-                                  <span className="ml-auto text-[10px] text-emerald-700 font-extrabold">✓ Đúng</span>
+                                  <span className="ml-auto text-[10px] text-emerald-700 font-extrabold shrink-0">
+                                    ✓ Đúng
+                                  </span>
                                 )}
                               </div>
                             ))}

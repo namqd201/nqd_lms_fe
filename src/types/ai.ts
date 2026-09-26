@@ -27,6 +27,7 @@ export interface TeacherAiGenerateQuestionsRequest {
   additionalInstructions?: string;
   isListening?: boolean;
   listeningPassageType?: string;
+  includeImages?: boolean;
 }
 
 export interface ExamBlueprintItemRequest {
@@ -51,6 +52,7 @@ export interface TeacherAiGenerateExamRequest {
   isListening?: boolean;
   listeningPassageType?: string;
   maxListeningPlays?: number;
+  includeImages?: boolean;
 }
 
 export interface TeacherAiGeneratedOptionResponse {
@@ -71,6 +73,7 @@ export interface TeacherAiGeneratedQuestionResponse {
   tags?: string;
   audioUrl?: string;
   audioScript?: string;
+  imageUrl?: string;
   displayOrder: number;
   validationStatus: AiValidationStatus;
   validationFeedback?: string;
@@ -122,6 +125,7 @@ export interface TeacherAiUpdateGeneratedQuestionRequest {
   tags?: string;
   audioUrl?: string;
   audioScript?: string;
+  imageUrl?: string;
   options: GeneratedOptionDraft[];
 }
 
