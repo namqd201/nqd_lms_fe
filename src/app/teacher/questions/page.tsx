@@ -59,6 +59,7 @@ import {
   FolderPlus,
   Download,
   Headphones,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { GRADE_LEVEL_GROUPS, isGradeMatching, ALL_GRADES } from '@/constants/gradeLevels';
 import { AiQuestionGeneratorModal } from '@/components/AiQuestionGeneratorModal';
@@ -177,6 +178,7 @@ export default function TeacherQuestionBankPage() {
   const [formTags, setFormTags] = useState<string>('');
   const [formAudioUrl, setFormAudioUrl] = useState<string>('');
   const [formAudioScript, setFormAudioScript] = useState<string>('');
+  const [formImageUrl, setFormImageUrl] = useState<string>('');
   const [formOptions, setFormOptions] = useState<TeacherQuestionOptionDto[]>([
     { optionKey: 'A', optionText: '', isCorrect: true, displayOrder: 1 },
     { optionKey: 'B', optionText: '', isCorrect: false, displayOrder: 2 },
@@ -486,6 +488,7 @@ export default function TeacherQuestionBankPage() {
     setFormExplanation('');
     setFormAudioUrl('');
     setFormAudioScript('');
+    setFormImageUrl('');
     setFormMarks(1);
     setFormStatus('APPROVED');
     setFormTags('');
@@ -518,6 +521,7 @@ export default function TeacherQuestionBankPage() {
     setFormExplanation(q.explanation || '');
     setFormAudioUrl(q.audioUrl || '');
     setFormAudioScript(q.audioScript || '');
+    setFormImageUrl(q.imageUrl || '');
     setFormMarks(q.defaultMarks || 1);
     setFormStatus(q.status);
     setFormTags(q.tags ? q.tags.join(', ') : '');
@@ -585,6 +589,7 @@ export default function TeacherQuestionBankPage() {
         explanation: formExplanation || undefined,
         audioUrl: formAudioUrl ? formAudioUrl.trim() : undefined,
         audioScript: formAudioScript ? formAudioScript.trim() : undefined,
+        imageUrl: formImageUrl ? formImageUrl.trim() : undefined,
         defaultMarks: formMarks,
         status: formStatus,
         tags: tagList,
@@ -1300,6 +1305,13 @@ export default function TeacherQuestionBankPage() {
                                 <span>Bài nghe</span>
                               </span>
                             )}
+                            {/* Image Badge */}
+                            {(q.imageUrl || q.content.includes('![')) && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 font-bold text-[11px] rounded-lg bg-teal-50 text-teal-800 border border-teal-200">
+                                <ImageIcon className="w-3.5 h-3.5 text-teal-600" />
+                                <span>Hình minh họa</span>
+                              </span>
+                            )}
                           </div>
 
                           <div className="flex items-center gap-2">
@@ -1377,6 +1389,21 @@ export default function TeacherQuestionBankPage() {
                         <div className="text-sm font-semibold text-slate-900 leading-relaxed mb-4">
                           <MathMarkdownRenderer content={q.content} />
                         </div>
+
+                        {/* Fallback Image Display */}
+                        {q.imageUrl && !q.content.includes('![') && (
+                          <div className="mb-4 text-center">
+                            <img
+                              src={
+                                q.imageUrl.startsWith('http://') || q.imageUrl.startsWith('https://') || q.imageUrl.startsWith('data:')
+                                  ? q.imageUrl
+                                  : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${q.imageUrl.startsWith('/') ? '' : '/'}${q.imageUrl}`
+                              }
+                              alt="Hình ảnh minh họa đề bài"
+                              className="max-h-64 max-w-full rounded-2xl mx-auto border border-slate-200 shadow-xs object-contain"
+                            />
+                          </div>
+                        )}
 
                         {/* Listening Audio Player if question has listening audio or script */}
                         {(q.audioUrl || q.audioScript) && (
@@ -1883,7 +1910,35 @@ export default function TeacherQuestionBankPage() {
                     </div>
                   </div>
 
-                  {/* Tags */}
+                  {/* Image URL */}
+                  <div className="p-4 bg-teal-50/60 border border-teal-200 rounded-2xl space-y-2.5">
+                    <div className="flex items-center gap-2 text-xs font-bold text-teal-900">
+                      <ImageIcon className="w-4 h-4 text-teal-600" />
+                      <span>Hình ảnh minh họa (Image URL)</span>
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        value={formImageUrl}
+                        onChange={(e) => setFormImageUrl(e.target.value)}
+                        placeholder="Ví dụ: /api/v1/public/media/ai-img-xxx.png hoặc URL ảnh online"
+                        className="w-full p-2.5 bg-white border border-teal-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 font-mono"
+                      />
+                    </div>
+                    {formImageUrl && (
+                      <div className="text-center">
+                        <img
+                          src={
+                            formImageUrl.startsWith('http://') || formImageUrl.startsWith('https://') || formImageUrl.startsWith('data:')
+                              ? formImageUrl
+                              : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${formImageUrl.startsWith('/') ? '' : '/'}${formImageUrl}`
+                          }
+                          alt="Preview hình ảnh"
+                          className="max-h-40 rounded-xl mx-auto border border-slate-200 shadow-xs object-contain"
+                        />
+                      </div>
+                    )}
+                  </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">Thẻ / Từ khóa (phân cách bằng dấu phẩy)</label>
                     <input

@@ -19,6 +19,7 @@ export interface TeacherExerciseQuestionResponse {
   difficulty: string;
   audioUrl?: string;
   audioScript?: string;
+  imageUrl?: string;
   explanation?: string;
   options: TeacherExerciseOptionResponse[];
 }
@@ -116,6 +117,7 @@ export interface StudentExerciseQuestionTakingResponse {
   difficulty: string;
   audioUrl?: string;
   audioScript?: string;
+  imageUrl?: string;
   options: StudentExerciseOptionTakingResponse[];
 }
 
@@ -133,6 +135,7 @@ export interface StudentExerciseQuestionResultResponse {
   aiExplanation?: string;
   audioUrl?: string;
   audioScript?: string;
+  imageUrl?: string;
   answeredAt?: string;
 }
 

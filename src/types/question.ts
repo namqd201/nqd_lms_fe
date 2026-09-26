@@ -67,6 +67,7 @@ export interface TeacherQuestionRequest {
   content: string;
   audioUrl?: string;
   audioScript?: string;
+  imageUrl?: string;
   explanation?: string;
   defaultMarks?: number;
   status?: QuestionStatus;
@@ -90,6 +91,7 @@ export interface TeacherQuestionResponse {
   content: string;
   audioUrl?: string;
   audioScript?: string;
+  imageUrl?: string;
   explanation?: string;
   defaultMarks: number;
   status: QuestionStatus;

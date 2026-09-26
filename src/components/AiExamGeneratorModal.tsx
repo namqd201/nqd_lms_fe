@@ -643,6 +643,20 @@ export const AiExamGeneratorModal: React.FC<AiExamGeneratorModalProps> = ({
                       <MathMarkdownRenderer content={q.content} />
                     </div>
 
+                    {q.imageUrl && !q.content.includes('![') && (
+                      <div className="my-2.5 text-center">
+                        <img
+                          src={
+                            q.imageUrl.startsWith('http://') || q.imageUrl.startsWith('https://') || q.imageUrl.startsWith('data:')
+                              ? q.imageUrl
+                              : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${q.imageUrl.startsWith('/') ? '' : '/'}${q.imageUrl}`
+                          }
+                          alt="Hình ảnh minh họa đề bài"
+                          className="max-h-72 max-w-full rounded-xl mx-auto border border-slate-200 shadow-xs object-contain"
+                        />
+                      </div>
+                    )}
+
                     {q.options && q.options.length > 0 && (
                       <div className="pt-1">
                         {q.options.some((o) => o.optionKey === 'ANS') ? (

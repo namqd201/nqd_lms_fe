@@ -669,6 +669,21 @@ export default function StudentExamTakingPage() {
                   <MathMarkdownRenderer content={currentQ.content} />
                 </div>
 
+                {/* Fallback image rendering */}
+                {currentQ.imageUrl && !currentQ.content.includes('![') && (
+                  <div className="mb-4 text-center">
+                    <img
+                      src={
+                        currentQ.imageUrl.startsWith('http://') || currentQ.imageUrl.startsWith('https://') || currentQ.imageUrl.startsWith('data:')
+                          ? currentQ.imageUrl
+                          : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${currentQ.imageUrl.startsWith('/') ? '' : '/'}${currentQ.imageUrl}`
+                      }
+                      alt="Hình ảnh minh họa đề bài"
+                      className="max-h-64 max-w-full rounded-2xl mx-auto border border-slate-200 shadow-xs object-contain"
+                    />
+                  </div>
+                )}
+
                 {/* Question Options / Inputs */}
                 {(currentQ.questionType === 'MULTIPLE_CHOICE' ||
                   currentQ.questionType === 'TRUE_FALSE') && (

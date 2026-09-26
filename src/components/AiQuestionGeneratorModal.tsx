@@ -1042,6 +1042,33 @@ export const AiQuestionGeneratorModal: React.FC<AiQuestionGeneratorModalProps> =
                             </div>
                           )}
 
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                              <ImageIcon className="w-3.5 h-3.5 text-teal-600" />
+                              <span>Hình ảnh minh họa (Image URL)</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={editForm.imageUrl || ''}
+                              onChange={(e) => setEditForm({ ...editForm, imageUrl: e.target.value })}
+                              placeholder="Ví dụ: /api/v1/public/media/ai-img-xxx.png hoặc URL ảnh online..."
+                              className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium focus:outline-none"
+                            />
+                            {editForm.imageUrl && (
+                              <div className="mt-2 text-center">
+                                <img
+                                  src={
+                                    editForm.imageUrl.startsWith('http://') || editForm.imageUrl.startsWith('https://') || editForm.imageUrl.startsWith('data:')
+                                      ? editForm.imageUrl
+                                      : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${editForm.imageUrl.startsWith('/') ? '' : '/'}${editForm.imageUrl}`
+                                  }
+                                  alt="Preview ảnh"
+                                  className="max-h-40 rounded-xl mx-auto border border-slate-200 shadow-xs object-contain"
+                                />
+                              </div>
+                            )}
+                          </div>
+
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => setEditingQuestionId(null)}
@@ -1073,6 +1100,20 @@ export const AiQuestionGeneratorModal: React.FC<AiQuestionGeneratorModalProps> =
                           <div className="text-xs font-bold text-slate-900 leading-relaxed">
                             <MathMarkdownRenderer content={q.content} />
                           </div>
+
+                          {q.imageUrl && !q.content.includes('![') && (
+                            <div className="my-3 text-center">
+                              <img
+                                src={
+                                  q.imageUrl.startsWith('http://') || q.imageUrl.startsWith('https://') || q.imageUrl.startsWith('data:')
+                                    ? q.imageUrl
+                                    : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${q.imageUrl.startsWith('/') ? '' : '/'}${q.imageUrl}`
+                                }
+                                alt="Hình ảnh minh họa đề bài"
+                                className="max-h-72 max-w-full rounded-2xl mx-auto border border-slate-200 shadow-xs object-contain"
+                              />
+                            </div>
+                          )}
 
                           {/* Options list */}
                           {q.options && q.options.length > 0 && (

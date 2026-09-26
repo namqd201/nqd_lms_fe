@@ -163,6 +163,7 @@ export interface StudentQuestionTakingResponse {
   marks: number;
   displayOrder: number;
   audioUrl?: string;
+  imageUrl?: string;
   options: StudentOptionTakingResponse[];
 }
 
@@ -273,6 +274,7 @@ export interface TeacherExamAttemptAnswerDetailResponse {
   explanation?: string;
   audioUrl?: string;
   audioScript?: string;
+  imageUrl?: string;
   options: {
     id?: string;
     optionKey: string;
@@ -324,6 +326,7 @@ export interface StudentExamAnswerReviewResponse {
   explanation?: string;
   audioUrl?: string;
   audioScript?: string;
+  imageUrl?: string;
   options: {
     id?: string;
     optionKey: string;

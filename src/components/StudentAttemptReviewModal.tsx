@@ -206,6 +206,21 @@ export default function StudentAttemptReviewModal({
                     <MathMarkdownRenderer content={ans.content} />
                   </div>
 
+                  {/* Fallback Image Display */}
+                  {ans.imageUrl && !ans.content.includes('![') && (
+                    <div className="mb-3 text-center">
+                      <img
+                        src={
+                          ans.imageUrl.startsWith('http://') || ans.imageUrl.startsWith('https://') || ans.imageUrl.startsWith('data:')
+                            ? ans.imageUrl
+                            : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${ans.imageUrl.startsWith('/') ? '' : '/'}${ans.imageUrl}`
+                        }
+                        alt="Hình ảnh minh họa đề bài"
+                        className="max-h-64 max-w-full rounded-2xl mx-auto border border-slate-200 shadow-xs object-contain"
+                      />
+                    </div>
+                  )}
+
                   {/* Options List */}
                   {(ans.questionType === 'MULTIPLE_CHOICE' ||
                     ans.questionType === 'TRUE_FALSE') && (

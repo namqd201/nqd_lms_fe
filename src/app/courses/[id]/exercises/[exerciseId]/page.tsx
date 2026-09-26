@@ -564,6 +564,21 @@ export default function StudentExercisePracticePage() {
                   <MathMarkdownRenderer content={currentQuestion.content} />
                 </div>
 
+                {/* Fallback Image Rendering */}
+                {currentQuestion.imageUrl && !currentQuestion.content.includes('![') && (
+                  <div className="mb-4 text-center">
+                    <img
+                      src={
+                        currentQuestion.imageUrl.startsWith('http://') || currentQuestion.imageUrl.startsWith('https://') || currentQuestion.imageUrl.startsWith('data:')
+                          ? currentQuestion.imageUrl
+                          : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${currentQuestion.imageUrl.startsWith('/') ? '' : '/'}${currentQuestion.imageUrl}`
+                      }
+                      alt="Hình ảnh minh họa đề bài"
+                      className="max-h-64 max-w-full rounded-2xl mx-auto border border-slate-200 shadow-xs object-contain"
+                    />
+                  </div>
+                )}
+
                 {/* Options List / Fill-in / Essay Input */}
                 {(() => {
                   const qType = currentQuestion.questionType;
