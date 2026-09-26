@@ -58,10 +58,12 @@ import {
   Folders,
   FolderPlus,
   Download,
+  Headphones,
 } from 'lucide-react';
 import { GRADE_LEVEL_GROUPS, isGradeMatching, ALL_GRADES } from '@/constants/gradeLevels';
 import { AiQuestionGeneratorModal } from '@/components/AiQuestionGeneratorModal';
 import QuestionPaperExportModal from '@/components/QuestionPaperExportModal';
+import { ListeningAudioPlayer } from '@/components/ListeningAudioPlayer';
 
 const QUESTION_TYPES: { type: QuestionType; label: string; desc: string }[] = [
   { type: 'MULTIPLE_CHOICE', label: 'Trắc nghiệm (4 lựa chọn)', desc: '1 hoặc nhiều đáp án đúng' },
@@ -173,6 +175,8 @@ export default function TeacherQuestionBankPage() {
   const [formMarks, setFormMarks] = useState<number>(1);
   const [formStatus, setFormStatus] = useState<QuestionStatus>('APPROVED');
   const [formTags, setFormTags] = useState<string>('');
+  const [formAudioUrl, setFormAudioUrl] = useState<string>('');
+  const [formAudioScript, setFormAudioScript] = useState<string>('');
   const [formOptions, setFormOptions] = useState<TeacherQuestionOptionDto[]>([
     { optionKey: 'A', optionText: '', isCorrect: true, displayOrder: 1 },
     { optionKey: 'B', optionText: '', isCorrect: false, displayOrder: 2 },
@@ -480,6 +484,8 @@ export default function TeacherQuestionBankPage() {
     setFormDifficulty('EASY');
     setFormContent('');
     setFormExplanation('');
+    setFormAudioUrl('');
+    setFormAudioScript('');
     setFormMarks(1);
     setFormStatus('APPROVED');
     setFormTags('');
@@ -510,6 +516,8 @@ export default function TeacherQuestionBankPage() {
     setFormDifficulty(q.difficulty);
     setFormContent(q.content);
     setFormExplanation(q.explanation || '');
+    setFormAudioUrl(q.audioUrl || '');
+    setFormAudioScript(q.audioScript || '');
     setFormMarks(q.defaultMarks || 1);
     setFormStatus(q.status);
     setFormTags(q.tags ? q.tags.join(', ') : '');
@@ -575,6 +583,8 @@ export default function TeacherQuestionBankPage() {
         difficulty: formDifficulty,
         content: formContent,
         explanation: formExplanation || undefined,
+        audioUrl: formAudioUrl ? formAudioUrl.trim() : undefined,
+        audioScript: formAudioScript ? formAudioScript.trim() : undefined,
         defaultMarks: formMarks,
         status: formStatus,
         tags: tagList,
@@ -1282,6 +1292,13 @@ export default function TeacherQuestionBankPage() {
                                 <span>{q.categoryName}</span>
                               </span>
                             )}
+                            {/* Listening Badge */}
+                            {(q.audioUrl || q.audioScript) && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 font-bold text-[11px] rounded-lg bg-purple-100 text-purple-800 border border-purple-200">
+                                <Headphones className="w-3.5 h-3.5 text-purple-600" />
+                                <span>Bài nghe</span>
+                              </span>
+                            )}
                           </div>
 
                           <div className="flex items-center gap-2">
@@ -1359,6 +1376,19 @@ export default function TeacherQuestionBankPage() {
                         <div className="text-sm font-semibold text-slate-900 leading-relaxed mb-4">
                           <MathMarkdownRenderer content={q.content} />
                         </div>
+
+                        {/* Listening Audio Player if question has listening audio or script */}
+                        {(q.audioUrl || q.audioScript) && (
+                          <div className="mb-4">
+                            <ListeningAudioPlayer
+                              key={q.id}
+                              audioUrl={q.audioUrl}
+                              audioScript={q.audioScript}
+                              allowTranscript={!isStudent || practiceResult?.checked}
+                              title="Bài nghe tiếng Anh"
+                            />
+                          </div>
+                        )}
 
                         {/* Options / Answer Input Section */}
                         {(() => {
@@ -1818,6 +1848,38 @@ export default function TeacherQuestionBankPage() {
                       minRows={2}
                       allowImageUpload={true}
                     />
+                  </div>
+
+                  {/* Listening Audio (Optional) */}
+                  <div className="p-3.5 bg-purple-50/60 rounded-2xl border border-purple-100 space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-bold text-purple-900">
+                      <Headphones className="w-4 h-4 text-purple-600" />
+                      <span>Âm thanh bài nghe (Dành cho môn Tiếng Anh / Ngoại ngữ)</span>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                        URL File âm thanh (Audio URL hoặc đường dẫn MP3/WAV)
+                      </label>
+                      <input
+                        type="text"
+                        value={formAudioUrl}
+                        onChange={(e) => setFormAudioUrl(e.target.value)}
+                        placeholder="Ví dụ: /api/v1/public/media/listening-xxx.wav hoặc URL âm thanh online"
+                        className="w-full p-2.5 bg-white border border-purple-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                        Kịch bản hội thoại / Lời thoại (Audio Script / Transcript)
+                      </label>
+                      <textarea
+                        value={formAudioScript}
+                        onChange={(e) => setFormAudioScript(e.target.value)}
+                        rows={2}
+                        placeholder="Nội dung kịch bản hội thoại (sẽ hiển thị cho giáo viên hoặc khi học sinh đã nộp bài)..."
+                        className="w-full p-2.5 bg-white border border-purple-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
                   </div>
 
                   {/* Tags */}

@@ -25,7 +25,9 @@ import { TeacherCourseResponse } from '@/types/course';
 import { AiExamGeneratorModal } from '@/components/AiExamGeneratorModal';
 import ExamPaperExportModal from '@/components/ExamPaperExportModal';
 import { MathMarkdownRenderer } from '@/components/MathMarkdownRenderer';
+import { ListeningAudioPlayer } from '@/components/ListeningAudioPlayer';
 import {
+  Headphones,
   FileText,
   Globe,
   Lock,
@@ -2244,6 +2246,18 @@ export default function TeacherExamsPage() {
                   </div>
                 )}
 
+                {/* Exam-level Audio Player */}
+                {(previewExam.audioUrl || previewExam.audioScript) && (
+                  <div className="p-3 bg-purple-50 rounded-2xl border border-purple-200">
+                    <ListeningAudioPlayer
+                      audioUrl={previewExam.audioUrl}
+                      audioScript={previewExam.audioScript}
+                      allowTranscript={true}
+                      title={`File nghe toàn đề: ${previewExam.title}`}
+                    />
+                  </div>
+                )}
+
                 {/* Question List */}
                 <div className="space-y-3">
                   <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
@@ -2261,10 +2275,30 @@ export default function TeacherExamsPage() {
                             <span className="font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded">
                               Câu {idx + 1} • {q.questionType}
                             </span>
-                            <span className="text-slate-400 font-bold">
-                              Điểm: {q.defaultMarks}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              {(q.audioUrl || q.audioScript) && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 font-bold text-[10px]">
+                                  <Headphones className="w-3 h-3 text-purple-600" />
+                                  <span>Nghe</span>
+                                </span>
+                              )}
+                              <span className="text-slate-400 font-bold">
+                                Điểm: {q.defaultMarks}
+                              </span>
+                            </div>
                           </div>
+
+                          {(q.audioUrl || q.audioScript) && (
+                            <div className="my-2">
+                              <ListeningAudioPlayer
+                                key={q.id}
+                                audioUrl={q.audioUrl}
+                                audioScript={q.audioScript}
+                                allowTranscript={true}
+                                title={`Bài nghe: Câu ${idx + 1}`}
+                              />
+                            </div>
+                          )}
 
                           <div className="font-bold text-slate-900 leading-relaxed">
                             <MathMarkdownRenderer content={q.content} />
