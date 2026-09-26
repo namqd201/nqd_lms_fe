@@ -1239,7 +1239,8 @@ export default function TeacherQuestionBankPage() {
               ) : (
                 <div className="space-y-4">
                   {currentQuestions.map((q, idx) => {
-                    const isAuthor = user && q.creatorId === user.id;
+                    const isAuthor = Boolean(user && q.creatorId === user.id);
+                    const canViewAnswerDirectly = Boolean((isAuthor || isAdmin) && !isPracticeMode);
                     const practiceResult = practiceResults[q.id];
                     const selectedChoice = practiceAnswers[q.id];
 
@@ -1384,7 +1385,7 @@ export default function TeacherQuestionBankPage() {
                               key={q.id}
                               audioUrl={q.audioUrl}
                               audioScript={q.audioScript}
-                              allowTranscript={!isStudent || practiceResult?.checked}
+                              allowTranscript={canViewAnswerDirectly || practiceResult?.checked}
                               title="Bài nghe tiếng Anh"
                             />
                           </div>
@@ -1407,7 +1408,7 @@ export default function TeacherQuestionBankPage() {
 
                                     let optionStyle = 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-slate-100';
 
-                                    if (isStudent || isPracticeMode) {
+                                    if (!canViewAnswerDirectly) {
                                       if (isSelected) {
                                         optionStyle = 'bg-indigo-50 border-indigo-400 text-indigo-900 font-bold ring-2 ring-indigo-200';
                                       }
@@ -1419,13 +1420,13 @@ export default function TeacherQuestionBankPage() {
                                         }
                                       }
                                     } else {
-                                      // Default view (Teacher only): show correct answers with green check
+                                      // Creator or Admin: show correct answers with green highlight
                                       if (isCorrect) {
                                         optionStyle = 'bg-emerald-50/80 border-emerald-300 text-emerald-900 font-semibold';
                                       }
                                     }
 
-                                    const canClickOption = (isStudent || isPracticeMode) && !practiceResult?.checked;
+                                    const canClickOption = !canViewAnswerDirectly && !practiceResult?.checked;
 
                                     return (
                                       <div
@@ -1441,13 +1442,13 @@ export default function TeacherQuestionBankPage() {
                                         <div className="flex-1 text-xs font-medium pt-0.5">
                                           <MathMarkdownRenderer content={opt.optionText} />
                                         </div>
-                                        {!isStudent && !isPracticeMode && isCorrect && (
+                                        {canViewAnswerDirectly && isCorrect && (
                                           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                                         )}
-                                        {(isStudent || isPracticeMode) && practiceResult?.checked && isCorrect && (
+                                        {!canViewAnswerDirectly && practiceResult?.checked && isCorrect && (
                                           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                                         )}
-                                        {(isStudent || isPracticeMode) && practiceResult?.checked && isSelected && !isCorrect && (
+                                        {!canViewAnswerDirectly && practiceResult?.checked && isSelected && !isCorrect && (
                                           <XCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                                         )}
                                       </div>
@@ -1455,8 +1456,8 @@ export default function TeacherQuestionBankPage() {
                                   })}
                                 </div>
 
-                                {/* Practice Mode Check Button for Choice Questions */}
-                                {(isStudent || isPracticeMode) && (
+                                {/* Practice Mode Check Button for Choice Questions (Shown when not author/admin or in practice mode) */}
+                                {!canViewAnswerDirectly && (
                                   <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
                                     {!practiceResult?.checked ? (
                                       <button
@@ -1496,7 +1497,7 @@ export default function TeacherQuestionBankPage() {
 
                           // 2. Short Answer / Fill in the blank
                           if (isShortOrFill) {
-                            if (!isStudent && !isPracticeMode) {
+                            if (canViewAnswerDirectly) {
                               return (
                                 <div className="p-3.5 bg-emerald-50/80 border border-emerald-300 rounded-2xl text-xs font-semibold text-emerald-900 flex items-center gap-2 my-3">
                                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -1570,7 +1571,7 @@ export default function TeacherQuestionBankPage() {
 
                           // 3. Essay
                           if (isEssay) {
-                            if (!isStudent && !isPracticeMode) {
+                            if (canViewAnswerDirectly) {
                               return null;
                             }
 
@@ -1606,8 +1607,8 @@ export default function TeacherQuestionBankPage() {
                           return null;
                         })()}
 
-                        {/* Explanation Section (Hidden for students until checked) */}
-                        {((!isStudent && !isPracticeMode && q.explanation) || (practiceResult?.checked && q.explanation)) && (
+                        {/* Explanation Section (Visible directly only for Author/Admin, otherwise revealed after checking) */}
+                        {((canViewAnswerDirectly && q.explanation) || (practiceResult?.checked && q.explanation)) && (
                           <div className="mt-4 p-4 bg-indigo-50/70 border border-indigo-100 rounded-2xl text-xs space-y-1">
                             <p className="font-bold text-indigo-900 flex items-center gap-1.5">
                               <span>💡 Lời giải thích:</span>

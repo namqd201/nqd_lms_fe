@@ -47,6 +47,7 @@ export interface TeacherExerciseResponse {
   totalMarks: number;
   createdAt: string;
   updatedAt: string;
+  creatorId?: string;
   creatorName?: string;
   questions?: TeacherExerciseQuestionResponse[];
 }

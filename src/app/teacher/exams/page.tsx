@@ -2191,33 +2191,42 @@ export default function TeacherExamsPage() {
           )}
 
           {/* Detail & Preview Modal */}
-          {previewExam && (
-            <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl space-y-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="p-2.5 rounded-2xl bg-blue-100 text-blue-700">
-                      <FileText className="w-6 h-6" />
-                    </span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
-                          {previewExam.code || 'MÃ ĐỀ'}
-                        </span>
-                        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800">
-                          {previewExam.status}
-                        </span>
+          {previewExam && (() => {
+            const isExamAuthor = Boolean(user && previewExam.creatorId === user.id);
+            const canViewExamAnswers = isExamAuthor || isAdmin;
+
+            return (
+              <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl space-y-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                    <div className="flex items-center gap-3">
+                      <span className="p-2.5 rounded-2xl bg-blue-100 text-blue-700">
+                        <FileText className="w-6 h-6" />
+                      </span>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+                            {previewExam.code || 'MÃ ĐỀ'}
+                          </span>
+                          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                            {previewExam.status}
+                          </span>
+                          {!canViewExamAnswers && (
+                            <span className="text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                              🔒 Chế độ học sinh (Đáp án chỉ tác giả mới xem được)
+                            </span>
+                          )}
+                        </div>
+                        <h2 className="text-lg font-bold text-slate-900 mt-1">{previewExam.title}</h2>
                       </div>
-                      <h2 className="text-lg font-bold text-slate-900 mt-1">{previewExam.title}</h2>
                     </div>
+                    <button
+                      onClick={() => setPreviewExam(null)}
+                      className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors"
+                    >
+                      ✕
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setPreviewExam(null)}
-                    className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors"
-                  >
-                    ✕
-                  </button>
-                </div>
 
                 {/* Metadata */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
@@ -2294,7 +2303,7 @@ export default function TeacherExamsPage() {
                                 key={q.id}
                                 audioUrl={q.audioUrl}
                                 audioScript={q.audioScript}
-                                allowTranscript={true}
+                                allowTranscript={canViewExamAnswers}
                                 title={`Bài nghe: Câu ${idx + 1}`}
                               />
                             </div>
@@ -2310,7 +2319,7 @@ export default function TeacherExamsPage() {
                                 <div
                                   key={opt.optionKey}
                                   className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 ${
-                                    opt.isCorrect
+                                    canViewExamAnswers && opt.isCorrect
                                       ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
                                       : 'bg-white border-slate-200 text-slate-700'
                                   }`}
@@ -2321,7 +2330,7 @@ export default function TeacherExamsPage() {
                                       <MathMarkdownRenderer content={opt.optionText} />
                                     </div>
                                   </div>
-                                  {opt.isCorrect && (
+                                  {canViewExamAnswers && opt.isCorrect && (
                                     <span className="text-[10px] bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full font-bold shrink-0">
                                       ĐÚNG
                                     </span>
@@ -2331,7 +2340,7 @@ export default function TeacherExamsPage() {
                             </div>
                           )}
 
-                          {q.explanation && (
+                          {canViewExamAnswers && q.explanation && (
                             <div className="p-2.5 bg-amber-50 rounded-xl text-amber-900 text-[11px]">
                               <strong>Lời giải: </strong>{q.explanation}
                             </div>
@@ -2391,7 +2400,8 @@ export default function TeacherExamsPage() {
                 </div>
               </div>
             </div>
-          )}
+          );
+        })()}
 
           {/* Assign Students Modal */}
           {assigningExam && (

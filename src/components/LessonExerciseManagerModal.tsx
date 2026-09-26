@@ -18,6 +18,8 @@ import { subjectService } from '@/services/subject.service';
 import { courseService } from '@/services/course.service';
 import { SubjectResponse } from '@/types/admin';
 import { TeacherCourseResponse } from '@/types/course';
+import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 import {
   Dumbbell,
   Plus,
@@ -36,6 +38,8 @@ import {
   Clock,
   Award,
   RefreshCw,
+  Play,
+  User,
 } from 'lucide-react';
 
 interface LessonExerciseManagerModalProps {
@@ -67,6 +71,9 @@ export const LessonExerciseManagerModal: React.FC<LessonExerciseManagerModalProp
   gradeLevel,
   courseId,
 }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.some((r) => r === 'ADMIN' || r === 'ROLE_ADMIN');
+
   const [exercises, setExercises] = useState<TeacherExerciseResponse[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -425,6 +432,8 @@ export const LessonExerciseManagerModal: React.FC<LessonExerciseManagerModalProp
               {exercises.map((ex) => {
                 const statusCfg = STATUS_CONFIGS.find((c) => c.status === ex.status) || STATUS_CONFIGS[0];
                 const typeCfg = TYPE_CONFIGS.find((c) => c.type === ex.type) || TYPE_CONFIGS[0];
+                const isAuthor = Boolean(user?.id && ex.creatorId === user.id);
+                const canManageExercise = isAuthor || isAdmin;
 
                 return (
                   <div
@@ -441,6 +450,12 @@ export const LessonExerciseManagerModal: React.FC<LessonExerciseManagerModalProp
                         >
                           {statusCfg.label}
                         </span>
+                        {ex.creatorName && (
+                          <span className="text-[11px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md font-medium flex items-center gap-1">
+                            <User className="w-3 h-3 text-slate-400" />
+                            <span>{ex.creatorName}</span>
+                          </span>
+                        )}
                         <span className="text-xs text-slate-400 font-semibold">•</span>
                         <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
                           {ex.questionCount || 0} câu hỏi
@@ -470,50 +485,67 @@ export const LessonExerciseManagerModal: React.FC<LessonExerciseManagerModalProp
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                      <button
-                        onClick={() => handleOpenQuestionsModal(ex)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-bold transition cursor-pointer"
-                        title="Quản lý câu hỏi trong bài tập này"
-                      >
-                        <ListChecks className="w-3.5 h-3.5" />
-                        <span>Bộ câu hỏi ({ex.questionCount || 0})</span>
-                      </button>
+                      {canManageExercise ? (
+                        <>
+                          <button
+                            onClick={() => handleOpenQuestionsModal(ex)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-bold transition cursor-pointer"
+                            title="Quản lý câu hỏi trong bài tập này"
+                          >
+                            <ListChecks className="w-3.5 h-3.5" />
+                            <span>Bộ câu hỏi ({ex.questionCount || 0})</span>
+                          </button>
 
-                      {ex.status !== 'PUBLISHED' ? (
-                        <button
-                          onClick={() => handlePublish(ex.id)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-bold transition cursor-pointer"
-                          title="Phát hành bài tập"
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                          <span>Xuất bản</span>
-                        </button>
+                          {ex.status !== 'PUBLISHED' ? (
+                            <button
+                              onClick={() => handlePublish(ex.id)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-bold transition cursor-pointer"
+                              title="Phát hành bài tập"
+                            >
+                              <Send className="w-3.5 h-3.5" />
+                              <span>Xuất bản</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleArchive(ex.id)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-bold transition cursor-pointer"
+                              title="Lưu trữ bài tập"
+                            >
+                              <Archive className="w-3.5 h-3.5" />
+                              <span>Lưu trữ</span>
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleOpenEditExercise(ex)}
+                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition cursor-pointer"
+                            title="Chỉnh sửa thông số bài tập"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            onClick={() => handleDelete(ex.id)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                            title="Xóa bài tập"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
                       ) : (
-                        <button
-                          onClick={() => handleArchive(ex.id)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-bold transition cursor-pointer"
-                          title="Lưu trữ bài tập"
-                        >
-                          <Archive className="w-3.5 h-3.5" />
-                          <span>Lưu trữ</span>
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-slate-400 italic">
+                            Chỉ tác giả được sửa
+                          </span>
+                          <Link
+                            href={`/courses/${courseId || ex.courseId}/exercises/${ex.id}`}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-bold transition shadow-2xs"
+                          >
+                            <Play className="w-3.5 h-3.5 fill-indigo-600" />
+                            <span>Làm bài tập</span>
+                          </Link>
+                        </div>
                       )}
-
-                      <button
-                        onClick={() => handleOpenEditExercise(ex)}
-                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition cursor-pointer"
-                        title="Chỉnh sửa thông số bài tập"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-
-                      <button
-                        onClick={() => handleDelete(ex.id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
-                        title="Xóa bài tập"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
                   </div>
                 );
