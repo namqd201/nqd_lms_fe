@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  Delete,
   RotateCcw,
   ArrowLeft,
   ArrowRight,
@@ -10,7 +9,8 @@ import {
   X,
   Sparkles,
   HelpCircle,
-  Maximize2,
+  Copy,
+  BookOpen,
 } from 'lucide-react';
 
 declare global {
@@ -34,13 +34,14 @@ export function InteractiveMathCalculator({
   initialValue = '',
   onInsert,
   onClose,
-  title = 'Máy tính toán học (Nhập trực tiếp)',
+  title = 'Máy tính toán học trực quan (Soạn đề trực tiếp)',
   isOpen = true,
   inline = false,
 }: InteractiveMathCalculatorProps) {
-  const [latexValue, setLatexValue] = useState<string>(initialValue);
+  // Clean initial value of outer dollar signs if any
+  const cleanedInit = initialValue.replace(/^\$+|\$+$/g, '').trim();
+  const [latexValue, setLatexValue] = useState<string>(cleanedInit);
   const [isReady, setIsReady] = useState<boolean>(false);
-  const [angleMode, setAngleMode] = useState<'Deg' | 'Rad'>('Deg');
   const mathfieldRef = useRef<any>(null);
 
   // Initialize MathLive
@@ -51,8 +52,7 @@ export function InteractiveMathCalculator({
         if (!mounted) return;
         setIsReady(true);
         if (mathfieldRef.current) {
-          mathfieldRef.current.value = initialValue;
-          // Focus after initialization
+          mathfieldRef.current.value = cleanedInit;
           setTimeout(() => {
             mathfieldRef.current?.focus();
           }, 100);
@@ -62,7 +62,7 @@ export function InteractiveMathCalculator({
     return () => {
       mounted = false;
     };
-  }, [initialValue]);
+  }, [cleanedInit]);
 
   // Execute command on MathField
   const execCmd = useCallback((cmd: string | [string, ...any[]]) => {
@@ -77,11 +77,20 @@ export function InteractiveMathCalculator({
     setLatexValue(mf.value);
   }, []);
 
-  // Insert string or command
+  // Insert string or character
   const insertText = useCallback((text: string) => {
     const mf = mathfieldRef.current;
     if (!mf) return;
     mf.insert(text);
+    mf.focus();
+    setLatexValue(mf.value);
+  }, []);
+
+  // Set explicit LaTeX expression
+  const setExpression = useCallback((expr: string) => {
+    const mf = mathfieldRef.current;
+    if (!mf) return;
+    mf.setValue(expr);
     mf.focus();
     setLatexValue(mf.value);
   }, []);
@@ -107,7 +116,7 @@ export function InteractiveMathCalculator({
   const content = (
     <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden max-w-2xl w-full mx-auto font-sans">
       {/* Header */}
-      <div className="bg-slate-50/90 border-b border-slate-200 px-5 py-3.5 flex items-center justify-between">
+      <div className="bg-gradient-to-r from-slate-50 to-indigo-50/40 border-b border-slate-200 px-5 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
             🧮
@@ -115,7 +124,7 @@ export function InteractiveMathCalculator({
           <div>
             <h3 className="text-sm font-bold text-slate-800">{title}</h3>
             <p className="text-[11px] text-slate-500">
-              Nhập trực tiếp bằng bàn phím hoặc bấm các nút máy tính bên dưới
+              Nhập và sửa trực tiếp như trên máy tính Casio &amp; Google Calculator
             </p>
           </div>
         </div>
@@ -131,30 +140,95 @@ export function InteractiveMathCalculator({
         )}
       </div>
 
-      <div className="p-4 sm:p-5 space-y-4">
-        {/* Calculator Display Screen */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 px-1">
-            <span>Màn hình nhập công thức (Bấm chuột vào để sửa trực tiếp):</span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setAngleMode(angleMode === 'Deg' ? 'Rad' : 'Deg')}
-                className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-200/80 text-slate-700 hover:bg-slate-300 transition cursor-pointer"
-              >
-                {angleMode}
-              </button>
-              <span className="text-emerald-600 font-bold text-[10px]">● Đang tương tác</span>
-            </div>
+      <div className="p-4 sm:p-5 space-y-3.5">
+        {/* Quick Exam Templates (Đặc thù đề thi Toán THCS / THPT) */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold px-0.5">
+            <span className="flex items-center gap-1 text-indigo-700">
+              <BookOpen className="w-3.5 h-3.5" />
+              Mẫu đề bài phổ biến (Bấm để chèn ngay):
+            </span>
+            <span className="text-[10px] text-slate-400">Bấm nút để điền nhanh</span>
           </div>
 
-          <div className="p-4 bg-white border-2 border-indigo-400/80 rounded-2xl shadow-inner min-h-[85px] flex items-center transition-all focus-within:border-indigo-600 focus-within:ring-3 focus-within:ring-indigo-100">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+            {/* Template 1: Direct match for Image 2! */}
+            <button
+              type="button"
+              onClick={() =>
+                setExpression('\\sqrt{(\\sqrt{3} - \\sqrt{2})^2} + \\sqrt{(1 - \\sqrt{2})^2}')
+              }
+              className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/80 rounded-xl font-medium shrink-0 transition cursor-pointer flex items-center gap-1 shadow-2xs"
+              title="Chèn mẫu câu hỏi Rút gọn căn bậc hai (chuẩn như Ảnh 2)"
+            >
+              <Sparkles className="w-3 h-3 text-amber-600" />
+              <span>Mẫu Ảnh 2: √(√3-√2)² + √(1-√2)²</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => execCmd(['insert', '\\sqrt{(#?)^2}'])}
+              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl font-bold font-mono shrink-0 transition cursor-pointer"
+              title="Căn bậc hai chứa bình phương bên trong: √( ... )²"
+            >
+              √(...)²
+            </button>
+
+            <button
+              type="button"
+              onClick={() => execCmd(['insert', '\\frac{#?}{#?}'])}
+              className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl font-bold font-mono shrink-0 transition cursor-pointer"
+              title="Phân số a/b"
+            >
+              a/b
+            </button>
+
+            <button
+              type="button"
+              onClick={() => execCmd(['insert', '\\sqrt{#?}'])}
+              className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl font-bold font-mono shrink-0 transition cursor-pointer"
+              title="Căn bậc hai √x"
+            >
+              √x
+            </button>
+
+            <button
+              type="button"
+              onClick={() => execCmd(['insert', '|#?|'])}
+              className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl font-bold font-mono shrink-0 transition cursor-pointer"
+              title="Trị tuyệt đối |x|"
+            >
+              |x|
+            </button>
+
+            <button
+              type="button"
+              onClick={() => execCmd(['insert', '^{2}'])}
+              className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl font-bold font-mono shrink-0 transition cursor-pointer"
+              title="Bình phương x²"
+            >
+              x²
+            </button>
+          </div>
+        </div>
+
+        {/* Calculator Display Screen */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600 px-1">
+            <span>Màn hình hiển thị đề bài (Nhấp chuột hoặc gõ trực tiếp):</span>
+            <span className="text-emerald-600 font-bold text-[10px] flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Soạn thảo trực tiếp WYSIWYG
+            </span>
+          </div>
+
+          <div className="p-4 bg-white border-2 border-indigo-500 rounded-2xl shadow-inner min-h-[90px] flex items-center transition-all focus-within:ring-4 focus-within:ring-indigo-100">
             {isReady ? (
               <math-field
                 ref={mathfieldRef}
                 style={{
                   width: '100%',
-                  fontSize: '24px',
+                  fontSize: '26px',
                   outline: 'none',
                   border: 'none',
                   background: 'transparent',
@@ -167,17 +241,20 @@ export function InteractiveMathCalculator({
               <div className="text-slate-400 text-sm italic">Đang tải bàn phím máy tính...</div>
             )}
           </div>
+          <p className="text-[11px] text-slate-500 px-1">
+            💡 Thầy cô có thể click chuột vào trong dấu căn, số mũ để sửa số, hoặc dùng các nút điều hướng <strong>←</strong> <strong>→</strong>.
+          </p>
         </div>
 
-        {/* Calculator Keypad (Inspired by Google Calculator / Casio) */}
-        <div className="space-y-2">
-          {/* Keypad Grid */}
-          <div className="grid grid-cols-7 sm:grid-cols-7 gap-1.5 text-xs font-bold select-none">
-            {/* Row 1: Fractions, Roots, Powers, Brackets, Deletion */}
+        {/* Calculator Keypad */}
+        <div className="space-y-1.5">
+          {/* Keypad Grid (7 columns) */}
+          <div className="grid grid-cols-7 gap-1.5 text-xs font-bold select-none">
+            {/* Row 1: Radicals, Powers, Fractions, Clear */}
             <button
               type="button"
               onClick={() => execCmd(['insert', '\\frac{#?}{#?}'])}
-              className="p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/70 font-mono transition active:scale-95 cursor-pointer flex flex-col items-center justify-center"
+              className="p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/80 font-mono transition active:scale-95 cursor-pointer flex flex-col items-center justify-center"
               title="Phân số"
             >
               <span>a/b</span>
@@ -185,15 +262,23 @@ export function InteractiveMathCalculator({
             <button
               type="button"
               onClick={() => execCmd(['insert', '\\sqrt{#?}'])}
-              className="p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/70 font-mono transition active:scale-95 cursor-pointer flex flex-col items-center justify-center"
+              className="p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/80 font-mono transition active:scale-95 cursor-pointer flex flex-col items-center justify-center"
               title="Căn bậc hai"
             >
               <span>√x</span>
             </button>
             <button
               type="button"
+              onClick={() => execCmd(['insert', '\\sqrt{(#?)^2}'])}
+              className="p-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-mono transition active:scale-95 cursor-pointer flex flex-col items-center justify-center font-bold"
+              title="Căn bậc hai có bình phương: √( ... )²"
+            >
+              <span>√(...)²</span>
+            </button>
+            <button
+              type="button"
               onClick={() => execCmd(['insert', '\\sqrt[#?]{#?}'])}
-              className="p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/70 font-mono transition active:scale-95 cursor-pointer flex flex-col items-center justify-center"
+              className="p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/80 font-mono transition active:scale-95 cursor-pointer flex flex-col items-center justify-center"
               title="Căn bậc n"
             >
               <span>ⁿ√x</span>
@@ -201,18 +286,10 @@ export function InteractiveMathCalculator({
             <button
               type="button"
               onClick={() => execCmd(['insert', '^{2}'])}
-              className="p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/70 font-mono transition active:scale-95 cursor-pointer flex flex-col items-center justify-center"
+              className="p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/80 font-mono transition active:scale-95 cursor-pointer flex flex-col items-center justify-center"
               title="Bình phương"
             >
               <span>x²</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => execCmd(['insert', '^{#?}'])}
-              className="p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/70 font-mono transition active:scale-95 cursor-pointer flex flex-col items-center justify-center"
-              title="Số mũ tùy ý"
-            >
-              <span>xʸ</span>
             </button>
             <button
               type="button"
@@ -226,33 +303,35 @@ export function InteractiveMathCalculator({
               type="button"
               onClick={handleClear}
               className="p-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-mono transition active:scale-95 cursor-pointer flex flex-col items-center justify-center shadow-xs"
-              title="Xóa tất cả (Clear)"
+              title="Xóa tất cả (Clear All)"
             >
               <span>AC</span>
             </button>
 
-            {/* Row 2: Trig, Subscript, 7, 8, 9, Division */}
+            {/* Row 2: Parentheses, Absolute, 7, 8, 9, Division */}
             <button
               type="button"
-              onClick={() => execCmd(['insert', '\\sin(#?)'])}
-              className="p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200/70 font-mono transition active:scale-95 cursor-pointer"
+              onClick={() => insertText('(')}
+              className="p-2.5 rounded-xl bg-indigo-50/80 hover:bg-indigo-100 text-indigo-900 border border-indigo-200/80 font-mono text-sm transition active:scale-95 cursor-pointer"
+              title="Mở ngoặc đơn"
             >
-              sin
+              (
             </button>
             <button
               type="button"
-              onClick={() => execCmd(['insert', '\\cos(#?)'])}
-              className="p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200/70 font-mono transition active:scale-95 cursor-pointer"
+              onClick={() => insertText(')')}
+              className="p-2.5 rounded-xl bg-indigo-50/80 hover:bg-indigo-100 text-indigo-900 border border-indigo-200/80 font-mono text-sm transition active:scale-95 cursor-pointer"
+              title="Đóng ngoặc đơn"
             >
-              cos
+              )
             </button>
             <button
               type="button"
-              onClick={() => execCmd(['insert', '_{#?}'])}
-              className="p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/70 font-mono transition active:scale-95 cursor-pointer"
-              title="Chỉ số dưới"
+              onClick={() => execCmd(['insert', '|#?|'])}
+              className="p-2.5 rounded-xl bg-indigo-50/80 hover:bg-indigo-100 text-indigo-900 border border-indigo-200/80 font-mono transition active:scale-95 cursor-pointer"
+              title="Trị tuyệt đối"
             >
-              x₁
+              |x|
             </button>
             <button
               type="button"
@@ -284,28 +363,30 @@ export function InteractiveMathCalculator({
               ÷
             </button>
 
-            {/* Row 3: Trig, Log, 4, 5, 6, Multiplication */}
+            {/* Row 3: Variables x, y, z, 4, 5, 6, Multiplication */}
             <button
               type="button"
-              onClick={() => execCmd(['insert', '\\tan(#?)'])}
-              className="p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200/70 font-mono transition active:scale-95 cursor-pointer"
+              onClick={() => insertText('x')}
+              className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 font-serif italic text-sm transition active:scale-95 cursor-pointer"
+              title="Biến x"
             >
-              tan
+              x
             </button>
             <button
               type="button"
-              onClick={() => execCmd(['insert', '\\log(#?)'])}
-              className="p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200/70 font-mono transition active:scale-95 cursor-pointer"
+              onClick={() => insertText('y')}
+              className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 font-serif italic text-sm transition active:scale-95 cursor-pointer"
+              title="Biến y"
             >
-              log
+              y
             </button>
             <button
               type="button"
-              onClick={() => insertText('\\pi ')}
-              className="p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200/70 font-mono transition active:scale-95 cursor-pointer"
-              title="Số Pi"
+              onClick={() => execCmd(['insert', '^{#?}'])}
+              className="p-2.5 rounded-xl bg-indigo-50/80 hover:bg-indigo-100 text-indigo-900 border border-indigo-200/80 font-mono transition active:scale-95 cursor-pointer"
+              title="Số mũ tùy ý"
             >
-              π
+              xʸ
             </button>
             <button
               type="button"
@@ -337,27 +418,28 @@ export function InteractiveMathCalculator({
               ×
             </button>
 
-            {/* Row 4: Calculus, 1, 2, 3, Subtraction */}
+            {/* Row 4: Pi, Subscript, Brackets, 1, 2, 3, Subtraction */}
             <button
               type="button"
-              onClick={() => execCmd(['insert', '\\ln(#?)'])}
-              className="p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200/70 font-mono transition active:scale-95 cursor-pointer"
+              onClick={() => insertText('\\pi ')}
+              className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 font-mono transition active:scale-95 cursor-pointer"
+              title="Số Pi"
             >
-              ln
+              π
             </button>
             <button
               type="button"
-              onClick={() => execCmd(['insert', '\\int_{#?}^{#?} #? dx'])}
-              className="p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200/70 font-mono transition active:scale-95 cursor-pointer"
-              title="Tích phân"
+              onClick={() => execCmd(['insert', '_{#?}'])}
+              className="p-2.5 rounded-xl bg-indigo-50/80 hover:bg-indigo-100 text-indigo-900 border border-indigo-200/80 font-mono transition active:scale-95 cursor-pointer"
+              title="Chỉ số dưới"
             >
-              ∫
+              x₁
             </button>
             <button
               type="button"
               onClick={() => execCmd(['insert', '(#?)'])}
-              className="p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/70 font-mono transition active:scale-95 cursor-pointer"
-              title="Dấu ngoặc đơn"
+              className="p-2.5 rounded-xl bg-indigo-50/80 hover:bg-indigo-100 text-indigo-900 border border-indigo-200/80 font-mono transition active:scale-95 cursor-pointer"
+              title="Cặp ngoặc đơn"
             >
               ( )
             </button>
@@ -391,7 +473,7 @@ export function InteractiveMathCalculator({
               -
             </button>
 
-            {/* Row 5: Navigation, 0, Dot, Equal, Addition */}
+            {/* Row 5: Navigation, PlusMinus, 0, Dot, Equal, Addition */}
             <button
               type="button"
               onClick={() => execCmd('moveToPreviousChar')}
@@ -411,7 +493,7 @@ export function InteractiveMathCalculator({
             <button
               type="button"
               onClick={() => insertText('\\pm ')}
-              className="p-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/70 font-mono transition active:scale-95 cursor-pointer"
+              className="p-2.5 rounded-xl bg-indigo-50/80 hover:bg-indigo-100 text-indigo-900 border border-indigo-200/80 font-mono transition active:scale-95 cursor-pointer"
               title="Cộng trừ"
             >
               ±
@@ -451,7 +533,7 @@ export function InteractiveMathCalculator({
 
         {/* Bottom Actions */}
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3">
-          <div className="text-[11px] text-slate-400">
+          <div className="text-[11px] text-slate-400 truncate max-w-[280px]">
             Mã công thức: <code className="font-mono text-slate-700">{latexValue || '(trống)'}</code>
           </div>
 

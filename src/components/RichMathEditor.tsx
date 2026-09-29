@@ -10,16 +10,10 @@ import {
   Edit3,
   Sparkles,
   Loader2,
-  ChevronDown,
-  Info,
-  Maximize2,
-  Minimize2,
   Check,
   X,
-  Plus,
   Columns2,
   Calculator,
-  Wand2,
 } from 'lucide-react';
 
 interface RichMathEditorProps {
@@ -41,171 +35,26 @@ interface FormulaItem {
   display: string;
   snippet: string;
   tooltip: string;
-  visualId?: string;
 }
-
-interface VisualFormulaField {
-  key: string;
-  label: string;
-  placeholder: string;
-  defaultValue: string;
-}
-
-interface VisualFormulaConfig {
-  id: string;
-  title: string;
-  description: string;
-  fields: VisualFormulaField[];
-  generateLatex: (values: Record<string, string>) => string;
-}
-
-const VISUAL_FORMULA_CONFIGS: Record<string, VisualFormulaConfig> = {
-  frac: {
-    id: 'frac',
-    title: 'Chèn Phân số (a/b)',
-    description: 'Nhập tử số và mẫu số để tạo phân số chuẩn',
-    fields: [
-      { key: 'num', label: 'Tử số (a)', placeholder: 'Ví dụ: 1 hoặc 2x + 1', defaultValue: 'a' },
-      { key: 'den', label: 'Mẫu số (b)', placeholder: 'Ví dụ: 2 hoặc 3', defaultValue: 'b' },
-    ],
-    generateLatex: (v) => `\\frac{${v.num?.trim() || 'a'}}{${v.den?.trim() || 'b'}}`,
-  },
-  nthroot: {
-    id: 'nthroot',
-    title: 'Chèn Căn bậc n (ⁿ√x)',
-    description: 'Nhập bậc căn n và biểu thức trong căn x',
-    fields: [
-      { key: 'n', label: 'Bậc căn (n)', placeholder: 'Ví dụ: 3 (để trống nếu căn bậc 2)', defaultValue: 'n' },
-      { key: 'x', label: 'Biểu thức trong căn (x)', placeholder: 'Ví dụ: x^2 + 1 hoặc 8', defaultValue: 'x' },
-    ],
-    generateLatex: (v) =>
-      v.n?.trim() ? `\\sqrt[${v.n.trim()}]{${v.x?.trim() || 'x'}}` : `\\sqrt{${v.x?.trim() || 'x'}}`,
-  },
-  sqrt: {
-    id: 'sqrt',
-    title: 'Chèn Căn bậc hai (√x)',
-    description: 'Nhập biểu thức nằm dưới dấu căn',
-    fields: [
-      { key: 'x', label: 'Biểu thức trong căn (x)', placeholder: 'Ví dụ: 2x - 3 hoặc x^2', defaultValue: 'x' },
-    ],
-    generateLatex: (v) => `\\sqrt{${v.x?.trim() || 'x'}}`,
-  },
-  pow: {
-    id: 'pow',
-    title: 'Chèn Số mũ / Lũy thừa (x²)',
-    description: 'Nhập cơ số và số mũ lũy thừa',
-    fields: [
-      { key: 'base', label: 'Cơ số (x)', placeholder: 'Ví dụ: x hoặc 2', defaultValue: 'x' },
-      { key: 'exp', label: 'Số mũ (n)', placeholder: 'Ví dụ: 2 hoặc n+1', defaultValue: '2' },
-    ],
-    generateLatex: (v) => `${v.base?.trim() || 'x'}^{${v.exp?.trim() || '2'}}`,
-  },
-  sub: {
-    id: 'sub',
-    title: 'Chèn Chỉ số dưới (x₁)',
-    description: 'Nhập ký hiệu chính và chỉ số dưới',
-    fields: [
-      { key: 'base', label: 'Ký hiệu chính (x)', placeholder: 'Ví dụ: x hoặc a', defaultValue: 'x' },
-      { key: 'sub', label: 'Chỉ số dưới (1)', placeholder: 'Ví dụ: 1 hoặc n', defaultValue: '1' },
-    ],
-    generateLatex: (v) => `${v.base?.trim() || 'x'}_{${v.sub?.trim() || '1'}}`,
-  },
-  integral_def: {
-    id: 'integral_def',
-    title: 'Chèn Tích phân xác định (∫[a,b])',
-    description: 'Nhập cận dưới, cận trên và hàm số tích phân',
-    fields: [
-      { key: 'a', label: 'Cận dưới (a)', placeholder: 'Ví dụ: 0 hoặc a', defaultValue: 'a' },
-      { key: 'b', label: 'Cận trên (b)', placeholder: 'Ví dụ: 1 hoặc b hoặc \\infty', defaultValue: 'b' },
-      { key: 'fx', label: 'Hàm số f(x)dx', placeholder: 'Ví dụ: x^2 dx', defaultValue: 'f(x)dx' },
-    ],
-    generateLatex: (v) => `\\int_{${v.a?.trim() || 'a'}}^{${v.b?.trim() || 'b'}} ${v.fx?.trim() || 'f(x)dx'}`,
-  },
-  integral_indef: {
-    id: 'integral_indef',
-    title: 'Chèn Tích phân bất định (∫ f(x)dx)',
-    description: 'Nhập biểu thức tích phân không có cận',
-    fields: [
-      { key: 'fx', label: 'Hàm số f(x)dx', placeholder: 'Ví dụ: (2x + 1)dx', defaultValue: 'f(x)dx' },
-    ],
-    generateLatex: (v) => `\\int ${v.fx?.trim() || 'f(x)dx'}`,
-  },
-  derivative: {
-    id: 'derivative',
-    title: 'Chèn Đạo hàm vi phân (df/dx)',
-    description: 'Nhập hàm số và biến lấy đạo hàm',
-    fields: [
-      { key: 'num', label: 'Hàm số (f)', placeholder: 'Ví dụ: f hoặc y', defaultValue: 'df' },
-      { key: 'den', label: 'Biến đạo hàm (x)', placeholder: 'Ví dụ: x hoặc t', defaultValue: 'dx' },
-    ],
-    generateLatex: (v) => `\\frac{${v.num?.trim() || 'df'}}{${v.den?.trim() || 'dx'}}`,
-  },
-  lim: {
-    id: 'lim',
-    title: 'Chèn Giới hạn (lim)',
-    description: 'Nhập biến tiến tới và hàm số',
-    fields: [
-      { key: 'to', label: 'Biến tiến đến', placeholder: 'Ví dụ: x \\to \\infty hoặc x \\to 0', defaultValue: 'x \\to \\infty' },
-      { key: 'fx', label: 'Biểu thức f(x)', placeholder: 'Ví dụ: \\frac{1}{x}', defaultValue: 'f(x)' },
-    ],
-    generateLatex: (v) => `\\lim_{${v.to?.trim() || 'x \\to \\infty'}} ${v.fx?.trim() || 'f(x)'}`,
-  },
-  sum: {
-    id: 'sum',
-    title: 'Chèn Tổng chuỗi Sigma (∑)',
-    description: 'Nhập chỉ số chạy từ, đến và biểu thức chuỗi',
-    fields: [
-      { key: 'from', label: 'Từ (chỉ số đầu)', placeholder: 'Ví dụ: i=1', defaultValue: 'i=1' },
-      { key: 'to', label: 'Đến (chỉ số cuối)', placeholder: 'Ví dụ: n hoặc \\infty', defaultValue: 'n' },
-      { key: 'ai', label: 'Biểu thức a_i', placeholder: 'Ví dụ: a_i hoặc i^2', defaultValue: 'a_{i}' },
-    ],
-    generateLatex: (v) => `\\sum_{${v.from?.trim() || 'i=1'}}^{${v.to?.trim() || 'n'}} ${v.ai?.trim() || 'a_{i}'}`,
-  },
-  prod: {
-    id: 'prod',
-    title: 'Chèn Tích chuỗi Pi (∏)',
-    description: 'Nhập chỉ số chạy từ, đến và biểu thức tích',
-    fields: [
-      { key: 'from', label: 'Từ (chỉ số đầu)', placeholder: 'Ví dụ: i=1', defaultValue: 'i=1' },
-      { key: 'to', label: 'Đến (chỉ số cuối)', placeholder: 'Ví dụ: n', defaultValue: 'n' },
-      { key: 'xi', label: 'Biểu thức x_i', placeholder: 'Ví dụ: x_i', defaultValue: 'x_{i}' },
-    ],
-    generateLatex: (v) => `\\prod_{${v.from?.trim() || 'i=1'}}^{${v.to?.trim() || 'n'}} ${v.xi?.trim() || 'x_{i}'}`,
-  },
-  cases: {
-    id: 'cases',
-    title: 'Chèn Hệ phương trình',
-    description: 'Nhập các phương trình trong hệ',
-    fields: [
-      { key: 'eq1', label: 'Phương trình 1', placeholder: 'Ví dụ: 2x + y = 5', defaultValue: 'ax + by = c' },
-      { key: 'eq2', label: 'Phương trình 2', placeholder: 'Ví dụ: x - y = 1', defaultValue: 'dx + ey = f' },
-    ],
-    generateLatex: (v) => `\\begin{cases}\n${v.eq1?.trim() || 'ax + by = c'} \\\\\n${v.eq2?.trim() || 'dx + ey = f'}\n\\end{cases}`,
-  },
-  matrix: {
-    id: 'matrix',
-    title: 'Chèn Ma trận 2x2',
-    description: 'Nhập 4 phần tử của ma trận',
-    fields: [
-      { key: 'a', label: 'Hàng 1 Cột 1', placeholder: 'a', defaultValue: 'a' },
-      { key: 'b', label: 'Hàng 1 Cột 2', placeholder: 'b', defaultValue: 'b' },
-      { key: 'c', label: 'Hàng 2 Cột 1', placeholder: 'c', defaultValue: 'c' },
-      { key: 'd', label: 'Hàng 2 Cột 2', placeholder: 'd', defaultValue: 'd' },
-    ],
-    generateLatex: (v) => `\\begin{pmatrix}\n${v.a?.trim() || 'a'} & ${v.b?.trim() || 'b'} \\\\\n${v.c?.trim() || 'c'} & ${v.d?.trim() || 'd'}\n\\end{pmatrix}`,
-  },
-};
 
 const FORMULA_CATEGORIES: { id: string; name: string; items: FormulaItem[] }[] = [
   {
     id: 'basic',
     name: 'Toán cơ bản',
     items: [
-      { label: 'Phân số', display: 'a/b', snippet: '$\\frac{a}{b}$ ', tooltip: 'Phân số a/b', visualId: 'frac' },
-      { label: 'Số mũ', display: 'x²', snippet: '$x^{2}$ ', tooltip: 'Số mũ / lũy thừa', visualId: 'pow' },
-      { label: 'Chỉ số dưới', display: 'x₁', snippet: '$x_{1}$ ', tooltip: 'Chỉ số dưới', visualId: 'sub' },
-      { label: 'Căn bậc 2', display: '√x', snippet: '$\\sqrt{x}$ ', tooltip: 'Căn bậc hai', visualId: 'sqrt' },
-      { label: 'Căn bậc n', display: 'ⁿ√x', snippet: '$\\sqrt[n]{x}$ ', tooltip: 'Căn bậc n', visualId: 'nthroot' },
+      { label: 'Phân số', display: 'a/b', snippet: '$\\frac{a}{b}$ ', tooltip: 'Phân số a/b' },
+      { label: 'Số mũ', display: 'x²', snippet: '$x^{2}$ ', tooltip: 'Số mũ / lũy thừa' },
+      { label: 'Số mũ n', display: 'xʸ', snippet: '$x^{n}$ ', tooltip: 'Lũy thừa bậc n' },
+      { label: 'Chỉ số dưới', display: 'x₁', snippet: '$x_{1}$ ', tooltip: 'Chỉ số dưới' },
+      { label: 'Căn bậc 2', display: '√x', snippet: '$\\sqrt{x}$ ', tooltip: 'Căn bậc hai' },
+      {
+        label: 'Căn bậc 2 bình phương',
+        display: '√( )²',
+        snippet: '$\\sqrt{(a - b)^2}$ ',
+        tooltip: 'Căn bậc hai chứa bình phương bên trong (Dạng bài rút gọn như đề thi)',
+      },
+      { label: 'Căn bậc n', display: 'ⁿ√x', snippet: '$\\sqrt[n]{x}$ ', tooltip: 'Căn bậc n' },
+      { label: 'Trị tuyệt đối', display: '|x|', snippet: '$|x|$ ', tooltip: 'Giá trị tuyệt đối' },
       { label: 'Cộng trừ', display: '±', snippet: '$\\pm$ ', tooltip: 'Dấu cộng trừ' },
       { label: 'Nhân', display: '×', snippet: '$\\times$ ', tooltip: 'Dấu nhân' },
       { label: 'Chia', display: '÷', snippet: '$\\div$ ', tooltip: 'Dấu chia' },
@@ -225,56 +74,48 @@ const FORMULA_CATEGORIES: { id: string; name: string; items: FormulaItem[] }[] =
         display: '∫[a,b]',
         snippet: '$\\int_{a}^{b} f(x)dx$ ',
         tooltip: 'Tích phân cận từ a đến b',
-        visualId: 'integral_def',
       },
       {
         label: 'Tích phân bất định',
         display: '∫ f(x)dx',
         snippet: '$\\int f(x)dx$ ',
         tooltip: 'Tích phân không cận',
-        visualId: 'integral_indef',
       },
       {
         label: 'Đạo hàm',
         display: 'df/dx',
         snippet: '$\\frac{df}{dx}$ ',
         tooltip: 'Đạo hàm vi phân',
-        visualId: 'derivative',
       },
       {
         label: 'Giới hạn',
         display: 'lim',
         snippet: '$\\lim_{x \\to \\infty} f(x)$ ',
         tooltip: 'Giới hạn hàm số',
-        visualId: 'lim',
       },
       {
         label: 'Tổng Sigma',
         display: '∑',
         snippet: '$\\sum_{i=1}^{n} a_{i}$ ',
         tooltip: 'Tổng chuỗi Sigma',
-        visualId: 'sum',
       },
       {
         label: 'Tích Pi',
         display: '∏',
         snippet: '$\\prod_{i=1}^{n} x_{i}$ ',
         tooltip: 'Tích các phần tử',
-        visualId: 'prod',
       },
       {
         label: 'Hệ phương trình',
         display: '{Hệ PT',
         snippet: '\n$$\n\\begin{cases}\nax + by = c \\\\\ndx + ey = f\n\\end{cases}\n$$\n',
         tooltip: 'Hệ phương trình nhiều ẩn',
-        visualId: 'cases',
       },
       {
         label: 'Ma trận 2x2',
         display: '[Matrix]',
         snippet: '\n$$\n\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}\n$$\n',
         tooltip: 'Ma trận 2x2',
-        visualId: 'matrix',
       },
     ],
   },
@@ -346,11 +187,6 @@ export function RichMathEditor({
   const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  // Visual Formula Builder state
-  const [useVisualBuilder, setUseVisualBuilder] = useState<boolean>(true);
-  const [activeVisualFormula, setActiveVisualFormula] = useState<VisualFormulaConfig | null>(null);
-  const [visualValues, setVisualValues] = useState<Record<string, string>>({});
-
   // AI Formula Assistant state
   const [showAiModal, setShowAiModal] = useState<boolean>(false);
   const [aiPrompt, setAiPrompt] = useState<string>('');
@@ -385,19 +221,9 @@ export function RichMathEditor({
     [value, onChange]
   );
 
-  // Handle clicking on a formula button
+  // Handle clicking on a formula button: Direct insert without annoying dialogs
   const handleFormulaItemClick = (item: FormulaItem) => {
-    if (useVisualBuilder && item.visualId && VISUAL_FORMULA_CONFIGS[item.visualId]) {
-      const config = VISUAL_FORMULA_CONFIGS[item.visualId];
-      const initialVals: Record<string, string> = {};
-      config.fields.forEach((f) => {
-        initialVals[f.key] = f.defaultValue;
-      });
-      setVisualValues(initialVals);
-      setActiveVisualFormula(config);
-    } else {
-      insertSnippet(item.snippet);
-    }
+    insertSnippet(item.snippet);
   };
 
   // Handle image file upload
@@ -450,12 +276,9 @@ export function RichMathEditor({
   // Support drag & drop image onto textarea
   const handleDrop = (e: React.DragEvent<HTMLTextAreaElement>) => {
     e.preventDefault();
-    const files = e.dataTransfer?.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      if (file.type.startsWith('image/')) {
-        handleUploadFile(file);
-      }
+    const file = e.dataTransfer?.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      handleUploadFile(file);
     }
   };
 
@@ -498,7 +321,7 @@ export function RichMathEditor({
           <label className="block text-xs font-bold text-slate-800">
             {label} {required && <span className="text-rose-500">*</span>}
           </label>
-          <span className="text-[11px] text-slate-400 font-medium">Hỗ trợ công thức LaTeX & ảnh</span>
+          <span className="text-[11px] text-slate-400 font-medium">Hỗ trợ công thức LaTeX &amp; ảnh</span>
         </div>
       )}
 
@@ -506,7 +329,7 @@ export function RichMathEditor({
       <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden focus-within:border-indigo-500 transition-all">
         {/* Main Toolbar */}
         <div className="bg-slate-50/80 border-b border-slate-200/80 p-2 flex flex-wrap items-center justify-between gap-2">
-          {/* Mode Switcher: Split (Default) | Write | Preview */}
+          {/* Mode Switcher: Split (Default) | Write | Calc | Preview */}
           <div className="flex items-center bg-slate-200/70 p-0.5 rounded-xl text-xs font-bold">
             <button
               type="button"
@@ -517,7 +340,7 @@ export function RichMathEditor({
               title="Vừa soạn thảo vừa xem công thức hiển thị trực quan ở dưới"
             >
               <Columns2 className="w-3.5 h-3.5" />
-              <span>Soạn & Xem</span>
+              <span>Soạn &amp; Xem</span>
             </button>
             <button
               type="button"
@@ -616,7 +439,7 @@ export function RichMathEditor({
           <div className="bg-slate-100/60 border-b border-slate-200/60 px-2 py-1.5 space-y-1.5">
             {!compact ? (
               <>
-                {/* Category Pills + Visual Builder Toggle */}
+                {/* Category Pills */}
                 <div className="flex items-center justify-between gap-2 overflow-x-auto pb-0.5 text-[11px] scrollbar-none">
                   <div className="flex items-center gap-1 shrink-0">
                     {FORMULA_CATEGORIES.map((cat) => (
@@ -635,19 +458,14 @@ export function RichMathEditor({
                     ))}
                   </div>
 
-                  {/* Toggle Visual Helper */}
                   <button
                     type="button"
-                    onClick={() => setUseVisualBuilder(!useVisualBuilder)}
-                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition flex items-center gap-1 cursor-pointer shrink-0 border ${
-                      useVisualBuilder
-                        ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'
-                        : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-100'
-                    }`}
-                    title="Bật/Tắt hộp thoại trợ lý điền công thức trực quan khi click ký hiệu"
+                    onClick={() => handleOpenCalculator()}
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition flex items-center gap-1 cursor-pointer shrink-0"
+                    title="Mở máy tính toán học để nhập biểu thức phức tạp trực quan"
                   >
-                    <Wand2 className="w-3 h-3 text-purple-600" />
-                    <span>Hỗ trợ điền trực quan: {useVisualBuilder ? 'BẬT' : 'TẮT'}</span>
+                    <Calculator className="w-3 h-3 text-indigo-600" />
+                    <span>Mở máy tính trực quan</span>
                   </button>
                 </div>
 
@@ -658,35 +476,20 @@ export function RichMathEditor({
                       key={idx}
                       type="button"
                       onClick={() => handleFormulaItemClick(item)}
-                      className={`px-2 py-1 bg-white hover:bg-indigo-50 border rounded-lg text-xs font-mono font-bold text-slate-800 transition shadow-2xs cursor-pointer hover:scale-105 transform active:scale-95 flex items-center gap-1 ${
-                        item.visualId && useVisualBuilder
-                          ? 'border-indigo-200 text-indigo-950 font-semibold'
-                          : 'border-slate-200/80 hover:border-indigo-300'
-                      }`}
-                      title={item.tooltip + (item.visualId && useVisualBuilder ? ' (Mở trợ lý điền trực quan)' : '')}
+                      className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-slate-200/80 hover:border-indigo-300 rounded-lg text-xs font-mono font-bold text-slate-800 transition shadow-2xs cursor-pointer hover:scale-105 transform active:scale-95 flex items-center gap-1"
+                      title={item.tooltip}
                     >
                       <span>{item.display}</span>
-                      {item.visualId && useVisualBuilder && (
-                        <span className="w-1 h-1 rounded-full bg-indigo-500" />
-                      )}
                     </button>
                   ))}
                 </div>
               </>
             ) : (
-              /* Compact Quick Bar: Essential Math & Physics buttons */
+              /* Compact Quick Bar: Essential Math buttons */
               <div className="flex items-center gap-1 overflow-x-auto py-0.5 scrollbar-none text-xs">
                 <button
                   type="button"
-                  onClick={() =>
-                    handleFormulaItemClick({
-                      label: 'Phân số',
-                      display: 'a/b',
-                      snippet: '$\\frac{a}{b}$ ',
-                      tooltip: 'Phân số',
-                      visualId: 'frac',
-                    })
-                  }
+                  onClick={() => insertSnippet('$\\frac{a}{b}$ ')}
                   className="px-2 py-1 bg-white border border-slate-200 rounded-lg font-mono font-bold text-slate-800 hover:bg-indigo-50 cursor-pointer shrink-0"
                   title="Phân số"
                 >
@@ -694,15 +497,7 @@ export function RichMathEditor({
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    handleFormulaItemClick({
-                      label: 'Số mũ',
-                      display: 'x²',
-                      snippet: '$x^{2}$ ',
-                      tooltip: 'Số mũ',
-                      visualId: 'pow',
-                    })
-                  }
+                  onClick={() => insertSnippet('$x^{2}$ ')}
                   className="px-2 py-1 bg-white border border-slate-200 rounded-lg font-mono font-bold text-slate-800 hover:bg-indigo-50 cursor-pointer shrink-0"
                   title="Số mũ"
                 >
@@ -710,15 +505,7 @@ export function RichMathEditor({
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    handleFormulaItemClick({
-                      label: 'Chỉ số dưới',
-                      display: 'x₁',
-                      snippet: '$x_{1}$ ',
-                      tooltip: 'Chỉ số dưới',
-                      visualId: 'sub',
-                    })
-                  }
+                  onClick={() => insertSnippet('$x_{1}$ ')}
                   className="px-2 py-1 bg-white border border-slate-200 rounded-lg font-mono font-bold text-slate-800 hover:bg-indigo-50 cursor-pointer shrink-0"
                   title="Chỉ số dưới"
                 >
@@ -726,15 +513,7 @@ export function RichMathEditor({
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    handleFormulaItemClick({
-                      label: 'Căn bậc 2',
-                      display: '√x',
-                      snippet: '$\\sqrt{x}$ ',
-                      tooltip: 'Căn bậc hai',
-                      visualId: 'sqrt',
-                    })
-                  }
+                  onClick={() => insertSnippet('$\\sqrt{x}$ ')}
                   className="px-2 py-1 bg-white border border-slate-200 rounded-lg font-mono font-bold text-slate-800 hover:bg-indigo-50 cursor-pointer shrink-0"
                   title="Căn bậc hai"
                 >
@@ -742,15 +521,15 @@ export function RichMathEditor({
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    handleFormulaItemClick({
-                      label: 'Căn bậc n',
-                      display: 'ⁿ√x',
-                      snippet: '$\\sqrt[n]{x}$ ',
-                      tooltip: 'Căn bậc n',
-                      visualId: 'nthroot',
-                    })
-                  }
+                  onClick={() => insertSnippet('$\\sqrt{(a - b)^2}$ ')}
+                  className="px-2 py-1 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg font-mono font-bold hover:bg-amber-100 cursor-pointer shrink-0"
+                  title="Căn thức bậc 2 có bình phương: √(a-b)²"
+                >
+                  √( )²
+                </button>
+                <button
+                  type="button"
+                  onClick={() => insertSnippet('$\\sqrt[n]{x}$ ')}
                   className="px-2 py-1 bg-white border border-slate-200 rounded-lg font-mono font-bold text-slate-800 hover:bg-indigo-50 cursor-pointer shrink-0"
                   title="Căn bậc n"
                 >
@@ -758,11 +537,11 @@ export function RichMathEditor({
                 </button>
                 <button
                   type="button"
-                  onClick={() => insertSnippet('$R = 100\\,\\Omega$ ')}
+                  onClick={() => insertSnippet('$|x|$ ')}
                   className="px-2 py-1 bg-white border border-slate-200 rounded-lg font-mono font-bold text-slate-800 hover:bg-indigo-50 cursor-pointer shrink-0"
-                  title="Điện trở Ohm"
+                  title="Trị tuyệt đối"
                 >
-                  Ω (Ohm)
+                  |x|
                 </button>
                 <button
                   type="button"
@@ -845,10 +624,10 @@ export function RichMathEditor({
                     <button
                       type="button"
                       onClick={() => handleOpenCalculator()}
-                      className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition flex items-center gap-1 cursor-pointer"
+                      className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition flex items-center gap-1 cursor-pointer"
                       title="Mở máy tính toán học để sửa hoặc gõ tiếp công thức này trực tiếp như Ảnh 2"
                     >
-                      <Calculator className="w-3 h-3 text-indigo-600" />
+                      <Calculator className="w-3.5 h-3.5 text-indigo-600" />
                       <span>Mở máy tính sửa trực tiếp</span>
                     </button>
                     <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
@@ -869,7 +648,7 @@ export function RichMathEditor({
                 </div>
 
                 <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
-                  <span>💡 <strong>Mẹo cho giáo viên:</strong> Chỉnh sửa số hoặc chữ ở khung soạn thảo phía trên, công thức bên dưới sẽ tự động thay đổi theo.</span>
+                  <span>💡 <strong>Mẹo cho giáo viên:</strong> Bấm nút <strong>&quot;Mở máy tính sửa trực tiếp&quot;</strong> để tạo các công thức lồng nhau phức tạp như căn lồng căn hay bình phương.</span>
                 </div>
               </div>
             )}
@@ -881,7 +660,7 @@ export function RichMathEditor({
               <MathMarkdownRenderer content={value} />
             ) : (
               <div className="py-8 text-center text-slate-400 text-xs italic">
-                Chưa có nội dung để xem trước. Hãy chuyển về chế độ &quot;Soạn & Xem trực tiếp&quot; để nhập văn bản hoặc công thức.
+                Chưa có nội dung để xem trước. Hãy chuyển về chế độ &quot;Soạn &amp; Xem trực tiếp&quot; để nhập văn bản hoặc công thức.
               </div>
             )}
           </div>
@@ -897,111 +676,6 @@ export function RichMathEditor({
       </div>
 
       {helperText && <p className="text-[11px] text-slate-500">{helperText}</p>}
-
-      {/* Visual Formula Builder Modal (Popover for Teachers) */}
-      {activeVisualFormula && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-5 space-y-4">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2 text-indigo-700 font-bold text-sm">
-                <Calculator className="w-4 h-4 text-indigo-600" />
-                <span>{activeVisualFormula.title}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveVisualFormula(null)}
-                className="p-1 rounded-full text-slate-400 hover:bg-slate-100 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-500">
-              {activeVisualFormula.description}. Nhập giá trị vào các ô bên dưới, hệ thống sẽ tự động ghép thành ký hiệu toán học chuẩn.
-            </p>
-
-            {/* Input Fields */}
-            <div className="space-y-3">
-              {activeVisualFormula.fields.map((field) => (
-                <div key={field.key} className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">
-                    {field.label}:
-                  </label>
-                  <input
-                    type="text"
-                    value={visualValues[field.key] ?? field.defaultValue}
-                    onChange={(e) =>
-                      setVisualValues((prev) => ({ ...prev, [field.key]: e.target.value }))
-                    }
-                    placeholder={field.placeholder}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 outline-none focus:border-indigo-500 focus:bg-white transition"
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* Realtime Formula Preview */}
-            <div className="p-3 bg-indigo-50/60 border border-indigo-200/80 rounded-2xl space-y-1.5">
-              <span className="text-[11px] font-bold text-indigo-900 block">
-                👁️ Ký hiệu hiển thị thực tế:
-              </span>
-              <div className="p-2.5 bg-white rounded-xl border border-indigo-100 text-center min-h-[44px] flex items-center justify-center">
-                <MathMarkdownRenderer
-                  content={
-                    activeVisualFormula.id === 'cases' || activeVisualFormula.id === 'matrix'
-                      ? `$$\n${activeVisualFormula.generateLatex(visualValues)}\n$$`
-                      : `$${activeVisualFormula.generateLatex(visualValues)}$`
-                  }
-                />
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center justify-between pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  const defaultSnippet = FORMULA_CATEGORIES
-                    .flatMap((c) => c.items)
-                    .find((i) => i.visualId === activeVisualFormula.id)?.snippet;
-                  if (defaultSnippet) {
-                    insertSnippet(defaultSnippet);
-                  }
-                  setActiveVisualFormula(null);
-                }}
-                className="text-[11px] text-slate-400 hover:text-slate-600 underline cursor-pointer"
-              >
-                Chèn mã code mẫu
-              </button>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveVisualFormula(null)}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const latex = activeVisualFormula.generateLatex(visualValues);
-                    const isBlock = activeVisualFormula.id === 'cases' || activeVisualFormula.id === 'matrix';
-                    const snippet = isBlock ? `\n$$\n${latex}\n$$\n` : `$${latex}$ `;
-                    insertSnippet(snippet);
-                    setActiveVisualFormula(null);
-                  }}
-                  className="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Chèn vào bài</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* AI Formula Generator Modal */}
       {showAiModal && (
@@ -1082,6 +756,7 @@ export function RichMathEditor({
           </div>
         </div>
       )}
+
       {/* Interactive Math Calculator Modal */}
       {showCalculator && (
         <InteractiveMathCalculator
