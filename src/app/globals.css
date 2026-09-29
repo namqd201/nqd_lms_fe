@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "katex/dist/katex.min.css";
+@import "mathlive/static.css";
+@import "mathlive/fonts.css";
 
 :root {
   --background: #f8fafc;

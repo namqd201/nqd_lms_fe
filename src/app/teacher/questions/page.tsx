@@ -11,6 +11,7 @@ import { courseService } from '@/services/course.service';
 import { examService } from '@/services/exam.service';
 import { MathMarkdownRenderer } from '@/components/MathMarkdownRenderer';
 import { RichMathEditor } from '@/components/RichMathEditor';
+import { InteractiveMathCalculator } from '@/components/InteractiveMathCalculator';
 import {
   TeacherQuestionResponse,
   TeacherQuestionRequest,
@@ -186,6 +187,7 @@ export default function TeacherQuestionBankPage() {
     { optionKey: 'D', optionText: '', isCorrect: false, displayOrder: 4 },
   ]);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [optionCalcIdx, setOptionCalcIdx] = useState<number | null>(null);
 
   // Preview Modal
   const [previewQuestion, setPreviewQuestion] = useState<TeacherQuestionResponse | null>(null);
@@ -1839,6 +1841,15 @@ export default function TeacherQuestionBankPage() {
                               placeholder={`Nội dung đáp án ${opt.optionKey}...`}
                               className="flex-1 bg-transparent text-xs text-slate-900 focus:outline-none font-mono"
                             />
+                            <button
+                              type="button"
+                              onClick={() => setOptionCalcIdx(idx)}
+                              className="px-2 py-1 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 transition cursor-pointer text-[11px] font-bold flex items-center gap-1 shrink-0"
+                              title={`Mở máy tính online để nhập công thức cho đáp án ${opt.optionKey}`}
+                            >
+                              <span>🧮</span>
+                              <span className="hidden sm:inline">Máy tính</span>
+                            </button>
                             <label className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 cursor-pointer pr-2">
                               <input
                                 type="radio"
@@ -1863,6 +1874,22 @@ export default function TeacherQuestionBankPage() {
                           )}
                         </div>
                       ))}
+
+                      {/* Calculator modal for options */}
+                      {optionCalcIdx !== null && (
+                        <InteractiveMathCalculator
+                          isOpen={optionCalcIdx !== null}
+                          initialValue={formOptions[optionCalcIdx]?.optionText?.replace(/^\$+|\$+$/g, '') || ''}
+                          title={`Máy tính công thức cho Đáp án ${formOptions[optionCalcIdx]?.optionKey}`}
+                          onClose={() => setOptionCalcIdx(null)}
+                          onInsert={(latex) => {
+                            const next = [...formOptions];
+                            next[optionCalcIdx].optionText = `$${latex}$`;
+                            setFormOptions(next);
+                            setOptionCalcIdx(null);
+                          }}
+                        />
+                      )}
                     </div>
                   )}
 
