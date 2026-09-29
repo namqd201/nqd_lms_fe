@@ -149,6 +149,7 @@ export default function ClassroomDetailPage() {
   const [newAssignment, setNewAssignment] = useState({ title: '', description: '', deadline: '', maxScore: 10, attachmentUrl: '' });
   const [meetingForm, setMeetingForm] = useState({ larkMeetingUrl: '', meetingId: '', passcode: '', meetingNote: '', isLiveNow: false });
   const [newVideo, setNewVideo] = useState({ title: '', videoUrl: '', sessionDate: '', durationMinutes: 60, description: '' });
+  const [playingVideo, setPlayingVideo] = useState<ClassroomRecordedVideo | null>(null);
   const [newSchedule, setNewSchedule] = useState({ dayOfWeek: 'MONDAY', startTime: '19:30', endTime: '21:00', title: '', roomNote: 'Học online qua Lark' });
 
   // Autocomplete suggestions for inviting students
@@ -1476,15 +1477,14 @@ export default function ClassroomDetailPage() {
                       </div>
 
                       <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                        <a
-                          href={vid.videoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white text-xs font-bold transition"
+                        <button
+                          type="button"
+                          onClick={() => setPlayingVideo(vid)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
                         >
-                          <Play className="w-3.5 h-3.5" />
+                          <Play className="w-3.5 h-3.5 fill-current" />
                           <span>Xem lại bài giảng</span>
-                        </a>
+                        </button>
 
                         {isTeacher && (
                           <button
@@ -1501,6 +1501,70 @@ export default function ClassroomDetailPage() {
                 </div>
               )}
             </div>
+
+            {/* Modal: Video Player (Cloudflare R2 / YouTube / MP4) */}
+            {playingVideo && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
+                <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden max-w-4xl w-full shadow-2xl space-y-0 text-white flex flex-col max-h-[92vh]">
+                  {/* Header */}
+                  <div className="px-5 py-3.5 flex items-center justify-between border-b border-slate-800 bg-slate-900/90">
+                    <div className="space-y-0.5 pr-2">
+                      <h3 className="font-bold text-sm sm:text-base text-white line-clamp-1">{playingVideo.title}</h3>
+                      <p className="text-[11px] text-slate-400 flex items-center gap-2">
+                        {playingVideo.sessionDate && <span>Buổi ngày: {playingVideo.sessionDate}</span>}
+                        {playingVideo.durationMinutes && <span>• Thời lượng: {playingVideo.durationMinutes} phút</span>}
+                        <span className="text-emerald-400 font-semibold">• Lưu trữ Cloudflare R2</span>
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPlayingVideo(null)}
+                      className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer shrink-0"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Video Screen */}
+                  <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
+                    {playingVideo.videoUrl.includes('youtube.com') || playingVideo.videoUrl.includes('youtu.be') ? (
+                      <iframe
+                        src={getYouTubeEmbedUrl(playingVideo.videoUrl) || playingVideo.videoUrl}
+                        className="w-full h-full border-0"
+                        allowFullScreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      />
+                    ) : (
+                      <video
+                        src={playingVideo.videoUrl}
+                        controls
+                        autoPlay
+                        className="w-full h-full object-contain"
+                      >
+                        Trình duyệt của bạn không hỗ trợ thẻ video HTML5.
+                      </video>
+                    )}
+                  </div>
+
+                  {/* Footer Info */}
+                  <div className="px-5 py-2.5 bg-slate-950 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                    <span className="flex items-center gap-1.5 text-[11px]">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      Phát video chất lượng cao qua Cloudflare CDN tốc độ cao (0đ băng thông)
+                    </span>
+                    <a
+                      href={playingVideo.videoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:underline flex items-center gap-1 text-[11px] font-semibold"
+                    >
+                      <span>Mở tab mới</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
