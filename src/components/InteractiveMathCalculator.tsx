@@ -177,7 +177,7 @@ export function InteractiveMathCalculator({
             <button
               type="button"
               onClick={() => execCmd(['insert', '\\frac{#?}{#?}'])}
-              className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl font-bold font-mono shrink-0 transition cursor-pointer"
+              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl font-bold font-mono shrink-0 transition cursor-pointer"
               title="Phân số a/b"
             >
               a/b
@@ -186,7 +186,7 @@ export function InteractiveMathCalculator({
             <button
               type="button"
               onClick={() => execCmd(['insert', '\\sqrt{#?}'])}
-              className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl font-bold font-mono shrink-0 transition cursor-pointer"
+              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl font-bold font-mono shrink-0 transition cursor-pointer"
               title="Căn bậc hai √x"
             >
               √x
@@ -194,8 +194,44 @@ export function InteractiveMathCalculator({
 
             <button
               type="button"
+              onClick={() => execCmd(['insert', '\\log_{#?}(#?)'])}
+              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl font-bold font-mono shrink-0 transition cursor-pointer"
+              title="Logarit cơ số a của b: log_a(b)"
+            >
+              logₐb
+            </button>
+
+            <button
+              type="button"
+              onClick={() => execCmd(['insert', '\\ln(#?)'])}
+              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl font-bold font-mono shrink-0 transition cursor-pointer"
+              title="Logarit tự nhiên ln(x)"
+            >
+              ln
+            </button>
+
+            <button
+              type="button"
+              onClick={() => execCmd(['insert', '\\int_{#?}^{#?} #? dx'])}
+              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl font-bold font-mono shrink-0 transition cursor-pointer"
+              title="Tích phân xác định cận từ a đến b"
+            >
+              ∫[a,b]
+            </button>
+
+            <button
+              type="button"
+              onClick={() => execCmd(['insert', '\\lim_{x \\to #?} #?'])}
+              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl font-bold font-mono shrink-0 transition cursor-pointer"
+              title="Giới hạn lim"
+            >
+              lim
+            </button>
+
+            <button
+              type="button"
               onClick={() => execCmd(['insert', '|#?|'])}
-              className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl font-bold font-mono shrink-0 transition cursor-pointer"
+              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl font-bold font-mono shrink-0 transition cursor-pointer"
               title="Trị tuyệt đối |x|"
             >
               |x|
@@ -204,7 +240,7 @@ export function InteractiveMathCalculator({
             <button
               type="button"
               onClick={() => execCmd(['insert', '^{2}'])}
-              className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl font-bold font-mono shrink-0 transition cursor-pointer"
+              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl font-bold font-mono shrink-0 transition cursor-pointer"
               title="Bình phương x²"
             >
               x²
