@@ -27,6 +27,8 @@ export interface ClassroomResponse {
   currentUserEnrollmentStatus?: ClassEnrollmentStatus;
   coverImageUrl?: string;
   larkMeetingUrl?: string;
+  hostMeetingUrl?: string;
+  guestMeetingUrl?: string;
   meetingId?: string;
   passcode?: string;
   meetingNote?: string;
@@ -136,6 +138,8 @@ export interface CreateAssignmentRequest {
 export interface ClassroomMeeting {
   classroomId: string;
   larkMeetingUrl?: string;
+  hostMeetingUrl?: string;
+  guestMeetingUrl?: string;
   meetingId?: string;
   passcode?: string;
   meetingNote?: string;
@@ -144,6 +148,8 @@ export interface ClassroomMeeting {
 
 export interface UpdateMeetingRequest {
   larkMeetingUrl?: string;
+  hostMeetingUrl?: string;
+  guestMeetingUrl?: string;
   meetingId?: string;
   passcode?: string;
   meetingNote?: string;

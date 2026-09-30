@@ -291,22 +291,40 @@ export const classroomService = {
     return handleApiResponse<ClassroomMeeting>(response, 'Không thể cập nhật phòng học online');
   },
 
-  generateGoogleMeetRoom: async (classroomId: string): Promise<ClassroomMeeting> => {
-    const response = await fetch(`${API_BASE_URL}/api/v1/classrooms/${classroomId}/generate-google-meet`, {
+  generate100msRoom: async (classroomId: string): Promise<ClassroomMeeting> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/classrooms/${classroomId}/generate-100ms-room`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
     });
-    return handleApiResponse<ClassroomMeeting>(response, 'Không thể tạo phòng học Google Meet');
+    return handleApiResponse<ClassroomMeeting>(response, 'Không thể tạo phòng học 100ms Live Class');
+  },
+
+  generateGoogleMeetRoom: async (classroomId: string): Promise<ClassroomMeeting> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/classrooms/${classroomId}/generate-100ms-room`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    return handleApiResponse<ClassroomMeeting>(response, 'Không thể tạo phòng học trực tuyến');
+  },
+
+  sync100msRecordings: async (classroomId: string): Promise<{ success: boolean; syncedCount: number; message: string }> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/classrooms/${classroomId}/sync-100ms-recordings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    return handleApiResponse<{ success: boolean; syncedCount: number; message: string }>(response, 'Không thể đồng bộ video từ 100ms');
   },
 
   syncDriveRecordings: async (classroomId: string): Promise<{ success: boolean; syncedCount: number; message: string }> => {
-    const response = await fetch(`${API_BASE_URL}/api/v1/classrooms/${classroomId}/sync-drive-recordings`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/classrooms/${classroomId}/sync-100ms-recordings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
     });
-    return handleApiResponse<{ success: boolean; syncedCount: number; message: string }>(response, 'Không thể đồng bộ video từ Google Drive');
+    return handleApiResponse<{ success: boolean; syncedCount: number; message: string }>(response, 'Không thể đồng bộ video bản ghi');
   },
 
   // ==========================================
