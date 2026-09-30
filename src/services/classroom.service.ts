@@ -291,6 +291,24 @@ export const classroomService = {
     return handleApiResponse<ClassroomMeeting>(response, 'Không thể cập nhật phòng học online');
   },
 
+  generateGoogleMeetRoom: async (classroomId: string): Promise<ClassroomMeeting> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/classrooms/${classroomId}/generate-google-meet`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    return handleApiResponse<ClassroomMeeting>(response, 'Không thể tạo phòng học Google Meet');
+  },
+
+  syncDriveRecordings: async (classroomId: string): Promise<{ success: boolean; syncedCount: number; message: string }> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/classrooms/${classroomId}/sync-drive-recordings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    return handleApiResponse<{ success: boolean; syncedCount: number; message: string }>(response, 'Không thể đồng bộ video từ Google Drive');
+  },
+
   // ==========================================
   // 4. RECORDED VIDEOS (LARK VIDEOS)
   // ==========================================

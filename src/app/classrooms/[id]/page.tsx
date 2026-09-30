@@ -126,6 +126,8 @@ export default function ClassroomDetailPage() {
   const [meetingModalOpen, setMeetingModalOpen] = useState(false);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [isSyncingDrive, setIsSyncingDrive] = useState(false);
+  const [isGeneratingMeet, setIsGeneratingMeet] = useState(false);
 
   // Lesson viewer & edit states
   const [viewingLesson, setViewingLesson] = useState<ClassroomMaterial | null>(null);
@@ -525,7 +527,7 @@ export default function ClassroomDetailPage() {
     try {
       const updated = await classroomService.updateMeetingInfo(classroomId, meetingForm);
       setMeetingInfo(updated);
-      setSuccessMessage('Đã cập nhật thông tin phòng học online Lark thành công!');
+      setSuccessMessage('Đã cập nhật thông tin phòng học online thành công!');
       setTimeout(() => setSuccessMessage(null), 4000);
       setMeetingModalOpen(false);
       if (classroom) {
@@ -533,6 +535,48 @@ export default function ClassroomDetailPage() {
       }
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Không thể cập nhật phòng học');
+    }
+  };
+
+  const handleGenerateGoogleMeet = async () => {
+    setIsGeneratingMeet(true);
+    try {
+      const mtg = await classroomService.generateGoogleMeetRoom(classroomId);
+      setMeetingInfo(mtg);
+      if (classroom) {
+        setClassroom({
+          ...classroom,
+          larkMeetingUrl: mtg.larkMeetingUrl,
+          meetingId: mtg.meetingId,
+          passcode: mtg.passcode,
+          meetingNote: mtg.meetingNote,
+        });
+      }
+      setSuccessMessage('Đã tạo phòng học Google Meet tự động cho lớp thành công!');
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Không thể tạo phòng Google Meet');
+    } finally {
+      setIsGeneratingMeet(false);
+    }
+  };
+
+  const handleSyncDriveRecordings = async () => {
+    setIsSyncingDrive(true);
+    try {
+      const res = await classroomService.syncDriveRecordings(classroomId);
+      if (res.syncedCount > 0) {
+        setSuccessMessage(res.message);
+        setTimeout(() => setSuccessMessage(null), 5000);
+        const vids = await classroomService.getRecordedVideos(classroomId);
+        setRecordedVideos(vids);
+      } else {
+        alert(res.message);
+      }
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Không thể đồng bộ video từ Google Drive');
+    } finally {
+      setIsSyncingDrive(false);
     }
   };
 
@@ -1342,7 +1386,7 @@ export default function ClassroomDetailPage() {
                       )}
                     </div>
                     <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
-                      Phòng Học Trực Tuyến Qua Lark
+                      Phòng Học Trực Tuyến Google Meet
                     </h3>
                   </div>
                 </div>
@@ -1358,19 +1402,19 @@ export default function ClassroomDetailPage() {
                 )}
               </div>
 
-              {/* Lark Room Access Details */}
+              {/* Room Access Details */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                  <span className="text-[11px] text-slate-400 font-semibold block">Meeting ID</span>
+                  <span className="text-[11px] text-slate-400 font-semibold block">Mã phòng / ID Meet</span>
                   <strong className="text-base font-mono font-bold text-white">
-                    {classroom.meetingId || 'Chưa cập nhật'}
+                    {classroom.meetingId || classroom.passcode || 'Chưa cập nhật'}
                   </strong>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                  <span className="text-[11px] text-slate-400 font-semibold block">Mật khẩu phòng (Passcode)</span>
-                  <strong className="text-base font-mono font-bold text-white">
-                    {classroom.passcode || 'Không có mật khẩu'}
+                  <span className="text-[11px] text-slate-400 font-semibold block">Nền tảng</span>
+                  <strong className="text-base font-semibold text-emerald-300 flex items-center gap-1.5">
+                    <span>Google Meet (Google One)</span>
                   </strong>
                 </div>
 
@@ -1391,12 +1435,22 @@ export default function ClassroomDetailPage() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center gap-2.5 px-6 py-3 bg-[#83C75D] hover:bg-[#72b44e] text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-[#83C75D]/30 transition hover:scale-102"
                   >
-                    <span>🚀 Vào phòng học trực tuyến ngay</span>
+                    <span>🚀 Vào phòng học Google Meet ngay</span>
                     <ExternalLink className="w-4 h-4" />
                   </a>
                 ) : (
-                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs">
-                    Giáo viên chưa cập nhật đường dẫn phòng học Lark cho lớp này. Vui lòng liên hệ giáo viên để nhận link học.
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs">
+                    <span>Giáo viên chưa cập nhật đường dẫn phòng học Google Meet cho lớp này.</span>
+                    {isTeacher && (
+                      <button
+                        onClick={handleGenerateGoogleMeet}
+                        disabled={isGeneratingMeet}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition cursor-pointer disabled:opacity-50"
+                      >
+                        {isGeneratingMeet ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                        <span>{isGeneratingMeet ? 'Đang tạo phòng Meet...' : '✨ Tạo phòng Google Meet tự động'}</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -1408,32 +1462,43 @@ export default function ClassroomDetailPage() {
                 <div>
                   <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
                     <Video className="w-5 h-5 text-blue-600" />
-                    <span>Video bản ghi các buổi học online qua Lark</span>
+                    <span>Video bản ghi các buổi học (Google Meet & YouTube)</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Học sinh có thể xem lại bài giảng trực tuyến bất cứ lúc nào
+                    Học sinh có thể xem lại bài giảng trực tuyến bất cứ lúc nào qua YouTube
                   </p>
                 </div>
 
                 {isTeacher && (
-                  <button
-                    onClick={() => setVideoModalOpen(true)}
-                    className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Thêm video bản ghi</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleSyncDriveRecordings}
+                      disabled={isSyncingDrive}
+                      className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition cursor-pointer disabled:opacity-50 shadow-sm"
+                      title="Quét Google Drive lấy video bản ghi Google Meet và tải lên YouTube"
+                    >
+                      {isSyncingDrive ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
+                      <span>{isSyncingDrive ? 'Đang quét Google Drive...' : 'Đồng bộ từ Google Drive'}</span>
+                    </button>
+                    <button
+                      onClick={() => setVideoModalOpen(true)}
+                      className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Thêm video bản ghi</span>
+                    </button>
+                  </div>
                 )}
               </div>
 
-              {/* Notice note for Lark automatic integration */}
-              <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200 text-blue-900 text-xs flex items-start gap-3">
+              {/* Notice note for Google Meet & YouTube integration */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 text-blue-900 text-xs flex items-start gap-3">
                 <Sparkles className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                <div className="space-y-0.5">
-                  <p className="font-bold">Tính năng lưu trữ video Lark:</p>
+                <div className="space-y-1">
+                  <p className="font-bold text-blue-950">Quy trình tự động hóa với Google Meet & YouTube:</p>
                   <p className="text-slate-600 leading-relaxed">
-                    Sau khi học online qua Lark, các video bản ghi sẽ hiển thị tại đây để học sinh ôn tập.
-                    Hệ thống sẽ hướng dẫn cấu hình kết nối tự động với Lark API theo yêu cầu tiếp theo của bạn!
+                    Sau khi giáo viên ghi âm buổi học trên Google Meet (tài khoản Google One Pro), bản ghi MP4 sẽ tự động lưu vào Google Drive.
+                    Bấm <strong>"Đồng bộ từ Google Drive"</strong> (hoặc hệ thống sẽ tự động quét định kỳ) để LMS tải video và tự động đăng lên YouTube ở chế độ <strong>Không công khai (Unlisted)</strong>, học sinh bấm xem lại ngay trên LMS mà không tốn phí lưu trữ Cloud!
                   </p>
                 </div>
               </div>
