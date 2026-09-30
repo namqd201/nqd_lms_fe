@@ -28,6 +28,7 @@ import {
   Check,
   Mail,
   ShieldAlert,
+  Trash2,
 } from 'lucide-react';
 
 export default function ClassroomsPage() {
@@ -125,6 +126,20 @@ export default function ClassroomsPage() {
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2500);
+  };
+
+  const handleDeleteClass = async (classId: string, className: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm(`Bạn có chắc muốn xóa vĩnh viễn lớp học "${className}"?\n(Lớp học chưa có học sinh nào và không thể hoàn tác)`)) return;
+    try {
+      await classroomService.deleteClassroom(classId);
+      setSuccessMessage(`Đã xóa lớp học "${className}".`);
+      setTimeout(() => setSuccessMessage(null), 3000);
+      await loadAllData();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Không thể xóa lớp học');
+    }
   };
 
   const handleCreateClass = async (e: React.FormEvent) => {
@@ -469,10 +484,22 @@ export default function ClassroomsPage() {
                         </div>
 
                         <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                          <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                            <Users className="w-3.5 h-3.5 text-slate-400" />
-                            <span>{cls.studentCount} học sinh</span>
-                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className="flex items-center gap-1.5 font-bold text-slate-700">
+                              <Users className="w-3.5 h-3.5 text-slate-400" />
+                              <span>{cls.studentCount} học sinh</span>
+                            </span>
+                            {cls.studentCount === 0 && (
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteClass(cls.id, cls.name, e)}
+                                className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                                title="Xóa lớp học (chưa có học sinh)"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
 
                           <span className="inline-flex items-center gap-1 font-bold text-[#4e8231] group-hover:translate-x-1 transition-transform">
                             <span>Quản lý</span>

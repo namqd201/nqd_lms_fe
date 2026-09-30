@@ -128,6 +128,7 @@ export default function ClassroomDetailPage() {
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [isSyncingDrive, setIsSyncingDrive] = useState(false);
   const [isGeneratingMeet, setIsGeneratingMeet] = useState(false);
+  const [isDeletingClassroom, setIsDeletingClassroom] = useState(false);
 
   // Lesson viewer & edit states
   const [viewingLesson, setViewingLesson] = useState<ClassroomMaterial | null>(null);
@@ -152,7 +153,7 @@ export default function ClassroomDetailPage() {
   const [meetingForm, setMeetingForm] = useState({ larkMeetingUrl: '', meetingId: '', passcode: '', meetingNote: '', isLiveNow: false });
   const [newVideo, setNewVideo] = useState({ title: '', videoUrl: '', sessionDate: '', durationMinutes: 60, description: '' });
   const [playingVideo, setPlayingVideo] = useState<ClassroomRecordedVideo | null>(null);
-  const [newSchedule, setNewSchedule] = useState({ dayOfWeek: 'MONDAY', startTime: '19:30', endTime: '21:00', title: '', roomNote: 'Học online qua Lark' });
+  const [newSchedule, setNewSchedule] = useState({ dayOfWeek: 'MONDAY', startTime: '19:30', endTime: '21:00', title: '', roomNote: 'Học online qua Google Meet' });
 
   // Autocomplete suggestions for inviting students
   const [inviteEmail, setInviteEmail] = useState('');
@@ -552,12 +553,36 @@ export default function ClassroomDetailPage() {
           meetingNote: mtg.meetingNote,
         });
       }
+      if (mtg.larkMeetingUrl) {
+        setMeetingForm({
+          larkMeetingUrl: mtg.larkMeetingUrl,
+          meetingId: mtg.meetingId || '',
+          passcode: mtg.passcode || '',
+          meetingNote: mtg.meetingNote || '',
+          isLiveNow: mtg.isLiveNow || false,
+        });
+      }
       setSuccessMessage('Đã tạo phòng học Google Meet tự động cho lớp thành công!');
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Không thể tạo phòng Google Meet');
     } finally {
       setIsGeneratingMeet(false);
+    }
+  };
+
+  const handleDeleteClassroom = async () => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn lớp học "${classroom?.name}"?\n(Lưu ý: Lớp học chưa có học sinh nào và thao tác này không thể hoàn tác)`)) {
+      return;
+    }
+    setIsDeletingClassroom(true);
+    try {
+      await classroomService.deleteClassroom(classroomId);
+      alert('Đã xóa lớp học thành công!');
+      router.push('/classrooms');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Không thể xóa lớp học');
+      setIsDeletingClassroom(false);
     }
   };
 
@@ -586,7 +611,7 @@ export default function ClassroomDetailPage() {
     if (!newVideo.title.trim() || !newVideo.videoUrl.trim()) return;
     try {
       await classroomService.createRecordedVideo(classroomId, newVideo);
-      setSuccessMessage('Đã đăng video bản ghi buổi học Lark mới!');
+      setSuccessMessage('Đã đăng video bản ghi buổi học mới!');
       setTimeout(() => setSuccessMessage(null), 4000);
       setVideoModalOpen(false);
       setNewVideo({ title: '', videoUrl: '', sessionDate: '', durationMinutes: 60, description: '' });
@@ -618,7 +643,7 @@ export default function ClassroomDetailPage() {
       setSuccessMessage('Đã thêm lịch học mới vào thời khóa biểu!');
       setTimeout(() => setSuccessMessage(null), 4000);
       setScheduleModalOpen(false);
-      setNewSchedule({ dayOfWeek: 'MONDAY', startTime: '19:30', endTime: '21:00', title: '', roomNote: 'Học online qua Lark' });
+      setNewSchedule({ dayOfWeek: 'MONDAY', startTime: '19:30', endTime: '21:00', title: '', roomNote: 'Học online qua Google Meet' });
       const scheds = await classroomService.getSchedules(classroomId);
       setSchedules(scheds);
     } catch (err: unknown) {
@@ -1017,13 +1042,27 @@ export default function ClassroomDetailPage() {
               </div>
 
               {isTeacher && (
-                <button
-                  onClick={() => setInviteModalOpen(true)}
-                  className="w-full py-2.5 rounded-xl bg-[#83C75D] hover:bg-[#72b44e] text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Mời học sinh vào lớp</span>
-                </button>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setInviteModalOpen(true)}
+                    className="w-full py-2.5 rounded-xl bg-[#83C75D] hover:bg-[#72b44e] text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Mời học sinh vào lớp</span>
+                  </button>
+
+                  {enrolledStudents.length === 0 && (
+                    <button
+                      onClick={handleDeleteClassroom}
+                      disabled={isDeletingClassroom}
+                      className="w-full py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      title="Chỉ có thể xóa lớp khi chưa có học sinh nào tham gia"
+                    >
+                      {isDeletingClassroom ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      <span>{isDeletingClassroom ? 'Đang xóa...' : 'Xóa lớp học (chưa có học viên)'}</span>
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -1358,11 +1397,11 @@ export default function ClassroomDetailPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* VIEW 3: LINK HỌC ONLINE & VIDEO BẢN GHI LARK                             */}
+        {/* VIEW 3: LINK HỌC ONLINE & VIDEO BẢN GHI GOOGLE MEET                     */}
         {/* ========================================================================= */}
         {activeFeature === 'ONLINE_CLASS' && (
           <div className="space-y-8 animate-in fade-in">
-            {/* Live Lark Room Banner Card */}
+            {/* Live Google Meet Room Banner Card */}
             <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white relative overflow-hidden shadow-xl border border-slate-700 space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -1372,7 +1411,7 @@ export default function ClassroomDetailPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] font-extrabold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded-full border border-rose-500/20">
-                        LARK LIVE MEETING
+                        GOOGLE MEET LIVE
                       </span>
                       {classroom.isLiveNow ? (
                         <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1">
@@ -1510,7 +1549,7 @@ export default function ClassroomDetailPage() {
                   </div>
                   <h4 className="text-base font-bold text-slate-900">Chưa có video bản ghi buổi học nào</h4>
                   <p className="text-xs text-slate-500 max-w-md mx-auto">
-                    Các buổi học trực tuyến qua Lark sau khi kết thúc sẽ được lưu trữ video tại đây.
+                    Các buổi học trực tuyến qua Google Meet sau khi kết thúc sẽ được lưu trữ video tại đây.
                   </p>
                 </div>
               ) : (
@@ -2526,15 +2565,15 @@ export default function ClassroomDetailPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* MODAL 4: CÀI ĐẶT PHÒNG HỌC LARK (MEETING MODAL)                           */}
+        {/* MODAL 4: CÀI ĐẶT PHÒNG HỌC GOOGLE MEET (MEETING MODAL)                   */}
         {/* ========================================================================= */}
         {meetingModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
             <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 shadow-2xl space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-black text-slate-900">Cài Đặt Phòng Học Lark</h3>
-                  <p className="text-xs text-slate-500">Cập nhật link phòng học trực tuyến, ID và mật khẩu</p>
+                  <h3 className="text-lg font-black text-slate-900">Cài Đặt Phòng Học Google Meet</h3>
+                  <p className="text-xs text-slate-500">Cập nhật link phòng Google Meet, mã phòng và ghi chú</p>
                 </div>
                 <button
                   onClick={() => setMeetingModalOpen(false)}
@@ -2544,14 +2583,33 @@ export default function ClassroomDetailPage() {
                 </button>
               </div>
 
+              {/* Fast Auto Provision Google Meet Button */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <span className="font-bold text-blue-950 text-xs block">Tự động tạo bằng Google:</span>
+                  <span className="text-[11px] text-slate-600 block">Tự động kết nối Google Calendar cấp link Meet cố định</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await handleGenerateGoogleMeet();
+                  }}
+                  disabled={isGeneratingMeet}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition cursor-pointer shrink-0 disabled:opacity-50 shadow-xs"
+                >
+                  {isGeneratingMeet ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                  <span>{isGeneratingMeet ? 'Đang tạo...' : '✨ Tạo link Meet tự động'}</span>
+                </button>
+              </div>
+
               <form onSubmit={handleUpdateMeeting} className="space-y-4 text-xs">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
-                    Link phòng học Lark Meeting
+                    Link phòng học Google Meet
                   </label>
                   <input
                     type="url"
-                    placeholder="https://www.larksuite.com/meeting/..."
+                    placeholder="https://meet.google.com/abc-defg-hij"
                     value={meetingForm.larkMeetingUrl}
                     onChange={(e) => setMeetingForm({ ...meetingForm, larkMeetingUrl: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 focus:border-[#83C75D] outline-none text-xs text-slate-900"
@@ -2560,10 +2618,10 @@ export default function ClassroomDetailPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Meeting ID</label>
+                    <label className="block font-bold text-slate-700 mb-1">Mã phòng Meet</label>
                     <input
                       type="text"
-                      placeholder="Ví dụ: 893 421 902"
+                      placeholder="Ví dụ: abc-defg-hij"
                       value={meetingForm.meetingId}
                       onChange={(e) => setMeetingForm({ ...meetingForm, meetingId: e.target.value })}
                       className="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 focus:border-[#83C75D] outline-none text-xs text-slate-900"
@@ -2571,10 +2629,10 @@ export default function ClassroomDetailPage() {
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Mật khẩu phòng (Passcode)</label>
+                    <label className="block font-bold text-slate-700 mb-1">Mật khẩu phòng (nếu có)</label>
                     <input
                       type="text"
-                      placeholder="Ví dụ: 123456"
+                      placeholder="Không bắt buộc"
                       value={meetingForm.passcode}
                       onChange={(e) => setMeetingForm({ ...meetingForm, passcode: e.target.value })}
                       className="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 focus:border-[#83C75D] outline-none text-xs text-slate-900"
@@ -2627,7 +2685,7 @@ export default function ClassroomDetailPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* MODAL 5: THÊM VIDEO BẢN GHI LARK (RECORDED VIDEO MODAL)                   */}
+        {/* MODAL 5: THÊM VIDEO BẢN GHI BUỔI HỌC (RECORDED VIDEO MODAL)               */}
         {/* ========================================================================= */}
         {videoModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
@@ -2635,7 +2693,7 @@ export default function ClassroomDetailPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-black text-slate-900">Thêm Video Bản Ghi Buổi Học</h3>
-                  <p className="text-xs text-slate-500">Lưu lại video bài giảng sau buổi học trực tuyến qua Lark</p>
+                  <p className="text-xs text-slate-500">Lưu lại video bài giảng sau buổi học trực tuyến qua Google Meet</p>
                 </div>
                 <button
                   onClick={() => setVideoModalOpen(false)}
@@ -2662,7 +2720,7 @@ export default function ClassroomDetailPage() {
 
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
-                    Link video (YouTube / Google Drive / Lark Video URL) <span className="text-rose-500">*</span>
+                    Link video (YouTube / Google Drive) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="url"
@@ -2803,7 +2861,7 @@ export default function ClassroomDetailPage() {
                   <label className="block font-bold text-slate-700 mb-1">Ghi chú phòng / Địa điểm</label>
                   <input
                     type="text"
-                    placeholder="Ví dụ: Online qua Lark Meeting hoặc Phòng 204"
+                    placeholder="Ví dụ: Online qua Google Meet hoặc Phòng 204"
                     value={newSchedule.roomNote}
                     onChange={(e) => setNewSchedule({ ...newSchedule, roomNote: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 focus:border-amber-600 outline-none text-xs text-slate-900"
