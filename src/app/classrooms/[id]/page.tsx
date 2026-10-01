@@ -371,7 +371,7 @@ export default function ClassroomDetailPage() {
     if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
-    return match && match[2].length === 11 ? `https://www.youtube.com/embed/${match[2]}` : null;
+    return match && match[2].length === 11 ? `https://www.youtube.com/embed/${match[2]}?autoplay=1&vq=hd1080&rel=0` : null;
   };
 
   const handleSaveLesson = async (e: React.FormEvent) => {
@@ -1649,7 +1649,11 @@ export default function ClassroomDetailPage() {
                       <p className="text-[11px] text-slate-400 flex items-center gap-2">
                         {playingVideo.sessionDate && <span>Buổi ngày: {playingVideo.sessionDate}</span>}
                         {playingVideo.durationMinutes && <span>• Thời lượng: {playingVideo.durationMinutes} phút</span>}
-                        <span className="text-emerald-400 font-semibold">• Lưu trữ Cloudflare R2</span>
+                        {playingVideo.videoUrl.includes('youtube') || playingVideo.videoUrl.includes('youtu.be') ? (
+                          <span className="text-red-400 font-semibold">• Lưu trữ YouTube</span>
+                        ) : (
+                          <span className="text-emerald-400 font-semibold">• Lưu trữ 100ms Cloud</span>
+                        )}
                       </p>
                     </div>
                     <button
@@ -1683,16 +1687,20 @@ export default function ClassroomDetailPage() {
                   </div>
 
                   {/* Footer Info */}
-                  <div className="px-5 py-2.5 bg-slate-950 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                  <div className="px-5 py-2.5 bg-slate-950 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-400">
                     <span className="flex items-center gap-1.5 text-[11px]">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      Phát video chất lượng cao qua Cloudflare CDN tốc độ cao (0đ băng thông)
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                      <span>
+                        {playingVideo.videoUrl.includes('youtube') 
+                          ? '💡 Mẹo xem nét: Bấm biểu tượng ⚙️ trên video YouTube và chọn chất lượng 720p / 1080p.' 
+                          : 'Phát video bài giảng trực tuyến chất lượng cao.'}
+                      </span>
                     </span>
                     <a
                       href={playingVideo.videoUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-400 hover:underline flex items-center gap-1 text-[11px] font-semibold"
+                      className="text-blue-400 hover:underline flex items-center gap-1 text-[11px] font-semibold shrink-0"
                     >
                       <span>Mở tab mới</span>
                       <ExternalLink className="w-3.5 h-3.5" />
