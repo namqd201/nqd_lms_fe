@@ -30,16 +30,28 @@ export default function OnboardingPage() {
       await authService.completeOnboarding();
       await refreshUser();
 
+      const savedRedirect = typeof window !== 'undefined' ? localStorage.getItem('auth_redirect') : null;
       if (role === 'STUDENT') {
-        router.push('/');
+        if (savedRedirect) {
+          localStorage.removeItem('auth_redirect');
+          router.push(savedRedirect);
+        } else {
+          router.push('/');
+        }
       } else {
         router.push('/become-teacher');
       }
     } catch (err) {
       console.error('Failed to complete onboarding:', err);
       // Even if API fails, navigate accordingly
+      const savedRedirect = typeof window !== 'undefined' ? localStorage.getItem('auth_redirect') : null;
       if (role === 'STUDENT') {
-        router.push('/');
+        if (savedRedirect) {
+          localStorage.removeItem('auth_redirect');
+          router.push(savedRedirect);
+        } else {
+          router.push('/');
+        }
       } else {
         router.push('/become-teacher');
       }

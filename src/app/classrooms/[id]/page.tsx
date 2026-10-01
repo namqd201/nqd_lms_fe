@@ -345,7 +345,7 @@ export default function ClassroomDetailPage() {
         message: inviteMessage.trim() || undefined,
       });
 
-      setSuccessMessage(`Đã gửi lời mời tới ${inviteEmail}! Hệ thống đã báo chuông thông báo đến tài khoản học sinh.`);
+      setSuccessMessage(`Đã gửi lời mời tới ${inviteEmail}! Hệ thống đã gửi email mời tham gia lớp học và thông báo.`);
       setTimeout(() => setSuccessMessage(null), 5000);
       setInviteModalOpen(false);
       setInviteEmail('');
@@ -2139,7 +2139,7 @@ export default function ClassroomDetailPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-black text-slate-900">Mời Học Sinh Vào Lớp</h3>
-                  <p className="text-xs text-slate-500">Nhập email hoặc tên học sinh để hệ thống đề xuất</p>
+                  <p className="text-xs text-slate-500">Nhập email học sinh. Hệ thống sẽ tự động gửi email mời tham gia qua Gmail nếu học sinh chưa có tài khoản.</p>
                 </div>
                 <button
                   onClick={() => setInviteModalOpen(false)}

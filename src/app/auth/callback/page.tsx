@@ -33,8 +33,12 @@ export default function AuthCallbackPage() {
         if (currentUser) {
           setStatus('success');
           setTimeout(() => {
+            const savedRedirect = typeof window !== 'undefined' ? localStorage.getItem('auth_redirect') : null;
             if (currentUser.isOnboarded === false) {
               router.push('/onboarding');
+            } else if (savedRedirect) {
+              localStorage.removeItem('auth_redirect');
+              router.push(savedRedirect);
             } else {
               router.push('/');
             }

@@ -10,11 +10,25 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
+  const redirectParam = searchParams.get('redirect');
+  const invitedEmail = searchParams.get('invitedEmail');
   const { isAuthenticated, loginWithGoogle } = useAuth();
 
   useEffect(() => {
+    if (redirectParam) {
+      localStorage.setItem('auth_redirect', redirectParam);
+    }
+  }, [redirectParam]);
+
+  useEffect(() => {
     if (isAuthenticated) {
-      router.push('/');
+      const savedRedirect = localStorage.getItem('auth_redirect');
+      if (savedRedirect) {
+        localStorage.removeItem('auth_redirect');
+        router.push(savedRedirect);
+      } else {
+        router.push('/');
+      }
     }
   }, [isAuthenticated, router]);
 
@@ -39,6 +53,17 @@ function LoginContent() {
           </h1>
           <p className="text-xs text-slate-500 mt-1">Tự tin học hỏi - Vững bước tương lai</p>
         </div>
+
+        {invitedEmail && (
+          <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs text-left leading-relaxed">
+            <p className="font-bold text-emerald-800 flex items-center gap-1.5">
+              <span>📩 Lời mời tham gia lớp học</span>
+            </p>
+            <p className="mt-1 text-slate-600">
+              Bạn nhận được lời mời tham gia lớp học qua email <span className="font-bold text-emerald-700">{invitedEmail}</span>. Vui lòng bấm đăng nhập bằng Google để vào lớp học ngay!
+            </p>
+          </div>
+        )}
 
         {error && (
           <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 text-left">
