@@ -297,7 +297,7 @@ export const classroomService = {
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
     });
-    return handleApiResponse<ClassroomMeeting>(response, 'Không thể tạo phòng học 100ms Live Class');
+    return handleApiResponse<ClassroomMeeting>(response, 'Không thể tạo phòng học trực tuyến');
   },
 
   generateGoogleMeetRoom: async (classroomId: string): Promise<ClassroomMeeting> => {
@@ -315,7 +315,7 @@ export const classroomService = {
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
     });
-    return handleApiResponse<{ success: boolean; syncedCount: number; message: string }>(response, 'Không thể đồng bộ video từ 100ms');
+    return handleApiResponse<{ success: boolean; syncedCount: number; message: string }>(response, 'Không thể đồng bộ video bản ghi');
   },
 
   syncDriveRecordings: async (classroomId: string): Promise<{ success: boolean; syncedCount: number; message: string }> => {

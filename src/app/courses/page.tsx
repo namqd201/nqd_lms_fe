@@ -488,9 +488,11 @@ export default function CoursesCatalogPage() {
                         )}
                       </div>
 
-                      <h3 className="text-lg font-bold text-slate-900 group-hover:text-[#4e8231] transition-colors line-clamp-2">
-                        {course.name}
-                      </h3>
+                      <Link href={'/courses/' + course.id} className="block group/title">
+                        <h3 className="text-lg font-bold text-slate-900 group-hover/title:text-[#4e8231] transition-colors line-clamp-2">
+                          {course.name}
+                        </h3>
+                      </Link>
                       <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
                         {course.description || 'Chưa có mô tả chi tiết cho khóa học này.'}
                       </p>
@@ -509,32 +511,24 @@ export default function CoursesCatalogPage() {
                       )}
                     </div>
 
-                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
-                      <Link
-                        href={'/courses/' + course.id}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-[#4e8231] transition-colors"
-                      >
-                        <span>Chi tiết & Giáo trình</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </Link>
-
+                    <div className="pt-4 border-t border-slate-100 flex items-center gap-3">
                       {isOwner ? (
                         <Link
                           href={'/teacher/courses/' + course.id}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition-all"
+                          className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition-all"
                         >
                           <Settings className="w-3.5 h-3.5" />
                           <span>Quản trị</span>
                         </Link>
                       ) : isPending ? (
-                        <div className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
+                        <div className="w-full inline-flex items-center justify-center gap-1 px-4 py-2.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
                           <Clock className="w-3.5 h-3.5" />
                           <span>Đang chờ duyệt</span>
                         </div>
                       ) : isEnrolled ? (
                         <Link
                           href={'/courses/' + course.id}
-                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all"
+                          className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           <span>Vào học ngay</span>
@@ -543,7 +537,7 @@ export default function CoursesCatalogPage() {
                         <button
                           onClick={() => handleEnrollOrBuy(course)}
                           disabled={isBuyingCourseId === course.id}
-                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold shadow-md bg-amber-500 hover:bg-amber-600 text-white transition-all transform active:scale-95 shadow-amber-500/20 cursor-pointer disabled:opacity-50"
+                          className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold shadow-md bg-amber-500 hover:bg-amber-600 text-white transition-all transform active:scale-95 shadow-amber-500/20 cursor-pointer disabled:opacity-50"
                         >
                           {isBuyingCourseId === course.id ? (
                             <>
@@ -561,7 +555,7 @@ export default function CoursesCatalogPage() {
                         <button
                           onClick={() => handleEnrollOrBuy(course)}
                           disabled={enrollingId === course.id}
-                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all disabled:opacity-50 text-white bg-[#83C75D] hover:bg-[#72b44e] shadow-[#83C75D]/20 cursor-pointer"
+                          className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm transition-all disabled:opacity-50 text-white bg-[#83C75D] hover:bg-[#72b44e] shadow-[#83C75D]/20 cursor-pointer"
                         >
                           {enrollingId === course.id ? (
                             <span>Đang xử lý...</span>
