@@ -10,11 +10,13 @@ import { MembershipPlanResponse } from '@/types/membership';
 import { UserStatus } from '@/types/auth';
 import { RoleBadge } from '@/components/RoleBadge';
 import { StatusBadge } from '@/components/StatusBadge';
-import { GraduationCap, ChevronRight, UserCheck, Clock } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { GraduationCap, ChevronRight, UserCheck, Clock, ShieldCheck } from 'lucide-react';
 
 const AVAILABLE_ROLES = ['ADMIN', 'TEACHER', 'STUDENT'];
 
 export default function AdminUsersPage() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<UserProfileResponse[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -80,6 +82,12 @@ export default function AdminUsersPage() {
   const vipCount = users.filter((u) => u.isVip).length;
 
   const handleQuickStatusChange = async (user: UserProfileResponse, newStatus: UserStatus) => {
+    const isTargetAdmin = user.roles.some((r) => r.toUpperCase().includes('ADMIN')) || user.id === currentUser?.id;
+    if (isTargetAdmin && newStatus !== 'ACTIVE') {
+      setErrorMessage('Tài khoản Quản trị viên (Admin) luôn ở trạng thái ACTIVE và không thể bị khóa hoặc ngưng hoạt động.');
+      setTimeout(() => setErrorMessage(null), 5000);
+      return;
+    }
     try {
       const updated = await adminService.updateUserStatus(user.id, newStatus);
       setUsers((prev) => prev.map((u) => (u.id === user.id ? updated : u)));
@@ -125,6 +133,12 @@ export default function AdminUsersPage() {
 
   const handleSaveModal = async () => {
     if (!selectedUser) return;
+    const isTargetAdmin = selectedUser.roles.some((r) => r.toUpperCase().includes('ADMIN')) || selectedUser.id === currentUser?.id;
+    if (isTargetAdmin && modalStatus !== 'ACTIVE') {
+      setErrorMessage('Tài khoản Quản trị viên (Admin) luôn ở trạng thái ACTIVE và không thể bị khóa hoặc ngưng hoạt động.');
+      setTimeout(() => setErrorMessage(null), 5000);
+      return;
+    }
     setIsActionLoading(true);
     try {
       if (modalStatus !== selectedUser.status) {
@@ -500,16 +514,22 @@ export default function AdminUsersPage() {
                         <td className="py-4 px-6">
                           <div className="inline-flex items-center gap-2">
                             <StatusBadge status={u.status} size="sm" />
-                            <select
-                              value={u.status}
-                              onChange={(e) => handleQuickStatusChange(u, e.target.value as UserStatus)}
-                              className="text-[11px] text-slate-500 bg-transparent hover:bg-slate-100 rounded px-1.5 py-0.5 border border-transparent hover:border-slate-200 cursor-pointer outline-none"
-                              title="Thay đổi trạng thái nhanh"
-                            >
-                              <option value="ACTIVE">ACTIVE</option>
-                              <option value="INACTIVE">INACTIVE</option>
-                              <option value="BANNED">BANNED</option>
-                            </select>
+                            {u.roles.some((r) => r.toUpperCase().includes('ADMIN')) || u.id === currentUser?.id ? (
+                              <span className="text-[11px] text-slate-400 font-medium italic" title="Admin luôn ở trạng thái ACTIVE">
+                                (Cố định)
+                              </span>
+                            ) : (
+                              <select
+                                value={u.status}
+                                onChange={(e) => handleQuickStatusChange(u, e.target.value as UserStatus)}
+                                className="text-[11px] text-slate-500 bg-transparent hover:bg-slate-100 rounded px-1.5 py-0.5 border border-transparent hover:border-slate-200 cursor-pointer outline-none"
+                                title="Thay đổi trạng thái nhanh"
+                              >
+                                <option value="ACTIVE">ACTIVE</option>
+                                <option value="INACTIVE">INACTIVE</option>
+                                <option value="BANNED">BANNED</option>
+                              </select>
+                            )}
                           </div>
                         </td>
 
@@ -791,29 +811,50 @@ export default function AdminUsersPage() {
 
               {/* Status Management */}
               <div className="space-y-3">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Trạng thái tài khoản (Status)
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['ACTIVE', 'INACTIVE', 'BANNED'] as UserStatus[]).map((st) => (
-                    <button
-                      key={st}
-                      type="button"
-                      onClick={() => setModalStatus(st)}
-                      className={`p-3 rounded-2xl border text-xs font-bold transition-all text-center ${
-                        modalStatus === st
-                          ? st === 'ACTIVE'
-                            ? 'bg-emerald-50 border-emerald-300 text-emerald-700 ring-2 ring-emerald-500/20'
-                            : st === 'INACTIVE'
-                            ? 'bg-amber-50 border-amber-300 text-amber-700 ring-2 ring-amber-500/20'
-                            : 'bg-rose-50 border-rose-300 text-rose-700 ring-2 ring-rose-500/20'
-                          : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-600'
-                      }`}
-                    >
-                      {st}
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Trạng thái tài khoản (Status)
+                  </label>
+                  {(selectedUser.roles.some((r) => r.toUpperCase().includes('ADMIN')) || selectedUser.id === currentUser?.id) && (
+                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      Quản trị viên luôn ACTIVE
+                    </span>
+                  )}
                 </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['ACTIVE', 'INACTIVE', 'BANNED'] as UserStatus[]).map((st) => {
+                    const isTargetAdmin = selectedUser.roles.some((r) => r.toUpperCase().includes('ADMIN')) || selectedUser.id === currentUser?.id;
+                    const isDisabled = isTargetAdmin && st !== 'ACTIVE';
+                    return (
+                      <button
+                        key={st}
+                        type="button"
+                        disabled={isDisabled}
+                        onClick={() => !isDisabled && setModalStatus(st)}
+                        className={`p-3 rounded-2xl border text-xs font-bold transition-all text-center ${
+                          isDisabled
+                            ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-200 text-slate-400'
+                            : modalStatus === st
+                            ? st === 'ACTIVE'
+                              ? 'bg-emerald-50 border-emerald-300 text-emerald-700 ring-2 ring-emerald-500/20'
+                              : st === 'INACTIVE'
+                              ? 'bg-amber-50 border-amber-300 text-amber-700 ring-2 ring-amber-500/20'
+                              : 'bg-rose-50 border-rose-300 text-rose-700 ring-2 ring-rose-500/20'
+                            : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-600 cursor-pointer'
+                        }`}
+                        title={isDisabled ? 'Quản trị viên luôn ở trạng thái ACTIVE' : undefined}
+                      >
+                        {st}
+                      </button>
+                    );
+                  })}
+                </div>
+                {(selectedUser.roles.some((r) => r.toUpperCase().includes('ADMIN')) || selectedUser.id === currentUser?.id) && (
+                  <p className="text-[11px] text-slate-500 italic">
+                    * Tài khoản Quản trị viên (Admin) không thể bị khóa hoặc ngưng hoạt động để đảm bảo quyền quản trị hệ thống.
+                  </p>
+                )}
               </div>
 
               {/* Additional Meta Info */}
