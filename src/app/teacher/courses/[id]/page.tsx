@@ -53,16 +53,21 @@ import {
   Lock,
   RotateCcw,
   AlertCircle,
+  Gift,
+  UserPlus,
+  Loader2,
 } from 'lucide-react';
 import { LessonExerciseManagerModal } from '@/components/LessonExerciseManagerModal';
 import { RichMathEditor } from '@/components/RichMathEditor';
 import LessonSlideButton from '@/components/slide/LessonSlideButton';
+import { freeGrantService } from '@/services/freeGrant.service';
+import { CourseFreeGrantSummaryResponse } from '@/types/freeGrant';
 
 export default function TeacherCourseEditorPage() {
   const params = useParams();
   const courseId = params?.id as string;
 
-  const [activeTab, setActiveTab] = useState<'SYLLABUS' | 'PROGRESS' | 'ENROLLMENTS'>('SYLLABUS');
+  const [activeTab, setActiveTab] = useState<'SYLLABUS' | 'PROGRESS' | 'ENROLLMENTS' | 'FREE_GRANTS'>('SYLLABUS');
   const [courseDetail, setCourseDetail] = useState<TeacherCourseDetailResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -151,6 +156,76 @@ export default function TeacherCourseEditorPage() {
   const [isEnrollmentsLoading, setIsEnrollmentsLoading] = useState<boolean>(false);
   const [enrollmentActionId, setEnrollmentActionId] = useState<string | null>(null);
 
+  // Free Grants & Quota Requests
+  const [freeGrantSummary, setFreeGrantSummary] = useState<CourseFreeGrantSummaryResponse | null>(null);
+  const [isFreeGrantLoading, setIsFreeGrantLoading] = useState<boolean>(false);
+  const [isAddGrantModalOpen, setIsAddGrantModalOpen] = useState<boolean>(false);
+  const [studentEmailInput, setStudentEmailInput] = useState<string>('');
+  const [isSubmittingGrant, setIsSubmittingGrant] = useState<boolean>(false);
+
+  // Request Quota Modal
+  const [isRequestQuotaModalOpen, setIsRequestQuotaModalOpen] = useState<boolean>(false);
+  const [requestedQuotaInput, setRequestedQuotaInput] = useState<number>(10);
+  const [quotaReasonInput, setQuotaReasonInput] = useState<string>('');
+  const [isSubmittingQuotaRequest, setIsSubmittingQuotaRequest] = useState<boolean>(false);
+
+  const loadFreeGrants = async () => {
+    setIsFreeGrantLoading(true);
+    try {
+      const data = await freeGrantService.getFreeGrantSummary(courseId);
+      setFreeGrantSummary(data);
+    } catch {
+      setFreeGrantSummary(null);
+    } finally {
+      setIsFreeGrantLoading(false);
+    }
+  };
+
+  const handleConfirmAddGrant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!studentEmailInput.trim()) return;
+    setIsSubmittingGrant(true);
+    try {
+      await freeGrantService.addFreeGrant(courseId, studentEmailInput.trim());
+      setSuccessMessage(`Đã tặng khóa học thành công cho học viên (${studentEmailInput.trim()})!`);
+      setIsAddGrantModalOpen(false);
+      setStudentEmailInput('');
+      setTimeout(() => setSuccessMessage(null), 4000);
+      await loadFreeGrants();
+      await loadStructure();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Tặng khóa học thất bại';
+      setErrorMessage(msg);
+    } finally {
+      setIsSubmittingGrant(false);
+    }
+  };
+
+  const handleConfirmRequestQuota = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!requestedQuotaInput || requestedQuotaInput < 1 || !quotaReasonInput.trim()) {
+      setErrorMessage('Vui lòng nhập số suất cần xin và nêu rõ lý do.');
+      return;
+    }
+    setIsSubmittingQuotaRequest(true);
+    try {
+      await freeGrantService.requestQuota(courseId, {
+        requestedQuota: Number(requestedQuotaInput),
+        reason: quotaReasonInput.trim(),
+      });
+      setSuccessMessage('Đã gửi yêu cầu cấp thêm suất miễn phí lên Admin! Vui lòng chờ xét duyệt.');
+      setIsRequestQuotaModalOpen(false);
+      setQuotaReasonInput('');
+      setTimeout(() => setSuccessMessage(null), 4000);
+      await loadFreeGrants();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Gửi yêu cầu thất bại';
+      setErrorMessage(msg);
+    } finally {
+      setIsSubmittingQuotaRequest(false);
+    }
+  };
+
   useEffect(() => {
     if (courseId) {
       loadStructure();
@@ -158,6 +233,8 @@ export default function TeacherCourseEditorPage() {
         loadStudentProgress();
       } else if (activeTab === 'ENROLLMENTS') {
         loadEnrollments();
+      } else if (activeTab === 'FREE_GRANTS') {
+        loadFreeGrants();
       }
     }
   }, [courseId, activeTab]);
@@ -754,6 +831,17 @@ export default function TeacherCourseEditorPage() {
                     )}
                   </span>
                 </button>
+                <button
+                  onClick={() => setActiveTab('FREE_GRANTS')}
+                  className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'FREE_GRANTS'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Gift className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Tặng học viên (Free)</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1222,6 +1310,256 @@ export default function TeacherCourseEditorPage() {
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 4: FREE_GRANTS (Tặng học viên miễn phí & Quản lý Quota) */}
+          {activeTab === 'FREE_GRANTS' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              {/* Header & Quick Action Buttons */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <Gift className="w-5 h-5 text-amber-500" />
+                    <span>Tặng khóa học & Suất học viên miễn phí</span>
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Thêm học viên vào học miễn phí bằng Email. Mặc định hệ thống cấp sẵn 10 suất, bạn có thể xin thêm nếu cần.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <button
+                    onClick={() => {
+                      setQuotaReasonInput('');
+                      setRequestedQuotaInput(10);
+                      setIsRequestQuotaModalOpen(true);
+                    }}
+                    className="px-3.5 py-2 rounded-2xl bg-white border border-slate-300 hover:border-slate-400 text-slate-700 font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                    title="Gửi yêu cầu tới Admin để được cấp thêm hạn mức suất miễn phí"
+                  >
+                    <Plus className="w-4 h-4 text-purple-600" />
+                    <span>Xin thêm suất</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setStudentEmailInput('');
+                      setIsAddGrantModalOpen(true);
+                    }}
+                    disabled={freeGrantSummary != null && freeGrantSummary.remainingQuota <= 0}
+                    className="px-4 py-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-xs shadow-md shadow-amber-500/20 disabled:opacity-50 transition flex items-center gap-1.5 cursor-pointer"
+                    title="Nhập email học sinh để tặng khóa học ngay lập tức"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>+ Tặng học viên</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Quota Progress Banner */}
+              {(() => {
+                const total = freeGrantSummary?.totalQuota ?? 10;
+                const used = freeGrantSummary?.usedQuota ?? 0;
+                const remaining = freeGrantSummary?.remainingQuota ?? Math.max(0, total - used);
+                const percent = Math.min(100, Math.round((used / Math.max(1, total)) * 100));
+
+                return (
+                  <div className="bg-gradient-to-br from-amber-50/70 via-orange-50/40 to-slate-50 border border-amber-200/80 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <span className="text-[11px] font-black uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
+                          <Gift className="w-3.5 h-3.5 text-amber-600" />
+                          Hạn mức suất miễn phí của khóa học
+                        </span>
+                        <div className="flex items-baseline gap-2 mt-1">
+                          <span className="text-2xl sm:text-3xl font-black text-slate-900 font-mono">
+                            {used} / {total}
+                          </span>
+                          <span className="text-xs font-bold text-slate-500">suất đã dùng</span>
+                          <span className="text-slate-300">•</span>
+                          <span className={`text-xs font-bold ${remaining > 0 ? 'text-emerald-700' : 'text-rose-600'}`}>
+                            Còn lại: <strong>{remaining}</strong> suất
+                          </span>
+                        </div>
+                      </div>
+
+                      {remaining === 0 && (
+                        <div className="px-3.5 py-1.5 rounded-xl bg-rose-100/80 border border-rose-300 text-rose-800 text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto">
+                          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                          <span>Đã sử dụng hết hạn mức</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="space-y-1">
+                      <div className="w-full bg-slate-200/70 h-3 rounded-full overflow-hidden p-0.5">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            percent >= 100
+                              ? 'bg-rose-500'
+                              : percent >= 70
+                              ? 'bg-amber-500'
+                              : 'bg-emerald-500'
+                          }`}
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[11px] text-slate-400 font-medium">
+                        <span>0 suất</span>
+                        <span>{percent}% đã dùng</span>
+                        <span>{total} suất tối đa</span>
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] text-slate-600 italic leading-relaxed pt-1 border-t border-amber-200/40">
+                      💡 <strong>Cơ chế:</strong> Học viên được tặng sẽ nhận thông báo kích hoạt ngay vào tài khoản và được học toàn bộ nội dung mà không mất phí. Nếu bạn cần mở thêm cho lớp học offline hoặc tặng học bổng số lượng lớn, vui lòng bấm <strong>&ldquo;Xin thêm suất&rdquo;</strong> để gửi Admin phê duyệt.
+                    </p>
+                  </div>
+                );
+              })()}
+
+              {/* Granted Students Table */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Danh sách học viên đã được tặng ({freeGrantSummary?.grants?.length || 0})
+                  </h3>
+                </div>
+
+                {isFreeGrantLoading ? (
+                  <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center flex flex-col items-center justify-center gap-2">
+                    <Loader2 className="w-7 h-7 text-amber-500 animate-spin" />
+                    <p className="text-xs text-slate-500">Đang tải danh sách học viên...</p>
+                  </div>
+                ) : !freeGrantSummary?.grants || freeGrantSummary.grants.length === 0 ? (
+                  <div className="bg-white border border-slate-200 rounded-3xl p-10 text-center shadow-xs space-y-3">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 mx-auto flex items-center justify-center">
+                      <Gift className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-bold text-slate-900">Chưa có học viên nào được tặng suất miễn phí</h4>
+                      <p className="text-xs text-slate-500 max-w-md mx-auto">
+                        Bạn có thể tặng khóa học cho học sinh thân thiết, trợ giảng hoặc học sinh cần hỗ trợ bằng cách bấm nút dưới đây.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setStudentEmailInput('');
+                        setIsAddGrantModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs transition"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>+ Tặng học viên đầu tiên</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-white border border-slate-200 rounded-3xl shadow-xs overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                            <th className="py-3.5 px-6">Học sinh</th>
+                            <th className="py-3.5 px-6">Thời gian tặng</th>
+                            <th className="py-3.5 px-6">Hình thức</th>
+                            <th className="py-3.5 px-6 text-right">Trạng thái</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-xs">
+                          {freeGrantSummary.grants.map((grant) => (
+                            <tr key={grant.enrollmentId} className="hover:bg-slate-50/80 transition-colors">
+                              <td className="py-4 px-6">
+                                <div>
+                                  <p className="font-bold text-slate-900">{grant.studentName || 'Học viên'}</p>
+                                  <p className="text-slate-400 text-[11px] font-mono">{grant.studentEmail}</p>
+                                </div>
+                              </td>
+                              <td className="py-4 px-6 text-slate-500">
+                                {grant.grantedAt ? new Date(grant.grantedAt).toLocaleString('vi-VN') : '—'}
+                              </td>
+                              <td className="py-4 px-6">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-amber-100 text-amber-800">
+                                  <Gift className="w-3 h-3" />
+                                  <span>Giáo viên tặng (0 đ)</span>
+                                </span>
+                              </td>
+                              <td className="py-4 px-6 text-right">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-emerald-100 text-emerald-800">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  <span>Đã kích hoạt</span>
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Quota Request History Section */}
+              {freeGrantSummary?.quotaRequests && freeGrantSummary.quotaRequests.length > 0 && (
+                <div className="space-y-3 pt-4 border-t border-slate-200/80">
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Lịch sử yêu cầu xin thêm suất miễn phí ({freeGrantSummary.quotaRequests.length})
+                  </h3>
+
+                  <div className="bg-white border border-slate-200 rounded-3xl shadow-xs overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                            <th className="py-3.5 px-6">Số suất xin</th>
+                            <th className="py-3.5 px-6">Lý do</th>
+                            <th className="py-3.5 px-6">Thời gian gửi</th>
+                            <th className="py-3.5 px-6">Phản hồi Admin</th>
+                            <th className="py-3.5 px-6 text-right">Trạng thái</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-xs">
+                          {freeGrantSummary.quotaRequests.map((req) => (
+                            <tr key={req.id} className="hover:bg-slate-50/80 transition-colors">
+                              <td className="py-4 px-6 font-bold text-purple-700 font-mono">
+                                +{req.requestedQuota} suất
+                              </td>
+                              <td className="py-4 px-6 max-w-xs text-slate-700">
+                                <p className="line-clamp-2">{req.reason}</p>
+                              </td>
+                              <td className="py-4 px-6 text-slate-500 whitespace-nowrap">
+                                {req.createdAt ? new Date(req.createdAt).toLocaleString('vi-VN') : '—'}
+                              </td>
+                              <td className="py-4 px-6 text-slate-500 text-[11px]">
+                                {req.adminNote || '—'}
+                              </td>
+                              <td className="py-4 px-6 text-right whitespace-nowrap">
+                                {req.status === 'PENDING' ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-amber-100 text-amber-800 animate-pulse">
+                                    <Clock className="w-3 h-3 text-amber-600" />
+                                    <span>Chờ Admin duyệt</span>
+                                  </span>
+                                ) : req.status === 'APPROVED' ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-emerald-100 text-emerald-800">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>Đã duyệt (+{req.requestedQuota})</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-rose-100 text-rose-800">
+                                    <X className="w-3 h-3 text-rose-600" />
+                                    <span>Từ chối</span>
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1763,6 +2101,159 @@ export default function TeacherCourseEditorPage() {
                       className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-xs shadow-md shadow-amber-500/20 disabled:opacity-50 flex items-center gap-1.5 transition-all cursor-pointer"
                     >
                       {isSubmittingReview ? 'Đang gửi duyệt...' : 'Xác nhận & Gửi duyệt'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Tặng học viên bằng Email */}
+          {isAddGrantModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+              <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
+                      <UserPlus className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-slate-900 text-sm sm:text-base">Tặng khóa học cho học viên</h3>
+                      <p className="text-[11px] text-slate-500">Cấp quyền truy cập học miễn phí (0 đ) bằng email</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsAddGrantModalOpen(false)}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleConfirmAddGrant} className="p-6 space-y-4">
+                  <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-2xl flex items-center justify-between text-xs">
+                    <span className="font-semibold text-amber-900">Suất miễn phí còn lại:</span>
+                    <span className="font-mono font-black text-amber-800 text-sm">
+                      {freeGrantSummary?.remainingQuota ?? 10} / {freeGrantSummary?.totalQuota ?? 10} suất
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                      Email tài khoản học sinh <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="VD: hocsinh@gmail.com"
+                      value={studentEmailInput}
+                      onChange={(e) => setStudentEmailInput(e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-xs font-medium bg-white border border-slate-300 rounded-xl outline-none focus:border-amber-500 shadow-xs"
+                    />
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      * Học sinh cần có tài khoản đã đăng ký trên hệ thống. Sau khi tặng, học sinh sẽ nhận thông báo và truy cập toàn bộ bài giảng ngay lập tức.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddGrantModalOpen(false)}
+                      className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingGrant || !studentEmailInput.trim()}
+                      className="px-5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs rounded-xl shadow-xs disabled:opacity-50 flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      {isSubmittingGrant && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      Xác nhận tặng
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Modal: Yêu cầu cấp thêm suất miễn phí */}
+          {isRequestQuotaModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+              <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center text-purple-600">
+                      <Gift className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-slate-900 text-sm sm:text-base">Xin cấp thêm suất miễn phí</h3>
+                      <p className="text-[11px] text-slate-500">Gửi yêu cầu tăng hạn mức tới Quản trị viên</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsRequestQuotaModalOpen(false)}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleConfirmRequestQuota} className="p-6 space-y-4">
+                  <div className="p-3 bg-purple-50/70 border border-purple-200/80 rounded-2xl flex items-center justify-between text-xs">
+                    <span className="font-semibold text-purple-900">Hạn mức hiện tại:</span>
+                    <span className="font-mono font-bold text-purple-800">
+                      {freeGrantSummary?.totalQuota ?? 10} suất (Đã dùng: {freeGrantSummary?.usedQuota ?? 0})
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                      Số suất muốn xin thêm <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      required
+                      value={requestedQuotaInput}
+                      onChange={(e) => setRequestedQuotaInput(Number(e.target.value))}
+                      className="w-full px-3.5 py-2.5 text-xs font-bold font-mono bg-white border border-slate-300 rounded-xl outline-none focus:border-purple-500 shadow-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                      Lý do xin thêm suất <span className="text-rose-500">*</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      required
+                      placeholder="VD: Cấp suất học bổng cho 10 học sinh nghèo vượt khó, hoặc học sinh tham gia đội tuyển bồi dưỡng offline..."
+                      value={quotaReasonInput}
+                      onChange={(e) => setQuotaReasonInput(e.target.value)}
+                      className="w-full p-3 text-xs bg-white border border-slate-300 rounded-xl outline-none focus:border-purple-500 shadow-xs"
+                    />
+                    <p className="text-[10px] text-slate-400 leading-relaxed">
+                      * Yêu cầu sẽ được gửi tới Admin. Khi Admin phê duyệt, hệ thống sẽ tự động tăng số lượng suất và gửi thông báo cho bạn.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setIsRequestQuotaModalOpen(false)}
+                      className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingQuotaRequest || !requestedQuotaInput || requestedQuotaInput < 1 || !quotaReasonInput.trim()}
+                      className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-xs disabled:opacity-50 flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      {isSubmittingQuotaRequest && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      Gửi yêu cầu tới Admin
                     </button>
                   </div>
                 </form>
