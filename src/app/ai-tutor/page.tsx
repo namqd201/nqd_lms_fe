@@ -665,14 +665,25 @@ export default function AiTutorPage() {
 
           {/* Quick Consultation Suggestions */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-1 scrollbar-none text-xs">
-            <button
-              type="button"
-              onClick={() => handleQuickPrompt('Hệ thống có những gói Pro nào, chi phí và quyền lợi ra sao?')}
-              className="px-3 py-1.5 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/70 font-medium shrink-0 transition flex items-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs"
-            >
-              <span>💳</span>
-              <span>Các gói Pro & bảng giá</span>
-            </button>
+            {user?.roles?.some((r) => r === 'TEACHER' || r === 'ROLE_TEACHER') ? (
+              <button
+                type="button"
+                onClick={() => handleQuickPrompt('Hệ thống có những gói Giáo viên Pro nào, chi phí và quyền lợi ra sao?')}
+                className="px-3 py-1.5 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/70 font-medium shrink-0 transition flex items-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs"
+              >
+                <span>💳</span>
+                <span>Gói Giáo viên Pro & bảng giá</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleQuickPrompt('Hệ thống có những gói Học sinh Pro nào, chi phí và quyền lợi ra sao?')}
+                className="px-3 py-1.5 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/70 font-medium shrink-0 transition flex items-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs"
+              >
+                <span>💳</span>
+                <span>Gói Học sinh Pro & bảng giá</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => handleQuickPrompt('Tôi muốn mua khóa học môn Toán, môn này nên học giáo viên nào hay nhất?')}

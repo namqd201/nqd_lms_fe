@@ -53,6 +53,7 @@ function formatLimit(val: number | undefined | null, unit: string): string {
 export default function PricingPage() {
   const { user, isAuthenticated, refreshUser, subscription: authSub, isUltra, isPro, isTeacherPro } = useAuth();
   const isAdmin = user?.roles?.some((r) => r === 'ADMIN' || r === 'ROLE_ADMIN');
+  const isTeacher = user?.roles?.some((r) => r === 'TEACHER' || r === 'ROLE_TEACHER');
 
   const [plans, setPlans] = useState<MembershipPlanResponse[]>([]);
   const [currentSub, setCurrentSub] = useState<SubscriptionResponse | null>(null);
@@ -64,6 +65,17 @@ export default function PricingPage() {
   const [isCreatingOrder, setIsCreatingOrder] = useState<string | null>(null);
 
   const effectiveSub = currentSub || authSub;
+
+  // Auto-switch tab based on user's role
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (isTeacher && !isAdmin) {
+        setActiveTab('TEACHER');
+      } else if (!isTeacher && !isAdmin) {
+        setActiveTab('STUDENT');
+      }
+    }
+  }, [isAuthenticated, isTeacher, isAdmin]);
 
   const fetchPlansAndSub = async () => {
     try {
@@ -93,6 +105,15 @@ export default function PricingPage() {
       window.location.href = '/login';
       return;
     }
+    // Prevent subscribing to mismatching roles
+    if (isTeacher && !isAdmin && plan.userType === 'STUDENT') {
+      setErrorMsg('Tài khoản Giáo viên không thể đăng ký gói dành cho Học sinh. Quý Thầy/Cô vui lòng chọn gói Giáo viên Pro.');
+      return;
+    }
+    if (!isTeacher && !isAdmin && plan.userType === 'TEACHER') {
+      setErrorMsg('Gói này chỉ dành riêng cho Giáo viên. Tài khoản của bạn là Học sinh, vui lòng chọn các gói dành cho Học sinh.');
+      return;
+    }
     try {
       setIsCreatingOrder(plan.id);
       setErrorMsg(null);
@@ -106,7 +127,14 @@ export default function PricingPage() {
   };
 
   const filteredPlans = plans.filter((p) => {
-    if (p.userType !== activeTab) return false;
+    // Role-based visibility enforcement
+    if (isAuthenticated && !isAdmin) {
+      if (isTeacher && p.userType !== 'TEACHER') return false;
+      if (!isTeacher && p.userType !== 'STUDENT') return false;
+    } else {
+      if (p.userType !== activeTab) return false;
+    }
+
     // Always include Ultra in student tab if present, even when yearly is toggled
     if (p.planCode?.toUpperCase().includes('ULTRA')) return true;
     if (isYearly) {
@@ -132,30 +160,46 @@ export default function PricingPage() {
             </p>
 
             {/* User Type Tab Toggle (Học sinh vs Giảng viên) */}
-            <div className="flex items-center justify-center pt-2">
-              <div className="p-1 bg-slate-200/80 rounded-2xl flex items-center gap-1 shadow-inner">
-                <button
-                  onClick={() => setActiveTab('STUDENT')}
-                  className={`px-5 py-2 rounded-xl text-xs font-extrabold transition-all ${
-                    activeTab === 'STUDENT'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  🎓 Dành cho Học sinh (PRO & ULTRA)
-                </button>
-                <button
-                  onClick={() => setActiveTab('TEACHER')}
-                  className={`px-5 py-2 rounded-xl text-xs font-extrabold transition-all ${
-                    activeTab === 'TEACHER'
-                      ? 'bg-white text-indigo-600 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  👨‍🏫 Dành cho Giảng viên (TEACHER PRO)
-                </button>
+            {isAuthenticated && !isAdmin ? (
+              <div className="flex items-center justify-center pt-2">
+                {isTeacher ? (
+                  <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-2xl text-xs font-bold shadow-xs">
+                    <span>👨‍🏫</span>
+                    <span>Gói Hội Viên Dành Riêng Cho Quý Thầy/Cô (Giáo viên)</span>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-2xl text-xs font-bold shadow-xs">
+                    <span>🎓</span>
+                    <span>Gói Hội Viên Dành Riêng Cho Học Sinh & Thành Viên Học Tập</span>
+                  </div>
+                )}
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center justify-center pt-2">
+                <div className="p-1 bg-slate-200/80 rounded-2xl flex items-center gap-1 shadow-inner">
+                  <button
+                    onClick={() => setActiveTab('STUDENT')}
+                    className={`px-5 py-2 rounded-xl text-xs font-extrabold transition-all ${
+                      activeTab === 'STUDENT'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    🎓 Dành cho Học sinh (PRO & ULTRA)
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('TEACHER')}
+                    className={`px-5 py-2 rounded-xl text-xs font-extrabold transition-all ${
+                      activeTab === 'TEACHER'
+                        ? 'bg-white text-indigo-600 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    👨‍🏫 Dành cho Giảng viên (TEACHER PRO)
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Monthly vs Yearly Toggle */}
             <div className="flex items-center justify-center gap-3 pt-2">
