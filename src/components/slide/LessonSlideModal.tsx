@@ -35,6 +35,145 @@ interface LessonSlideModalProps {
   canManage?: boolean;
 }
 
+const detectClientGeometricSvg = (slide: SlideItem): string | null => {
+  if (slide.svgDiagram && slide.svgDiagram.trim().startsWith('<svg')) {
+    return slide.svgDiagram;
+  }
+  const combined = (
+    (slide.title || '') + ' ' +
+    (slide.subtitle || '') + ' ' +
+    (slide.bulletPoints?.join(' ') || '')
+  ).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
+
+  // 1. Square
+  if (combined.includes('hinh vuong') || combined.includes('vuong vuc')) {
+    return `<svg viewBox="0 0 280 210" xmlns="http://www.w3.org/2000/svg" class="w-full h-full max-h-[175px]">
+      <defs>
+        <linearGradient id="feSq" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#83C75D" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#6366F1" stop-opacity="0.25"/>
+        </linearGradient>
+      </defs>
+      <rect x="70" y="35" width="140" height="140" rx="6" fill="url(#feSq)" stroke="#4F46E5" stroke-width="3"/>
+      <path d="M 70 51 L 86 51 L 86 35" fill="none" stroke="#E11D48" stroke-width="2"/>
+      <path d="M 194 35 L 194 51 L 210 51" fill="none" stroke="#E11D48" stroke-width="2"/>
+      <path d="M 194 175 L 194 159 L 210 159" fill="none" stroke="#E11D48" stroke-width="2"/>
+      <path d="M 70 159 L 86 159 L 86 175" fill="none" stroke="#E11D48" stroke-width="2"/>
+      <line x1="140" y1="30" x2="140" y2="40" stroke="#0D9488" stroke-width="3"/>
+      <line x1="205" y1="105" x2="215" y2="105" stroke="#0D9488" stroke-width="3"/>
+      <line x1="140" y1="170" x2="140" y2="180" stroke="#0D9488" stroke-width="3"/>
+      <line x1="65" y1="105" x2="75" y2="105" stroke="#0D9488" stroke-width="3"/>
+      <text x="52" y="32" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">A</text>
+      <text x="216" y="32" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">B</text>
+      <text x="216" y="190" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">C</text>
+      <text x="52" y="190" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">D</text>
+      <text x="140" y="24" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="12" fill="#4338CA">Cạnh a (4 cạnh bằng nhau)</text>
+    </svg>`;
+  }
+  // 2. Rectangle
+  if (combined.includes('hinh chu nhat') || combined.includes('chu nhat')) {
+    return `<svg viewBox="0 0 280 210" xmlns="http://www.w3.org/2000/svg" class="w-full h-full max-h-[175px]">
+      <defs>
+        <linearGradient id="feRec" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#6366F1" stop-opacity="0.25"/>
+        </linearGradient>
+      </defs>
+      <rect x="40" y="50" width="200" height="110" rx="6" fill="url(#feRec)" stroke="#2563EB" stroke-width="3"/>
+      <path d="M 40 64 L 54 64 L 54 50" fill="none" stroke="#E11D48" stroke-width="2"/>
+      <path d="M 226 50 L 226 64 L 240 64" fill="none" stroke="#E11D48" stroke-width="2"/>
+      <path d="M 226 160 L 226 146 L 240 146" fill="none" stroke="#E11D48" stroke-width="2"/>
+      <path d="M 40 146 L 54 146 L 54 160" fill="none" stroke="#E11D48" stroke-width="2"/>
+      <text x="25" y="48" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">A</text>
+      <text x="246" y="48" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">B</text>
+      <text x="246" y="174" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">C</text>
+      <text x="25" y="174" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">D</text>
+      <text x="140" y="38" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="12" fill="#1D4ED8">Chiều dài a</text>
+      <text x="264" y="110" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="11" fill="#1D4ED8" transform="rotate(90, 264, 110)">Chiều rộng b</text>
+    </svg>`;
+  }
+  // 3. Circle
+  if (combined.includes('hinh tron') || combined.includes('duong tron') || combined.includes('hinh cau')) {
+    return `<svg viewBox="0 0 280 210" xmlns="http://www.w3.org/2000/svg" class="w-full h-full max-h-[175px]">
+      <defs>
+        <radialGradient id="feCir" cx="40%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="#FDE047" stop-opacity="0.3"/>
+          <stop offset="100%" stop-color="#EA580C" stop-opacity="0.25"/>
+        </radialGradient>
+      </defs>
+      <circle cx="140" cy="105" r="75" fill="url(#feCir)" stroke="#EA580C" stroke-width="3"/>
+      <circle cx="140" cy="105" r="4" fill="#0F172A"/>
+      <text x="132" y="98" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">O</text>
+      <line x1="140" y1="105" x2="215" y2="105" stroke="#E11D48" stroke-width="2.5" stroke-dasharray="4,2"/>
+      <text x="175" y="98" font-family="sans-serif" font-weight="bold" font-size="12" fill="#BE123C">Bán kính R</text>
+    </svg>`;
+  }
+  // 4. Triangle
+  if (combined.includes('tam giac')) {
+    return `<svg viewBox="0 0 280 210" xmlns="http://www.w3.org/2000/svg" class="w-full h-full max-h-[175px]">
+      <defs>
+        <linearGradient id="feTri" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#F43F5E" stop-opacity="0.2"/>
+          <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0.25"/>
+        </linearGradient>
+      </defs>
+      <polygon points="140,30 50,175 230,175" fill="url(#feTri)" stroke="#7C3AED" stroke-width="3"/>
+      <line x1="140" y1="30" x2="140" y2="175" stroke="#E11D48" stroke-width="2" stroke-dasharray="4,3"/>
+      <text x="140" y="22" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">A</text>
+      <text x="35" y="185" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">B</text>
+      <text x="245" y="185" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">C</text>
+      <text x="140" y="195" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="12" fill="#E11D48">H</text>
+      <text x="148" y="105" font-family="sans-serif" font-weight="bold" font-size="11" fill="#BE123C">Chiều cao h</text>
+    </svg>`;
+  }
+  // 5. Rhombus
+  if (combined.includes('hinh thoi')) {
+    return `<svg viewBox="0 0 280 210" xmlns="http://www.w3.org/2000/svg" class="w-full h-full max-h-[175px]">
+      <defs>
+        <linearGradient id="feRho" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.25"/>
+        </linearGradient>
+      </defs>
+      <polygon points="140,25 235,105 140,185 45,105" fill="url(#feRho)" stroke="#0284C7" stroke-width="3"/>
+      <line x1="140" y1="25" x2="140" y2="185" stroke="#E11D48" stroke-width="2" stroke-dasharray="4,2"/>
+      <line x1="45" y1="105" x2="235" y2="105" stroke="#E11D48" stroke-width="2" stroke-dasharray="4,2"/>
+      <text x="140" y="18" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">A</text>
+      <text x="245" y="110" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">B</text>
+      <text x="140" y="202" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">C</text>
+      <text x="32" y="110" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">D</text>
+    </svg>`;
+  }
+  // 6. Trapezoid
+  if (combined.includes('hinh thang')) {
+    return `<svg viewBox="0 0 280 210" xmlns="http://www.w3.org/2000/svg" class="w-full h-full max-h-[175px]">
+      <polygon points="85,50 195,50 245,165 35,165" fill="#10B981" fill-opacity="0.2" stroke="#059669" stroke-width="3"/>
+      <line x1="85" y1="50" x2="85" y2="165" stroke="#E11D48" stroke-width="2" stroke-dasharray="4,2"/>
+      <text x="80" y="42" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">A</text>
+      <text x="200" y="42" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">B</text>
+      <text x="252" y="175" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">C</text>
+      <text x="20" y="175" font-family="sans-serif" font-weight="900" font-size="14" fill="#0F172A">D</text>
+      <text x="140" y="40" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="11" fill="#047857">Đáy nhỏ a</text>
+      <text x="140" y="185" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="11" fill="#047857">Đáy lớn b</text>
+      <text x="94" y="110" font-family="sans-serif" font-weight="bold" font-size="11" fill="#BE123C">h</text>
+    </svg>`;
+  }
+  // 7. 3D Cube
+  if (combined.includes('lap phuong') || combined.includes('hop chu nhat')) {
+    return `<svg viewBox="0 0 280 210" xmlns="http://www.w3.org/2000/svg" class="w-full h-full max-h-[175px]">
+      <polygon points="60,90 140,90 140,170 60,170" fill="#6366F1" fill-opacity="0.2" stroke="#4F46E5" stroke-width="2.5"/>
+      <polygon points="60,90 110,45 190,45 140,90" fill="#818CF8" fill-opacity="0.3" stroke="#4F46E5" stroke-width="2.5"/>
+      <polygon points="140,90 190,45 190,125 140,170" fill="#4338CA" fill-opacity="0.2" stroke="#4F46E5" stroke-width="2.5"/>
+      <line x1="60" y1="170" x2="110" y2="125" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <line x1="110" y1="45" x2="110" y2="125" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <line x1="110" y1="125" x2="190" y2="125" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="125" y="195" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="12" fill="#4338CA">Khối hình học không gian</text>
+    </svg>`;
+  }
+
+  return null;
+};
+
 export default function LessonSlideModal({
   isOpen,
   onClose,
@@ -211,6 +350,8 @@ export default function LessonSlideModal({
   const currentSlide: SlideItem | undefined = slide?.slides?.[currentIndex];
   const totalSlides = slide?.slides?.length || 0;
   const isManageable = canManage || slide?.canManage;
+  const visualSvg = currentSlide ? detectClientGeometricSvg(currentSlide) : null;
+  const hasVisual = Boolean(visualSvg || currentSlide?.imageUrl);
 
   return (
     <div
@@ -386,9 +527,9 @@ export default function LessonSlideModal({
                     </div>
                   ) : (
                     /* REGULAR CONTENT / FORMULA / SPLIT SLIDE */
-                    <div className="flex flex-col justify-between h-full space-y-4">
+                    <div className="flex flex-col justify-between h-full space-y-3">
                       <div>
-                        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
                           <div>
                             <h3 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
                               {currentSlide.title}
@@ -403,41 +544,78 @@ export default function LessonSlideModal({
                             #{currentSlide.slideNumber}
                           </span>
                         </div>
-
-                        {/* Bullet points */}
-                        {currentSlide.bulletPoints && currentSlide.bulletPoints.length > 0 && (
-                          <div className="pt-4 space-y-2.5">
-                            {currentSlide.bulletPoints.map((bp, idx) => (
-                              <div key={idx} className="flex items-start gap-3">
-                                <span className="w-5 h-5 rounded-md bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                                  {idx + 1}
-                                </span>
-                                <span className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
-                                  {bp}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
 
-                      {/* Formula or Callout */}
-                      {(currentSlide.formula || currentSlide.callout) && (
-                        <div className="space-y-2 pt-2">
-                          {currentSlide.formula && (
-                            <div className="p-3 rounded-xl bg-slate-900 text-emerald-400 font-mono text-xs sm:text-sm border border-slate-800 shadow-inner flex items-center gap-2 overflow-x-auto">
-                              <span className="text-slate-500 select-none">∑</span>
-                              <code>{currentSlide.formula}</code>
+                      {/* Content Area: Single column or 2-column with Visual illustration */}
+                      <div className="flex-1 flex flex-col md:flex-row gap-4 items-stretch overflow-hidden">
+                        {/* Left column: Bullets + Formula/Callout */}
+                        <div className={`flex flex-col justify-between ${hasVisual ? 'w-full md:w-7/12' : 'w-full'}`}>
+                          {/* Bullet points */}
+                          {currentSlide.bulletPoints && currentSlide.bulletPoints.length > 0 && (
+                            <div className="space-y-2">
+                              {currentSlide.bulletPoints.map((bp, idx) => (
+                                <div key={idx} className="flex items-start gap-2.5">
+                                  <span className="w-5 h-5 rounded-md bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                                    {idx + 1}
+                                  </span>
+                                  <span className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+                                    {bp}
+                                  </span>
+                                </div>
+                              ))}
                             </div>
                           )}
-                          {currentSlide.callout && (
-                            <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-900 text-xs flex items-center gap-2">
-                              <Lightbulb className="w-4 h-4 text-emerald-600 shrink-0" />
-                              <span className="font-semibold">{currentSlide.callout}</span>
+
+                          {/* Formula or Callout */}
+                          {(currentSlide.formula || currentSlide.callout) && (
+                            <div className="space-y-1.5 pt-2">
+                              {currentSlide.formula && (
+                                <div className="p-2.5 rounded-xl bg-slate-900 text-emerald-400 font-mono text-xs sm:text-sm border border-slate-800 shadow-inner flex items-center gap-2 overflow-x-auto">
+                                  <span className="text-slate-500 select-none">∑</span>
+                                  <code>{currentSlide.formula}</code>
+                                </div>
+                              )}
+                              {currentSlide.callout && (
+                                <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-900 text-xs flex items-center gap-2">
+                                  <Lightbulb className="w-4 h-4 text-emerald-600 shrink-0" />
+                                  <span className="font-semibold">{currentSlide.callout}</span>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
-                      )}
+
+                        {/* Right column: Pedagogical Illustration Card */}
+                        {hasVisual && (
+                          <div className="w-full md:w-5/12 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/20 rounded-2xl border border-indigo-100/80 p-3 sm:p-4 shadow-sm relative overflow-hidden">
+                            <div className="w-full flex items-center justify-between mb-1.5">
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200 uppercase tracking-wider">
+                                <Sparkles className="w-3 h-3 text-indigo-500" />
+                                Minh họa trực quan
+                              </span>
+                            </div>
+
+                            <div className="flex-1 w-full flex items-center justify-center min-h-[140px] max-h-[220px]">
+                              {visualSvg ? (
+                                <div
+                                  className="w-full h-full max-h-[185px] flex items-center justify-center drop-shadow-sm select-none"
+                                  dangerouslySetInnerHTML={{ __html: visualSvg }}
+                                />
+                              ) : currentSlide.imageUrl ? (
+                                <img
+                                  src={currentSlide.imageUrl}
+                                  alt={currentSlide.title}
+                                  className="w-full h-full object-contain rounded-xl max-h-[185px] shadow-sm"
+                                />
+                              ) : null}
+                            </div>
+
+                            <div className="mt-1.5 text-center text-[11px] font-semibold text-slate-500 truncate w-full px-2">
+                              📐 {currentSlide.title}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

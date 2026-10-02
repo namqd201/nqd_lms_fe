@@ -9,6 +9,9 @@ export interface SlideItem {
   formula?: string;
   callout?: string;
   speakerNotes?: string;
+  imageUrl?: string;
+  imagePrompt?: string;
+  svgDiagram?: string;
 }
 
 export interface LessonSlideResponse {
