@@ -1988,10 +1988,7 @@ export default function ClassroomDetailPage() {
                             <td className="py-4 px-6">
                               <div className="flex items-center gap-3">
                                 <UserAvatar src={st.studentAvatarUrl} name={st.studentName} size="md" />
-                                <div>
-                                  <p className="font-bold text-slate-900 text-xs sm:text-sm">{st.studentName}</p>
-                                  <p className="text-[10px] text-slate-400 font-mono">ID: {st.studentId.substring(0, 8)}</p>
-                                </div>
+                                <p className="font-bold text-slate-900 text-xs sm:text-sm">{st.studentName}</p>
                               </div>
                             </td>
                             <td className="py-4 px-6 font-mono text-slate-600 text-xs">
