@@ -466,18 +466,46 @@ export default function AdminFinancePage() {
               <button onClick={() => setIsCompleteModalOpen(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
             <form onSubmit={handleComplete} className="p-6 space-y-4">
-              <p className="text-xs text-slate-600">
-                Nhập mã tham chiếu / mã giao dịch ủy nhiệm chi của ngân hàng (nếu có) cho lệnh rút <strong>#{selectedWithdrawal.withdrawalCode}</strong>.
-              </p>
+              <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-2 text-xs">
+                <div className="flex justify-between items-center pb-1.5 border-b border-slate-200">
+                  <span className="font-semibold text-slate-500">Mã đơn rút:</span>
+                  <span className="font-mono font-bold text-slate-900">#{selectedWithdrawal.withdrawalCode}</span>
+                </div>
+                <div className="flex justify-between items-center pb-1.5 border-b border-slate-200">
+                  <span className="font-semibold text-slate-500">Số tiền cần thanh toán:</span>
+                  <span className="font-mono font-black text-emerald-600 text-sm">
+                    {selectedWithdrawal.amount.toLocaleString('vi-VN')} VND
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-slate-500">Ngân hàng thụ hưởng:</span>
+                  <span className="font-bold text-slate-800">{selectedWithdrawal.bankName}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-slate-500">Số tài khoản:</span>
+                  <span className="font-mono font-bold text-blue-600">{selectedWithdrawal.accountNumberMasked}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-slate-500">Chủ tài khoản:</span>
+                  <span className="font-bold text-slate-900 uppercase">{selectedWithdrawal.accountHolderName}</span>
+                </div>
+              </div>
+
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Mã tham chiếu ngân hàng (Reference Code)</label>
+                <label className="text-xs font-bold text-slate-700">
+                  Mã giao dịch ngân hàng / Reference Code <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
-                  placeholder="VD: FT2609068899..."
+                  required
+                  placeholder="VD: FT2609068899 hoặc MB123456..."
                   value={referenceCode}
                   onChange={(e) => setReferenceCode(e.target.value)}
-                  className="w-full p-2.5 text-xs border border-slate-200 rounded-xl font-mono"
+                  className="w-full p-2.5 text-xs border border-slate-200 rounded-xl font-mono font-bold outline-none focus:border-emerald-500"
                 />
+                <p className="text-[10px] text-slate-400">
+                  Mã giao dịch này sẽ được gửi trong thông báo tự động tới Giảng viên ngay sau khi hoàn tất.
+                </p>
               </div>
               <div className="pt-2 flex items-center justify-end gap-2">
                 <button

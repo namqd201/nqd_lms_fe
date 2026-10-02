@@ -107,6 +107,10 @@ export interface TeacherCourseDetailResponse {
   status: CourseStatus;
   rejectReason?: string | null;
   isPrivate?: boolean;
+  pricingType?: 'FREE' | 'PAID';
+  price?: number;
+  salePrice?: number;
+  currency?: string;
   creatorId?: string | null;
   creatorName?: string | null;
   chapters: TeacherChapterResponse[];

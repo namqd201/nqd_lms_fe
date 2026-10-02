@@ -113,6 +113,36 @@ export default function TeacherCourseEditorPage() {
 
   // Student Progress (Phase 5)
   const [studentProgresses, setStudentProgresses] = useState<TeacherStudentLessonProgressResponse[]>([]);
+
+  // Pricing & Submit Marketplace Review Modal
+  const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+  const [pricingType, setPricingType] = useState<'FREE' | 'PAID'>('PAID');
+  const [coursePrice, setCoursePrice] = useState<number>(200000);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+  const handleConfirmSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pricingType === 'PAID' && (!coursePrice || coursePrice < 10000)) {
+      setErrorMessage('Giá bán khóa học tối thiểu là 10,000 VNĐ.');
+      return;
+    }
+    setIsSubmittingReview(true);
+    try {
+      await marketplaceService.submitCourseForReview(courseId, {
+        pricingType,
+        price: pricingType === 'PAID' ? Number(coursePrice) : 0,
+      });
+      setSuccessMessage('Đã thiết lập giá và gửi yêu cầu kiểm duyệt lên Marketplace thành công! Chờ Admin phê duyệt.');
+      setIsPriceModalOpen(false);
+      setTimeout(() => setSuccessMessage(null), 4000);
+      await loadStructure();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Gửi duyệt thất bại';
+      setErrorMessage(msg);
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
   const [isProgressLoading, setIsProgressLoading] = useState<boolean>(false);
   const [progressSearch, setProgressSearch] = useState<string>('');
 
@@ -592,27 +622,29 @@ export default function TeacherCourseEditorPage() {
 
               {/* Course Actions */}
               <div className="flex items-center gap-2.5 shrink-0 self-start md:self-auto flex-wrap">
-                {courseDetail.status === 'PENDING_REVIEW' ? (
+                {courseDetail.status === 'PUBLISHED' ? (
+                  <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold shadow-xs">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>
+                      Đã mở bán Marketplace • {courseDetail.pricingType === 'PAID' && courseDetail.price ? `${new Intl.NumberFormat('vi-VN').format(courseDetail.price)} đ` : 'Miễn phí'}
+                    </span>
+                  </div>
+                ) : courseDetail.status === 'PENDING_REVIEW' ? (
                   <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-800 text-xs font-bold shadow-xs">
                     <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
                     <span>Đang chờ duyệt Marketplace</span>
                   </div>
                 ) : (
                   <button
-                    onClick={async () => {
-                      if (!confirm('Bạn có chắc muốn gửi khóa học này lên Marketplace để Quản trị viên kiểm duyệt và mở bán?')) return;
-                      try {
-                        await marketplaceService.submitCourseForReview(courseId);
-                        setSuccessMessage('Đã gửi yêu cầu kiểm duyệt lên Marketplace thành công! Chờ Admin phê duyệt.');
-                        setTimeout(() => setSuccessMessage(null), 4000);
-                        await loadStructure();
-                      } catch (err: unknown) {
-                        const msg = err instanceof Error ? err.message : 'Gửi duyệt thất bại';
-                        setErrorMessage(msg);
+                    onClick={() => {
+                      if (courseDetail.price && courseDetail.price > 0) {
+                        setCoursePrice(courseDetail.price);
+                        setPricingType(courseDetail.pricingType || 'PAID');
                       }
+                      setIsPriceModalOpen(true);
                     }}
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-md shadow-amber-500/20 transition-all cursor-pointer"
-                    title="Gửi khóa học lên hệ thống Marketplace để quản trị viên kiểm duyệt và mở bán kiếm tiền"
+                    title="Thiết lập giá và gửi khóa học lên Marketplace để Admin kiểm duyệt và mở bán"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>Gửi duyệt Marketplace</span>
@@ -1561,6 +1593,176 @@ export default function TeacherCourseEditorPage() {
                       className="px-4 py-2 rounded-xl bg-[#83C75D] hover:bg-[#72b44e] text-white font-bold"
                     >
                       {isLessonSubmitting ? 'Đang lưu...' : 'Lưu bài học'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+          {/* Pricing & Submit Marketplace Review Modal */}
+          {isPriceModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+              <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-slate-900 text-sm sm:text-base">Thiết lập giá & Gửi duyệt Marketplace</h3>
+                      <p className="text-[11px] text-slate-500">Định giá khóa học và gửi yêu cầu mở bán tới Quản trị viên</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsPriceModalOpen(false)}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleConfirmSubmitReview} className="p-6 space-y-5">
+                  {/* Pricing Type Selection */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                      Loại hình khóa học
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setPricingType('PAID')}
+                        className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                          pricingType === 'PAID'
+                            ? 'border-amber-500 bg-amber-50/40 text-amber-900 shadow-xs'
+                            : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-xs">Khóa học có phí</span>
+                          {pricingType === 'PAID' && <CheckCircle2 className="w-4 h-4 text-amber-600" />}
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-1">Bán lẻ có thu phí cho học viên</p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setPricingType('FREE')}
+                        className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                          pricingType === 'FREE'
+                            ? 'border-emerald-500 bg-emerald-50/40 text-emerald-900 shadow-xs'
+                            : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-xs">Miễn phí (Free)</span>
+                          {pricingType === 'FREE' && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-1">Cung cấp học liệu miễn phí</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {pricingType === 'PAID' ? (
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                            Giá bán khóa học (VNĐ) *
+                          </label>
+                          <span className="text-[11px] font-semibold text-slate-400">Tối thiểu: 10,000 đ</span>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min={10000}
+                            step={1000}
+                            required
+                            value={coursePrice || ''}
+                            onChange={(e) => setCoursePrice(e.target.value === '' ? 0 : Number(e.target.value))}
+                            placeholder="VD: 200000"
+                            className="w-full px-4 py-3 bg-white border border-slate-300 rounded-2xl outline-none focus:border-amber-500 text-slate-900 font-extrabold text-lg tracking-tight shadow-xs font-mono"
+                          />
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                            VNĐ
+                          </div>
+                        </div>
+
+                        {/* Quick Presets */}
+                        <div className="flex items-center gap-1.5 pt-1 flex-wrap">
+                          {[99000, 199000, 299000, 499000, 799000].map((preset) => (
+                            <button
+                              key={preset}
+                              type="button"
+                              onClick={() => setCoursePrice(preset)}
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                                coursePrice === preset
+                                  ? 'bg-amber-500 text-white'
+                                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                              }`}
+                            >
+                              {preset.toLocaleString('vi-VN')} đ
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Revenue Split Breakdown Box (80% Teacher / 20% Platform) */}
+                      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-600">
+                          <span>Doanh thu dự kiến / khóa:</span>
+                          <span className="font-mono text-slate-900 font-extrabold">
+                            {(coursePrice || 0).toLocaleString('vi-VN')} đ
+                          </span>
+                        </div>
+
+                        <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex items-center justify-between">
+                          <div>
+                            <span className="text-xs font-extrabold text-emerald-900">Giảng viên nhận về (80%)</span>
+                            <p className="text-[10px] text-emerald-700">Cộng trực tiếp vào số dư khả dụng</p>
+                          </div>
+                          <span className="text-base font-black text-emerald-700 font-mono">
+                            {Math.round((coursePrice || 0) * 0.8).toLocaleString('vi-VN')} đ
+                          </span>
+                        </div>
+
+                        <div className="p-2.5 bg-slate-100 rounded-xl flex items-center justify-between text-xs">
+                          <div>
+                            <span className="font-semibold text-slate-700">Phí duy trì nền tảng (20%)</span>
+                            <p className="text-[10px] text-slate-500">Chi trả hạ tầng, streaming video & cổng thanh toán</p>
+                          </div>
+                          <span className="font-mono font-bold text-slate-600">
+                            {Math.round((coursePrice || 0) * 0.2).toLocaleString('vi-VN')} đ
+                          </span>
+                        </div>
+
+                        <p className="text-[11px] text-slate-500 italic leading-relaxed pt-1">
+                          * Lưu ý: Học viên chuyển khoản qua VietQR vào tài khoản trung tâm của hệ thống. Khi đơn hàng hoàn tất, 80% doanh thu sẽ được cộng ngay vào Ví của bạn để rút tiền về ngân hàng cá nhân.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-2xl space-y-1">
+                      <p className="text-xs font-bold text-emerald-900">Khóa học mở bán miễn phí 100%</p>
+                      <p className="text-[11px] text-emerald-700 leading-relaxed">
+                        Tất cả học viên trên sàn có thể đăng ký và theo dõi toàn bộ bài giảng mà không cần thanh toán. Khóa học miễn phí giúp bạn xây dựng uy tín và tiếp cận lượng lớn học viên tiềm năng.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setIsPriceModalOpen(false)}
+                      className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingReview || (pricingType === 'PAID' && (!coursePrice || coursePrice < 10000))}
+                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-xs shadow-md shadow-amber-500/20 disabled:opacity-50 flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      {isSubmittingReview ? 'Đang gửi duyệt...' : 'Xác nhận & Gửi duyệt'}
                     </button>
                   </div>
                 </form>

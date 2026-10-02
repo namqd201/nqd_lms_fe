@@ -2,6 +2,8 @@ export type EarningStatus = 'PENDING' | 'AVAILABLE' | 'PAID' | 'REVERSED';
 export type WithdrawalStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
 
 export interface TeacherBalanceSummaryResponse {
+  totalGrossSales?: number;
+  totalPlatformFee?: number;
   totalEarned: number;
   availableBalance: number;
   pendingBalance: number;

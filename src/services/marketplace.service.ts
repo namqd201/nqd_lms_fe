@@ -137,11 +137,15 @@ export const marketplaceService = {
     await handleApiResponse<any>(response, 'Không thể xóa đánh giá');
   },
 
-  submitCourseForReview: async (courseId: string): Promise<any> => {
+  submitCourseForReview: async (
+    courseId: string,
+    pricingData?: { pricingType?: 'FREE' | 'PAID'; price?: number; salePrice?: number }
+  ): Promise<any> => {
     const response = await fetch(`${API_BASE_URL}/api/v1/teacher/courses/${courseId}/submit-review`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
+      body: pricingData ? JSON.stringify(pricingData) : undefined,
     });
     return handleApiResponse<any>(response, 'Không thể gửi duyệt khóa học');
   },

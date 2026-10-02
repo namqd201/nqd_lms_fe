@@ -73,6 +73,17 @@ export const financeService = {
     return res.data ?? res;
   },
 
+  updateBankAccount: async (id: string, request: TeacherBankAccountRequest): Promise<TeacherBankAccountResponse> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/teacher/finance/bank-accounts/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(request),
+    });
+    const res = await handleApiResponse<any>(response, 'Không thể cập nhật tài khoản ngân hàng');
+    return res.data ?? res;
+  },
+
   deleteBankAccount: async (id: string): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/api/v1/teacher/finance/bank-accounts/${id}`, {
       method: 'DELETE',
