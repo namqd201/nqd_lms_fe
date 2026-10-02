@@ -58,6 +58,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { UserAvatar } from '@/components/UserAvatar';
+import LessonSlideButton from '@/components/slide/LessonSlideButton';
 
 const DAY_NAMES: Record<string, string> = {
   MONDAY: 'Thứ Hai',
@@ -1265,6 +1266,15 @@ export default function ClassroomDetailPage() {
                               <Play className="w-3.5 h-3.5 fill-white" />
                               <span>Vào học</span>
                             </button>
+
+                            <LessonSlideButton
+                              targetType="CLASSROOM_MATERIAL"
+                              targetId={lesson.id}
+                              lessonTitle={lesson.title}
+                              canManage={isTeacher}
+                              variant="outline"
+                              label="Slide"
+                            />
 
                             {isTeacher && (
                               <>
@@ -2922,6 +2932,15 @@ export default function ClassroomDetailPage() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
+                    <LessonSlideButton
+                      targetType="CLASSROOM_MATERIAL"
+                      targetId={viewingLesson.id}
+                      lessonTitle={viewingLesson.title}
+                      canManage={isTeacher}
+                      variant="primary"
+                      label="Slide bài giảng"
+                    />
+
                     {isTeacher && (
                       <>
                         <button

@@ -38,6 +38,7 @@ import {
   MessageSquare,
   Lock,
 } from 'lucide-react';
+import LessonSlideButton from '@/components/slide/LessonSlideButton';
 import { LessonDiscussionDrawer } from '@/components/discussion/LessonDiscussionDrawer';
 import { exerciseService } from '@/services/exercise.service';
 import { StudentExerciseSummaryResponse } from '@/types/exercise';
@@ -238,6 +239,15 @@ export default function LessonReaderPage() {
             <span className="hidden md:inline">Hỏi đáp bài học</span>
           </button>
 
+          {lesson && (
+            <LessonSlideButton
+              targetType="COURSE_LESSON"
+              targetId={lesson.id}
+              lessonTitle={lesson.title}
+              label="Slide bài giảng"
+            />
+          )}
+
           {/* Complete Lesson Toggle Button */}
           <button
             onClick={handleToggleComplete}
@@ -316,27 +326,37 @@ export default function LessonReaderPage() {
                     )}
                   </div>
 
-                  <button
-                    onClick={() => {
-                      if (typeof window !== 'undefined') {
-                        window.dispatchEvent(
-                          new CustomEvent('open-ai-tutor', {
-                            detail: {
-                              mode: 'EXPLAIN_LESSON',
-                              lessonId: lesson.id,
-                              courseId: courseId,
-                              initialQuestion: `Hãy tóm tắt và giải thích các điểm trọng tâm của bài học "${lesson.title}" giúp mình với!`,
-                            },
-                          })
-                        );
-                      }
-                    }}
-                    className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer"
-                    title="Nhờ AI Tutor giải thích bài học này"
-                  >
-                    <span>🤖</span>
-                    <span>AI Tutor Giảng Bài</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <LessonSlideButton
+                      targetType="COURSE_LESSON"
+                      targetId={lesson.id}
+                      lessonTitle={lesson.title}
+                      label="Slide bài giảng"
+                      variant="badge"
+                    />
+
+                    <button
+                      onClick={() => {
+                        if (typeof window !== 'undefined') {
+                          window.dispatchEvent(
+                            new CustomEvent('open-ai-tutor', {
+                              detail: {
+                                mode: 'EXPLAIN_LESSON',
+                                lessonId: lesson.id,
+                                courseId: courseId,
+                                initialQuestion: `Hãy tóm tắt và giải thích các điểm trọng tâm của bài học "${lesson.title}" giúp mình với!`,
+                              },
+                            })
+                          );
+                        }
+                      }}
+                      className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer"
+                      title="Nhờ AI Tutor giải thích bài học này"
+                    >
+                      <span>🤖</span>
+                      <span>AI Tutor Giảng Bài</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Lesson Main Heading */}

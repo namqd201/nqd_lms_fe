@@ -13,6 +13,7 @@ import toanLop1Data from '@/data/curriculum/toan_lop_1_course_data.json';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MathMarkdownRenderer } from '@/components/MathMarkdownRenderer';
+import LessonSlideButton from '@/components/slide/LessonSlideButton';
 import {
   BookOpen,
   GraduationCap,
@@ -944,6 +945,17 @@ export default function KnowledgePage() {
                                           </span>
                                         )}
 
+                                        {lesson.id && (
+                                          <LessonSlideButton
+                                            targetType="KNOWLEDGE_LESSON"
+                                            targetId={lesson.id}
+                                            lessonTitle={lesson.title}
+                                            canManage={true}
+                                            variant="outline"
+                                            label="Slide"
+                                          />
+                                        )}
+
                                         <button
                                           onClick={() => openLessonStudyModal(lesson)}
                                           className="px-3 py-1.5 rounded-xl bg-[#83C75D]/15 text-[#4e8231] text-xs font-bold hover:bg-[#83C75D] hover:text-white transition-all inline-flex items-center gap-1 cursor-pointer"
@@ -1028,13 +1040,26 @@ export default function KnowledgePage() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setSelectedLessonForStudy(null)}
-                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer shrink-0"
-                  title="Đóng cửa sổ"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  {selectedLessonForStudy.id && (
+                    <LessonSlideButton
+                      targetType="KNOWLEDGE_LESSON"
+                      targetId={selectedLessonForStudy.id}
+                      lessonTitle={selectedLessonForStudy.title}
+                      canManage={true}
+                      variant="primary"
+                      label="Slide bài giảng"
+                    />
+                  )}
+
+                  <button
+                    onClick={() => setSelectedLessonForStudy(null)}
+                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer shrink-0"
+                    title="Đóng cửa sổ"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               {/* Modal Tabs */}

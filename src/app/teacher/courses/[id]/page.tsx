@@ -54,6 +54,7 @@ import {
 } from 'lucide-react';
 import { LessonExerciseManagerModal } from '@/components/LessonExerciseManagerModal';
 import { RichMathEditor } from '@/components/RichMathEditor';
+import LessonSlideButton from '@/components/slide/LessonSlideButton';
 
 export default function TeacherCourseEditorPage() {
   const params = useParams();
@@ -840,6 +841,16 @@ export default function TeacherCourseEditorPage() {
                                       <Paperclip className="w-3.5 h-3.5" />
                                       <span>Tài liệu</span>
                                     </button>
+
+                                    {/* Lesson Slide Button */}
+                                    <LessonSlideButton
+                                      targetType="COURSE_LESSON"
+                                      targetId={lesson.id}
+                                      lessonTitle={lesson.title}
+                                      canManage={true}
+                                      variant="badge"
+                                      label="Slide"
+                                    />
 
                                     {/* Toggle Publish / Draft */}
                                     <button
