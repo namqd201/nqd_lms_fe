@@ -73,6 +73,15 @@ export const courseService = {
     return handleApiResponse<TeacherCourseResponse>(response, 'Không thể xuất bản khóa học');
   },
 
+  unpublishCourse: async (courseId: string): Promise<TeacherCourseResponse> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/teacher/courses/${courseId}/unpublish`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    return handleApiResponse<TeacherCourseResponse>(response, 'Không thể hủy xuất bản khóa học');
+  },
+
   archiveCourse: async (courseId: string): Promise<TeacherCourseResponse> => {
     const response = await fetch(`${API_BASE_URL}/api/v1/teacher/courses/${courseId}/archive`, {
       method: 'PUT',

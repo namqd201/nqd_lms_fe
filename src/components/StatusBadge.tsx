@@ -24,7 +24,10 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
       case 'ARCHIVED':
         return 'bg-rose-50 text-rose-700 border-rose-200';
       case 'PENDING':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'PENDING_REVIEW':
+        return 'bg-amber-50 text-amber-700 border-amber-300';
+      case 'REJECTED':
+        return 'bg-rose-50 text-rose-700 border-rose-300';
       default:
         return 'bg-slate-100 text-slate-700 border-slate-200';
     }
@@ -46,6 +49,10 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
         return 'Đã bị khóa';
       case 'PENDING':
         return 'Chờ duyệt';
+      case 'PENDING_REVIEW':
+        return 'Chờ duyệt Marketplace';
+      case 'REJECTED':
+        return 'Cần chỉnh sửa / Từ chối';
       default:
         return status;
     }
@@ -59,8 +66,12 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
       case 'INACTIVE':
       case 'DRAFT':
         return 'bg-amber-500';
+      case 'PENDING':
+      case 'PENDING_REVIEW':
+        return 'bg-amber-500';
       case 'BANNED':
       case 'ARCHIVED':
+      case 'REJECTED':
         return 'bg-rose-500';
       default:
         return 'bg-slate-400';

@@ -258,6 +258,19 @@ export default function TeacherCoursesPage() {
     }
   };
 
+  const handleUnpublish = async (courseId: string) => {
+    if (!confirm('Bạn có chắc muốn hủy xuất bản khóa học này về bản nháp?')) return;
+    try {
+      const updated = await courseService.unpublishCourse(courseId);
+      setCourses((prev) => prev.map((c) => (c.id === courseId ? updated : c)));
+      setSuccessMessage('Đã hủy xuất bản và chuyển khóa học về bản nháp.');
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Hủy xuất bản thất bại';
+      setErrorMessage(msg);
+    }
+  };
+
   const handleArchive = async (courseId: string) => {
     try {
       const updated = await courseService.archiveCourse(courseId);
@@ -580,14 +593,23 @@ export default function TeacherCoursesPage() {
                   {/* Actions footer */}
                   <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
-                      {course.status !== 'ACTIVE' && (
+                      {course.status !== 'ACTIVE' && course.status !== 'PUBLISHED' ? (
                         <button
                           onClick={() => handlePublish(course.id)}
-                          className="px-2.5 py-1.5 rounded-lg border border-[#83C75D]/40 text-[#4e8231] hover:bg-[#83C75D]/15 text-[11px] font-bold transition-colors flex items-center gap-1"
+                          className="px-2.5 py-1.5 rounded-lg border border-[#83C75D]/40 text-[#4e8231] hover:bg-[#83C75D]/15 text-[11px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
                           title="Xuất bản khóa học để học sinh có thể thấy"
                         >
                           <Send className="w-3 h-3" />
                           <span>Xuất bản</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleUnpublish(course.id)}
+                          className="px-2.5 py-1.5 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 text-[11px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                          title="Hủy xuất bản khóa học về bản nháp"
+                        >
+                          <Undo2 className="w-3 h-3" />
+                          <span>Gỡ xuất bản</span>
                         </button>
                       )}
 

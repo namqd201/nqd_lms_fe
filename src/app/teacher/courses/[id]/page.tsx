@@ -51,6 +51,8 @@ import {
   Dumbbell,
   Unlock,
   Lock,
+  RotateCcw,
+  AlertCircle,
 } from 'lucide-react';
 import { LessonExerciseManagerModal } from '@/components/LessonExerciseManagerModal';
 import { RichMathEditor } from '@/components/RichMathEditor';
@@ -471,6 +473,21 @@ export default function TeacherCourseEditorPage() {
     }
   };
 
+  const handleUnpublishCourse = async () => {
+    if (!confirm('Bạn có chắc muốn hủy xuất bản khóa học này về bản nháp? Khóa học sẽ không hiển thị công khai hoặc mở bán cho đến khi xuất bản lại.')) {
+      return;
+    }
+    try {
+      await courseService.unpublishCourse(courseId);
+      setSuccessMessage('Đã chuyển khóa học về bản nháp thành công!');
+      setTimeout(() => setSuccessMessage(null), 4000);
+      await loadStructure();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Hủy xuất bản thất bại';
+      setErrorMessage(msg);
+    }
+  };
+
   const handleArchiveCourse = async () => {
     try {
       await courseService.archiveCourse(courseId);
@@ -575,39 +592,59 @@ export default function TeacherCourseEditorPage() {
 
               {/* Course Actions */}
               <div className="flex items-center gap-2.5 shrink-0 self-start md:self-auto flex-wrap">
-                <button
-                  onClick={async () => {
-                    try {
-                      await marketplaceService.submitCourseForReview(courseId);
-                      setSuccessMessage('Đã gửi yêu cầu kiểm duyệt lên Marketplace thành công! Chờ Admin phê duyệt.');
-                      setTimeout(() => setSuccessMessage(null), 4000);
-                      await loadStructure();
-                    } catch (err: unknown) {
-                      const msg = err instanceof Error ? err.message : 'Gửi duyệt thất bại';
-                      setErrorMessage(msg);
-                    }
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-md shadow-amber-500/20 transition-all cursor-pointer"
-                  title="Gửi khóa học lên hệ thống Marketplace để quản trị viên kiểm duyệt và mở bán"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Gửi duyệt Marketplace</span>
-                </button>
+                {courseDetail.status === 'PENDING_REVIEW' ? (
+                  <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-800 text-xs font-bold shadow-xs">
+                    <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                    <span>Đang chờ duyệt Marketplace</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      if (!confirm('Bạn có chắc muốn gửi khóa học này lên Marketplace để Quản trị viên kiểm duyệt và mở bán?')) return;
+                      try {
+                        await marketplaceService.submitCourseForReview(courseId);
+                        setSuccessMessage('Đã gửi yêu cầu kiểm duyệt lên Marketplace thành công! Chờ Admin phê duyệt.');
+                        setTimeout(() => setSuccessMessage(null), 4000);
+                        await loadStructure();
+                      } catch (err: unknown) {
+                        const msg = err instanceof Error ? err.message : 'Gửi duyệt thất bại';
+                        setErrorMessage(msg);
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+                    title="Gửi khóa học lên hệ thống Marketplace để quản trị viên kiểm duyệt và mở bán kiếm tiền"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Gửi duyệt Marketplace</span>
+                  </button>
+                )}
 
-                {courseDetail.status !== 'ACTIVE' && (
+                {courseDetail.status !== 'ACTIVE' && courseDetail.status !== 'PUBLISHED' && (
                   <button
                     onClick={handlePublishCourse}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#83C75D] hover:bg-[#72b44e] text-white text-xs font-bold shadow-md shadow-[#83C75D]/20 transition-all"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#83C75D] hover:bg-[#72b44e] text-white text-xs font-bold shadow-md shadow-[#83C75D]/20 transition-all cursor-pointer"
+                    title="Xuất bản khóa học để học viên có thể học nội bộ"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>Xuất bản nội bộ</span>
                   </button>
                 )}
 
+                {(courseDetail.status === 'ACTIVE' || courseDetail.status === 'PUBLISHED') && (
+                  <button
+                    onClick={handleUnpublishCourse}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold shadow-xs transition-all cursor-pointer"
+                    title="Gỡ xuất bản và đưa khóa học về bản nháp để tiếp tục chỉnh sửa"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Gỡ xuất bản (Về nháp)</span>
+                  </button>
+                )}
+
                 {courseDetail.status !== 'ARCHIVED' && (
                   <button
                     onClick={handleArchiveCourse}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-xs transition-all"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-xs transition-all cursor-pointer"
                   >
                     <Archive className="w-3.5 h-3.5" />
                     <span>Lưu trữ</span>
@@ -615,6 +652,20 @@ export default function TeacherCourseEditorPage() {
                 )}
               </div>
             </div>
+
+            {courseDetail.status === 'REJECTED' && (
+              <div className="flex items-start gap-3 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs">
+                <AlertCircle className="w-5 h-5 shrink-0 text-rose-600 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold text-rose-900">Khóa học chưa được duyệt Marketplace</p>
+                  <p className="text-rose-700 leading-relaxed">
+                    <span className="font-semibold">Lý do: </span>
+                    {courseDetail.rejectReason || 'Nội dung khóa học chưa đạt yêu cầu kiểm duyệt.'}
+                  </p>
+                  <p className="text-rose-600 italic">Vui lòng cập nhật hoặc bổ sung bài học theo yêu cầu, sau đó bấm &ldquo;Gửi duyệt Marketplace&rdquo; lại.</p>
+                </div>
+              </div>
+            )}
 
             {/* Quick Stats & Tabs Switcher */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-100">

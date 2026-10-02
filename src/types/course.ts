@@ -1,4 +1,4 @@
-export type CourseStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+export type CourseStatus = 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'REJECTED' | 'ACTIVE' | 'ARCHIVED';
 export type LessonStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 export type EnrollmentStatus = 'ENROLLED' | 'PENDING' | 'REJECTED' | 'COMPLETED' | 'DROPPED';
 
@@ -105,6 +105,7 @@ export interface TeacherCourseDetailResponse {
   gradeLevel?: string | null;
   thumbnailUrl?: string | null;
   status: CourseStatus;
+  rejectReason?: string | null;
   isPrivate?: boolean;
   creatorId?: string | null;
   creatorName?: string | null;
