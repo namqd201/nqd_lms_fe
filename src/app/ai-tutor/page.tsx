@@ -117,13 +117,27 @@ export default function AiTutorPage() {
         id: 'welcome',
         role: 'ASSISTANT',
         content:
-          '👋 **Xin chào! Mình là NQD AI Tutor.**\n\nMình có thể hỗ trợ bạn giải đáp bài học, hướng dẫn giải bài tập và ôn luyện kiến thức.\n\n💡 *Mẹo: Đối với các môn Toán học, Vật lý..., mình sẽ hướng dẫn chi tiết từng bước tư duy để bạn tự tìm ra đáp số cuối cùng nhé!* Bạn cần mình giúp gì hôm nay?',
+          '👋 **Xin chào! Mình là NQD AI Tutor & Cố vấn học thuật.**\n\n' +
+          'Mình có thể hỗ trợ bạn:\n' +
+          '- 📖 **Giải đáp bài học & bài tập:** Hướng dẫn chi tiết từng bước tư duy theo phương pháp sư phạm Socratic.\n' +
+          '- 🎓 **Tư vấn khóa học & giáo viên:** Gợi ý khóa học chất lượng, giáo viên dạy tốt theo từng môn (Toán, Lý, Tiếng Anh...).\n' +
+          '- 💳 **Thông tin các gói hội viên PRO:** Chi tiết quyền lợi tạo Slide AI, tạo Đề thi AI, Chat AI không giới hạn và bảng giá.\n' +
+          '- 🛒 **Hướng dẫn mua & thanh toán:** Các bước đăng ký và thanh toán chuyển khoản bảo mật qua PayOS QR.\n\n' +
+          '💡 *Bạn có thể chọn nhanh các câu hỏi gợi ý bên dưới hoặc nhập câu hỏi bất kỳ nhé!*',
         createdAt: new Date().toISOString(),
       },
     ]);
     setAttachments([]);
     setInputQuery('');
     textareaRef.current?.focus();
+  };
+
+  // Quick Prompt suggestion click handler
+  const handleQuickPrompt = (promptText: string) => {
+    setInputQuery(promptText);
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 50);
   };
 
   // Handle clipboard paste (Ctrl+V for images/screenshots)
@@ -648,6 +662,42 @@ export default function AiTutorPage() {
               ))}
             </div>
           )}
+
+          {/* Quick Consultation Suggestions */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-1 scrollbar-none text-xs">
+            <button
+              type="button"
+              onClick={() => handleQuickPrompt('Hệ thống có những gói Pro nào, chi phí và quyền lợi ra sao?')}
+              className="px-3 py-1.5 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/70 font-medium shrink-0 transition flex items-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs"
+            >
+              <span>💳</span>
+              <span>Các gói Pro & bảng giá</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickPrompt('Tôi muốn mua khóa học môn Toán, môn này nên học giáo viên nào hay nhất?')}
+              className="px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/70 font-medium shrink-0 transition flex items-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs"
+            >
+              <span>📚</span>
+              <span>Môn Toán nên học ai?</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickPrompt('Hệ thống có những khóa học Tiếng Anh nổi bật nào?')}
+              className="px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200/70 font-medium shrink-0 transition flex items-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs"
+            >
+              <span>🎯</span>
+              <span>Khóa học Tiếng Anh nổi bật</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickPrompt('Hướng dẫn cách mua và thanh toán khóa học qua chuyển khoản PayOS QR?')}
+              className="px-3 py-1.5 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200/70 font-medium shrink-0 transition flex items-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs"
+            >
+              <span>🛒</span>
+              <span>Cách mua & thanh toán</span>
+            </button>
+          </div>
 
           {/* Input Box */}
           <div className="relative flex items-end gap-2 bg-slate-50 border border-slate-300 focus-within:border-indigo-600 focus-within:bg-white rounded-3xl p-2 sm:p-3 shadow-2xs transition-all">
