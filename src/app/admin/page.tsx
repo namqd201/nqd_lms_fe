@@ -4,9 +4,11 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { adminService } from '@/services/admin.service';
 import { courseService } from '@/services/course.service';
+import { classroomService } from '@/services/classroom.service';
 import { UserProfileResponse } from '@/types/user';
 import { TeacherCourseResponse } from '@/types/course';
 import { SubjectResponse, RoleDetailResponse } from '@/types/admin';
+import { AdminClassroomStats } from '@/types/classroom';
 import { reportService } from '@/services/report.service';
 import { ExportCustomizationParams } from '@/types/report';
 import ExportCustomizationModal from '@/components/ExportCustomizationModal';
@@ -23,6 +25,7 @@ import {
   RefreshCw,
   GraduationCap,
   FileSpreadsheet,
+  Presentation,
 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
@@ -30,6 +33,7 @@ export default function AdminDashboardPage() {
   const [courses, setCourses] = useState<TeacherCourseResponse[]>([]);
   const [subjects, setSubjects] = useState<SubjectResponse[]>([]);
   const [roles, setRoles] = useState<RoleDetailResponse[]>([]);
+  const [classroomStats, setClassroomStats] = useState<AdminClassroomStats | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
 
@@ -40,16 +44,18 @@ export default function AdminDashboardPage() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [userData, courseData, subjectData, roleData] = await Promise.all([
+      const [userData, courseData, subjectData, roleData, clsStats] = await Promise.all([
         adminService.getUsers().catch(() => []),
         courseService.getTeacherCourses().catch(() => []),
         adminService.getSubjects().catch(() => []),
         adminService.getRoles().catch(() => []),
+        classroomService.getAdminClassroomStats().catch(() => null),
       ]);
       setUsers(userData);
       setCourses(courseData);
       setSubjects(subjectData);
       setRoles(roleData);
+      setClassroomStats(clsStats);
     } catch {
       // ignore
     } finally {
@@ -110,7 +116,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Người dùng</span>
@@ -170,12 +176,27 @@ export default function AdminDashboardPage() {
             </p>
           </div>
         </div>
+
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3 col-span-2 sm:col-span-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Lớp học</span>
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <Presentation className="w-4 h-4" />
+            </div>
+          </div>
+          <div>
+            <span className="text-3xl font-black text-slate-900">{classroomStats?.totalClassrooms ?? 0}</span>
+            <p className="text-[11px] text-indigo-600 font-semibold mt-1">
+              {classroomStats?.totalLiveNow ? `${classroomStats.totalLiveNow} lớp đang Live` : `${classroomStats?.activeClassrooms ?? 0} đang hoạt động`}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Main Management Section Cards */}
       <div className="space-y-4">
         <h2 className="text-lg font-bold text-slate-900">Các Khu vực Quản trị Chuyên biệt</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
           {/* User Management */}
           <Link
             href="/admin/users"
@@ -260,6 +281,28 @@ export default function AdminDashboardPage() {
             </div>
             <div className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-blue-700 group-hover:translate-x-1 transition-transform">
               <span>Vào trang Khóa học</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </div>
+          </Link>
+
+          {/* Classroom Management */}
+          <Link
+            href="/admin/classrooms"
+            className="bg-white border border-slate-200 hover:border-indigo-400 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between"
+          >
+            <div>
+              <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Presentation className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 group-hover:text-indigo-700 transition-colors">
+                Quản lý Lớp học
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed mt-1">
+                Theo dõi toàn bộ lớp học trực tuyến, trạng thái Live, giáo viên giảng dạy và kiểm duyệt đóng/mở lớp.
+              </p>
+            </div>
+            <div className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-indigo-700 group-hover:translate-x-1 transition-transform">
+              <span>Vào trang Lớp học</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </div>
           </Link>

@@ -37,6 +37,14 @@ export interface ClassroomResponse {
   updatedAt?: string;
 }
 
+export interface AdminClassroomStats {
+  totalClassrooms: number;
+  activeClassrooms: number;
+  archivedClassrooms: number;
+  totalStudents: number;
+  totalLiveNow: number;
+}
+
 export interface ClassroomRequest {
   name: string;
   code?: string;

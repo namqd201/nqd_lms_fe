@@ -1,5 +1,7 @@
 import {
   ClassEnrollmentStatus,
+  ClassroomStatus,
+  AdminClassroomStats,
   ClassroomRequest,
   ClassroomResponse,
   ClassroomStudentResponse,
@@ -429,5 +431,47 @@ export const classroomService = {
       credentials: 'include',
     });
     return handleApiResponse<void>(response, 'Không thể xóa tệp tin');
+  },
+
+  // ================= ADMIN CLASSROOM MANAGEMENT =================
+  getAdminClassrooms: async (query?: string, status?: string): Promise<ClassroomResponse[]> => {
+    const params = new URLSearchParams();
+    if (query) params.append('query', query);
+    if (status && status !== 'ALL') params.append('status', status);
+
+    const response = await fetch(`${API_BASE_URL}/api/v1/admin/classrooms?${params.toString()}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    return handleApiResponse<ClassroomResponse[]>(response, 'Không thể tải danh sách lớp học quản trị');
+  },
+
+  getAdminClassroomStats: async (): Promise<AdminClassroomStats> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/admin/classrooms/stats`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    return handleApiResponse<AdminClassroomStats>(response, 'Không thể tải thống kê lớp học');
+  },
+
+  updateAdminClassroomStatus: async (id: string, status: ClassroomStatus): Promise<ClassroomResponse> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/admin/classrooms/${id}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ status }),
+    });
+    return handleApiResponse<ClassroomResponse>(response, 'Không thể cập nhật trạng thái lớp học');
+  },
+
+  forceDeleteAdminClassroom: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/admin/classrooms/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    return handleApiResponse<void>(response, 'Không thể xóa lớp học');
   },
 };

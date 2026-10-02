@@ -22,6 +22,7 @@ import {
   FileSpreadsheet,
   BarChart3,
   GraduationCap,
+  Presentation,
 } from 'lucide-react';
 
 interface AdminMenuItem {
@@ -75,6 +76,12 @@ export const AdminSidebar: React.FC = () => {
     {
       groupTitle: 'Quản lý Đào tạo & Khảo thí',
       items: [
+        {
+          href: '/admin/classrooms',
+          label: 'Quản lý Lớp học',
+          icon: Presentation,
+          badge: 'Classes',
+        },
         {
           href: '/admin/subjects',
           label: 'Quản lý Môn học',
