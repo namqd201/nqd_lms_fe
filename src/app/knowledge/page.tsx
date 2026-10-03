@@ -12,6 +12,7 @@ import { GRADE_LEVEL_GROUPS, isGradeMatching, getGradeGroup } from '@/constants/
 import toanLop1Data from '@/data/curriculum/toan_lop_1_course_data.json';
 import toanLop2Data from '@/data/curriculum/toan_lop_2_course_data.json';
 import toanLop3Data from '@/data/curriculum/toan_lop_3_course_data.json';
+import toanLop4Data from '@/data/curriculum/toan_lop_4_course_data.json';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MathMarkdownRenderer } from '@/components/MathMarkdownRenderer';
@@ -200,6 +201,25 @@ function generateStandardCurriculum(subjectName: string, gradeLevel: string) {
         description: ch.description,
         lessons: ch.lessons.map((les: any) => ({
           id: `les-toan3-${les.displayOrder}`,
+          displayOrder: les.displayOrder,
+          title: les.title,
+          slug: les.slug,
+          summary: les.summary,
+          theory: les.theory,
+          exercises: les.exercises,
+          estimatedMinutes: les.estimatedMinutes || 40,
+        })),
+      }));
+    }
+
+    if (gradeLevel === 'Lớp 4') {
+      return toanLop4Data.chapters.map((ch: any) => ({
+        id: `ch-toan4-${ch.chapterOrder}`,
+        displayOrder: ch.chapterOrder,
+        title: ch.title,
+        description: ch.description,
+        lessons: ch.lessons.map((les: any) => ({
+          id: `les-toan4-${les.displayOrder}`,
           displayOrder: les.displayOrder,
           title: les.title,
           slug: les.slug,
@@ -411,6 +431,14 @@ export default function KnowledgePage() {
     );
   }, [activeSubject, selectedGradeLevel]);
 
+  const isMathGrade4 = useMemo(() => {
+    return !!(
+      activeSubject &&
+      activeSubject.name.toLowerCase().includes('toán') &&
+      selectedGradeLevel === 'Lớp 4'
+    );
+  }, [activeSubject, selectedGradeLevel]);
+
   // Load official standard curriculum from Knowledge Base API (PostgreSQL knowledge_* tables)
   useEffect(() => {
     if (!activeSubject || !selectedGradeLevel) {
@@ -424,7 +452,7 @@ export default function KnowledgePage() {
       .then((data) => {
         setKnowledgeCurriculum(data);
         if (data && data.chapters && data.chapters.length > 0) {
-          setOpenChapters({ [data.chapters[0].id]: true, 'ch-toan1-1': true, 'ch-toan2-1': true, 'ch-toan3-1': true, '0': true });
+          setOpenChapters({ [data.chapters[0].id]: true, 'ch-toan1-1': true, 'ch-toan2-1': true, 'ch-toan3-1': true, 'ch-toan4-1': true, '0': true });
         }
       })
       .catch(() => setKnowledgeCurriculum(null))
@@ -444,7 +472,8 @@ export default function KnowledgePage() {
   // 2. Or standard fallback for Math 1 (toanLop1Data - 8 chapters, 34 lessons, 102 questions)
   // 3. Or standard fallback for Math 2 (toanLop2Data - 14 chapters, 75 lessons, 225 questions)
   // 4. Or standard fallback for Math 3 (toanLop3Data - 16 chapters, 81 lessons, 243 questions)
-  // 5. Or standard fallback for other subjects/grades
+  // 5. Or standard fallback for Math 4 (toanLop4Data - 13 chapters, 73 lessons, 219 questions)
+  // 6. Or standard fallback for other subjects/grades
   const chapters = useMemo(() => {
     if (knowledgeCurriculum && knowledgeCurriculum.chapters && knowledgeCurriculum.chapters.length > 0) {
       return knowledgeCurriculum.chapters.map((ch) => ({
@@ -482,9 +511,13 @@ export default function KnowledgePage() {
       return generateStandardCurriculum('Toán Học', 'Lớp 3');
     }
 
+    if (isMathGrade4) {
+      return generateStandardCurriculum('Toán Học', 'Lớp 4');
+    }
+
     if (!activeSubject || !selectedGradeLevel) return [];
     return generateStandardCurriculum(activeSubject.name, selectedGradeLevel);
-  }, [knowledgeCurriculum, activeSubject, selectedGradeLevel, isMathGrade1, isMathGrade2, isMathGrade3]);
+  }, [knowledgeCurriculum, activeSubject, selectedGradeLevel, isMathGrade1, isMathGrade2, isMathGrade3, isMathGrade4]);
 
   const totalLessons = useMemo(() => {
     return chapters.reduce((acc, ch) => acc + (ch.lessons ? ch.lessons.length : 0), 0);
@@ -700,7 +733,7 @@ export default function KnowledgePage() {
                   {/* Badges */}
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-slate-100 text-slate-700">
-                      {knowledgeCurriculum?.code || (isMathGrade1 ? 'MATH_GRADE_1' : isMathGrade2 ? 'MATH_GRADE_2' : isMathGrade3 ? 'MATH_GRADE_3' : `${activeSubject.code}${selectedGradeLevel.replace(/\D/g, '') || '01'}`)}
+                      {knowledgeCurriculum?.code || (isMathGrade1 ? 'MATH_GRADE_1' : isMathGrade2 ? 'MATH_GRADE_2' : isMathGrade3 ? 'MATH_GRADE_3' : isMathGrade4 ? 'MATH_GRADE_4' : `${activeSubject.code}${selectedGradeLevel.replace(/\D/g, '') || '01'}`)}
                     </span>
                     <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#83C75D]/15 text-[#4e8231] border border-[#83C75D]/30">
                       {activeSubject.name}
@@ -722,6 +755,8 @@ export default function KnowledgePage() {
                         ? 'Toán 2 — Nền tảng tư duy Toán học Tiểu học'
                         : isMathGrade3
                         ? 'Toán 3 — Nền tảng tư duy Toán học Tiểu học'
+                        : isMathGrade4
+                        ? 'Toán 4 — Nền tảng tư duy Toán học Tiểu học'
                         : `${activeSubject.name} ${selectedGradeLevel} cơ bản`)}
                     </h1>
                     <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -731,6 +766,8 @@ export default function KnowledgePage() {
                         ? 'Chương trình chuẩn kiến thức kỹ năng môn Toán Lớp 2 theo định hướng GDPT 2018 (Kết nối tri thức với cuộc sống) gồm 14 chương, 75 bài học và 225 bài tập trắc nghiệm củng cố sinh động.'
                         : isMathGrade3
                         ? 'Chương trình chuẩn kiến thức kỹ năng môn Toán Lớp 3 theo định hướng GDPT 2018 (Kết nối tri thức với cuộc sống) gồm 16 chương, 81 bài học và 243 bài tập trắc nghiệm củng cố sinh động.'
+                        : isMathGrade4
+                        ? 'Chương trình chuẩn kiến thức kỹ năng môn Toán Lớp 4 theo định hướng GDPT 2018 (Kết nối tri thức với cuộc sống) gồm 13 chương, 73 bài học và 219 bài tập trắc nghiệm củng cố sinh động.'
                         : `Hệ thống kiến thức nền tảng, bài giảng lý thuyết và bài tập rèn luyện kỹ năng cốt lõi dành cho học sinh ${selectedGradeLevel}.`)}
                     </p>
                   </div>
