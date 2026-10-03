@@ -66,30 +66,56 @@ export default function CoursesCatalogPage() {
         marketplaceService.searchCourses({ page: 0, size: 100 }).catch(() => null),
       ]);
 
+      const marketMap: Record<string, MarketplaceCourseResponse> = {};
       if (marketRes && marketRes.content) {
-        const map: Record<string, MarketplaceCourseResponse> = {};
         marketRes.content.forEach((mc) => {
-          map[mc.id] = mc;
+          marketMap[mc.id] = mc;
         });
-        setMarketplaceData(map);
+        setMarketplaceData(marketMap);
       }
 
       if (studentData && studentData.length > 0) {
-        setCourses(studentData);
+        const enriched = studentData.map((sc) => {
+          const mItem = marketMap[sc.id];
+          const isOwn = Boolean(
+            sc.isOwner ||
+            (user?.id && (sc.creatorId === user.id || mItem?.creatorId === user.id)) ||
+            (user?.fullName && (
+              (sc.creatorName && sc.creatorName.trim().toLowerCase() === user.fullName.trim().toLowerCase()) ||
+              (mItem?.creatorName && mItem.creatorName.trim().toLowerCase() === user.fullName.trim().toLowerCase())
+            ))
+          );
+          return {
+            ...sc,
+            creatorId: sc.creatorId || mItem?.creatorId,
+            creatorName: sc.creatorName || mItem?.creatorName,
+            isOwner: isOwn,
+            isEnrolled: isOwn || sc.isEnrolled,
+          };
+        });
+        setCourses(enriched);
       } else if (marketRes && marketRes.content && marketRes.content.length > 0) {
         // Fallback to public marketplace courses if student API is unauthenticated
-        const fallbackCourses: StudentCourseResponse[] = marketRes.content.map((mc) => ({
-          id: mc.id,
-          name: mc.name,
-          code: mc.code,
-          description: mc.description || '',
-          thumbnailUrl: mc.thumbnailUrl || '',
-          gradeLevel: mc.gradeLevel || '',
-          subjectName: mc.subjectName,
-          creatorName: mc.creatorName || 'Giảng viên',
-          status: 'ACTIVE',
-          isEnrolled: Boolean(mc.isPurchased),
-        }));
+        const fallbackCourses: StudentCourseResponse[] = marketRes.content.map((mc) => {
+          const isOwn = Boolean(
+            (user?.id && mc.creatorId && mc.creatorId === user.id) ||
+            (user?.fullName && mc.creatorName && mc.creatorName.trim().toLowerCase() === user.fullName.trim().toLowerCase())
+          );
+          return {
+            id: mc.id,
+            name: mc.name,
+            code: mc.code,
+            description: mc.description || '',
+            thumbnailUrl: mc.thumbnailUrl || '',
+            gradeLevel: mc.gradeLevel || '',
+            subjectName: mc.subjectName,
+            creatorId: mc.creatorId,
+            creatorName: mc.creatorName || 'Giảng viên',
+            status: 'ACTIVE',
+            isOwner: isOwn,
+            isEnrolled: isOwn || Boolean(mc.isPurchased),
+          };
+        });
         setCourses(fallbackCourses);
       } else if (!studentData && !marketRes) {
         setErrorMessage('Không thể tải danh sách khóa học. Vui lòng thử lại sau.');
@@ -170,6 +196,24 @@ export default function CoursesCatalogPage() {
     }
 
     const mItem = marketplaceData[course.id];
+    const isOwner = Boolean(
+      course.isOwner ||
+      (course as any).owner ||
+      (user?.id && (
+        (course.creatorId && course.creatorId === user.id) ||
+        (mItem?.creatorId && mItem.creatorId === user.id)
+      )) ||
+      (user?.fullName && (
+        (course.creatorName && course.creatorName.trim().toLowerCase() === user.fullName.trim().toLowerCase()) ||
+        (mItem?.creatorName && mItem.creatorName.trim().toLowerCase() === user.fullName.trim().toLowerCase())
+      ))
+    );
+
+    if (isOwner) {
+      window.location.href = `/teacher/courses/${course.id}`;
+      return;
+    }
+
     const isPaid = mItem ? mItem.pricingType === 'PAID' : false;
 
     if (isPaid) {
@@ -404,17 +448,28 @@ export default function CoursesCatalogPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCourses.map((course) => {
-              const isOwner = Boolean(course.isOwner || (course as any).owner || (user?.id && course.creatorId === user.id));
-              const isPending = course.enrollmentStatus === 'PENDING';
-              const isEnrolled =
-                !isOwner &&
-                !isPending &&
-                (course.enrollmentStatus === 'ENROLLED' ||
-                  course.enrollmentStatus === 'COMPLETED' ||
-                  Boolean(course.isEnrolled) ||
-                  Boolean((course as any).enrolled));
-
               const mItem = marketplaceData[course.id];
+              const isOwner = Boolean(
+                course.isOwner ||
+                (course as any).owner ||
+                (user?.id && (
+                  (course.creatorId && course.creatorId === user.id) ||
+                  (mItem?.creatorId && mItem.creatorId === user.id)
+                )) ||
+                (user?.fullName && (
+                  (course.creatorName && course.creatorName.trim().toLowerCase() === user.fullName.trim().toLowerCase()) ||
+                  (mItem?.creatorName && mItem.creatorName.trim().toLowerCase() === user.fullName.trim().toLowerCase())
+                ))
+              );
+              const isPending = !isOwner && course.enrollmentStatus === 'PENDING';
+              const isEnrolled =
+                isOwner ||
+                (!isPending &&
+                  (course.enrollmentStatus === 'ENROLLED' ||
+                    course.enrollmentStatus === 'COMPLETED' ||
+                    Boolean(course.isEnrolled) ||
+                    Boolean((course as any).enrolled)));
+
               const isPaid = mItem ? mItem.pricingType === 'PAID' : false;
               const price = mItem?.salePrice || mItem?.price || 0;
               const originalPrice = mItem?.price;
@@ -482,8 +537,8 @@ export default function CoursesCatalogPage() {
                       <div className="flex items-center justify-between text-[11px] font-mono font-bold text-slate-400 mb-1">
                         <span>MÃ: {course.code}</span>
                         {course.creatorName && (
-                          <span className="text-slate-500 font-sans font-medium text-[11px]">
-                            GV: {isOwner ? 'Bạn' : course.creatorName}
+                          <span className={`font-sans font-medium text-[11px] ${isOwner ? 'text-purple-700 font-bold' : 'text-slate-500'}`}>
+                            GV: {isOwner ? 'Bạn (Khóa học của bạn)' : course.creatorName}
                           </span>
                         )}
                       </div>
@@ -513,13 +568,22 @@ export default function CoursesCatalogPage() {
 
                     <div className="pt-4 border-t border-slate-100 flex items-center gap-3">
                       {isOwner ? (
-                        <Link
-                          href={'/teacher/courses/' + course.id}
-                          className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition-all"
-                        >
-                          <Settings className="w-3.5 h-3.5" />
-                          <span>Quản trị</span>
-                        </Link>
+                        <div className="flex items-center gap-2 w-full">
+                          <Link
+                            href={'/teacher/courses/' + course.id}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition-all"
+                          >
+                            <Settings className="w-3.5 h-3.5" />
+                            <span>Quản lý</span>
+                          </Link>
+                          <Link
+                            href={'/courses/' + course.id}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold transition-all"
+                          >
+                            <BookOpen className="w-3.5 h-3.5" />
+                            <span>Xem lớp</span>
+                          </Link>
+                        </div>
                       ) : isPending ? (
                         <div className="w-full inline-flex items-center justify-center gap-1 px-4 py-2.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
                           <Clock className="w-3.5 h-3.5" />

@@ -51,6 +51,7 @@ import {
   Loader2,
   Megaphone,
   Zap,
+  Settings,
 } from 'lucide-react';
 
 export default function StudentCourseDetailPage() {
@@ -345,7 +346,16 @@ export default function StudentCourseDetailPage() {
   const originalPrice = marketplaceDetail?.price;
   const hasDiscount = !!(isPaid && marketplaceDetail?.salePrice && marketplaceDetail?.price && marketplaceDetail.salePrice < marketplaceDetail.price);
 
+  const isOwner = Boolean(
+    (user?.id && (marketplaceDetail?.creatorId === user.id || course?.creatorId === user.id)) ||
+    (user?.fullName && (
+      (marketplaceDetail?.creatorName && marketplaceDetail.creatorName.trim().toLowerCase() === user.fullName.trim().toLowerCase()) ||
+      (course?.creatorName && course.creatorName.trim().toLowerCase() === user.fullName.trim().toLowerCase())
+    ))
+  );
+
   const isEnrolled =
+    isOwner ||
     !isPaid ||
     !!courseProgress ||
     (marketplaceDetail && (marketplaceDetail.hasAccess || marketplaceDetail.isEnrolled || marketplaceDetail.hasPurchased)) ||
@@ -354,7 +364,6 @@ export default function StudentCourseDetailPage() {
   const isUltraMember = Boolean(isUltra || marketplaceDetail?.isUltraMember);
   const isProMember = Boolean(isPro && !isUltraMember);
   const proDiscountPrice = marketplaceDetail?.proDiscountPrice ?? (isPaid && price > 0 ? Math.round(price * 0.8) : undefined);
-  const isOwner = !!(user?.id && (marketplaceDetail?.creatorId === user.id || course?.creatorId === user.id));
   const isTeacherOrAdmin = isOwner || !!(user?.roles?.some(r => r === 'TEACHER' || r === 'ADMIN' || r === 'ROLE_TEACHER' || r === 'ROLE_ADMIN'));
   const isCourseCompleted = (courseProgress?.overallProgressPercent ?? 0) >= 100 || isOwner;
   const myReview = reviews.find((r) => user?.id && r.userId === user.id);
@@ -531,7 +540,30 @@ export default function StudentCourseDetailPage() {
                 </div>
               )}
 
-              {isEnrolled ? (
+              {isOwner ? (
+                <div className="space-y-3 pt-2">
+                  <div className="p-3 bg-purple-50 border border-purple-200 rounded-2xl flex items-center gap-2.5 text-purple-900 text-xs">
+                    <Sparkles className="w-4 h-4 text-purple-600 shrink-0" />
+                    <span className="font-semibold">Bạn là giảng viên của khóa học này</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-center gap-2">
+                    <Link
+                      href={'/teacher/courses/' + courseId}
+                      className="w-full sm:flex-1 py-3 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md shadow-purple-500/20 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Settings className="w-3.5 h-3.5" />
+                      <span>Quản trị khóa học</span>
+                    </Link>
+                    <button
+                      onClick={handleStartLearning}
+                      className="w-full sm:flex-1 py-3 rounded-2xl border border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <PlayCircle className="w-3.5 h-3.5" />
+                      <span>Xem trước bài giảng</span>
+                    </button>
+                  </div>
+                </div>
+              ) : isEnrolled ? (
                 <button
                   onClick={handleStartLearning}
                   className="w-full py-3.5 rounded-2xl bg-[#83C75D] hover:bg-[#72b44e] text-white font-bold text-xs shadow-md shadow-[#83C75D]/25 transition-all transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
