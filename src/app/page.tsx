@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -29,27 +29,38 @@ export default function Home() {
 
   const slides = [
     {
-      badge: '⚡ Next-Gen AI & Architecture 2025',
-      title: 'Kiến Tạo Tương Lai Cùng Next-Gen AI & Hệ Thống Giáo Trình Tự Sinh',
+      badge: '⚡ Next-Gen AI & Architecture',
+      prefix: 'Kiến Tạo Tương Lai Cùng',
+      title: 'Next-Gen AI & Hệ Thống Giáo Trình Tự Sinh',
       description:
-        'Lộ trình học tập cá nhân hoá thời gian thực: phân cấp tự động từ Môn học → Khóa chuyên sâu → Chương thực chiến → Quiz tương tác phòng chống gian lận với Copilot LaTeX tích hợp.',
+        'Lộ trình học tập cá nhân hoá thời gian thực: phân cấp tự động từ Môn học → Khóa học → Chương thực chiến với Copilot LaTeX tích hợp.',
       tab: '01. AI & Data Engineering',
     },
     {
       badge: '📐 Math & LaTeX Solver Live',
-      title: 'Trợ Lý Giải Toán & Khoa Học Đa Phương Thức Real-time',
+      prefix: 'Đột Phá Tư Duy Cùng',
+      title: 'Math & LaTeX Solver AI Đa Phương Thức Real-time',
       description:
-        'Nhận diện hình ảnh đề thi viết tay, bóc tách công thức toán học LaTeX chuẩn xác 99.8% và hướng dẫn tư duy từng bước theo phương pháp Socratic tân tiến.',
+        'Nhận diện hình ảnh đề thi viết tay, bóc tách công thức toán học LaTeX chuẩn xác 99.8% và hướng dẫn tư duy từng bước theo phương pháp Socratic.',
       tab: '02. Math & LaTeX Solver Live',
     },
     {
       badge: '🎯 Luyện đề THPT & ĐGNL 3D',
-      title: 'Hệ Thống Đề Thi Đánh Giá Năng Lực & Kiểm Soát Gian Lận',
+      prefix: 'Bứt Phá Điểm Số Cùng',
+      title: 'Hệ Thống Luyện Thi & Giám Sát Chống Gian Lận',
       description:
         'Ngân hàng 10,000+ câu hỏi chuẩn hóa ma trận, tính thời gian làm bài chính xác theo giây và tự động đề xuất lộ trình khắc phục lỗ hổng kiến thức.',
       tab: '03. Luyện đề THPT & ĐGNL 3D',
     },
   ];
+
+  // Auto-switch tabs every 3 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev < slides.length - 1 ? prev + 1 : 0));
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [slides.length]);
 
   const handleQuickAsk = (questionText?: string) => {
     const q = (questionText ?? promptInput).trim();
@@ -76,7 +87,7 @@ export default function Home() {
           <div>
             <h2 className="text-2xl font-bold text-slate-900">Đăng nhập tài khoản NQD-LMS</h2>
             <p className="text-sm text-slate-500 mt-1">
-              Đăng nhập với Google để bắt đầu trải nghiệm hệ thống học tập AI thế hệ mới 2025.
+              Đăng nhập với Google để bắt đầu trải nghiệm hệ thống học tập AI thế hệ mới.
             </p>
           </div>
 
@@ -108,10 +119,10 @@ export default function Home() {
               <div className="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none" />
 
               <div className="relative z-10 p-6 sm:p-8 lg:p-9 flex flex-col xl:flex-row gap-8 items-stretch">
-                {/* Main Slide Showcase */}
-                <div className="flex-1 flex flex-col justify-between space-y-6">
+                {/* Main Slide Showcase (LOCKED MIN-HEIGHT & FIXED FORM) */}
+                <div className="flex-1 flex flex-col justify-between min-h-[440px] xl:min-h-[460px] space-y-5">
                   {/* Badges row */}
-                  <div className="flex flex-wrap items-center gap-2.5">
+                  <div className="flex flex-wrap items-center gap-2.5 h-8">
                     <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-300 border border-rose-500/40 backdrop-blur shadow-glow-blue">
                       <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
@@ -119,7 +130,7 @@ export default function Home() {
                       </span>
                       LIVE NOW
                     </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 backdrop-blur">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 backdrop-blur transition-all">
                       <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
                       {slides[activeSlide].badge}
                     </span>
@@ -128,15 +139,21 @@ export default function Home() {
                     </span>
                   </div>
 
-                  {/* Typography Headline with dynamic high-tech gradient */}
-                  <div className="space-y-3">
+                  {/* Typography Headline with dynamic high-tech gradient - FIXED FORM HEIGHT */}
+                  <div className="h-[120px] sm:h-[135px] xl:h-[150px] flex flex-col justify-center">
                     <h1 className="text-2xl sm:text-4xl xl:text-5xl font-extrabold tracking-tight leading-[1.18] text-white">
-                      Kiến Tạo Tương Lai Cùng <br />
+                      <span className="block text-slate-300 text-sm sm:text-xl xl:text-2xl font-semibold mb-1">
+                        {slides[activeSlide].prefix}
+                      </span>
                       <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-300 drop-shadow-[0_0_20px_rgba(56,189,248,0.35)]">
                         {slides[activeSlide].title}
                       </span>
                     </h1>
-                    <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-2xl font-light">
+                  </div>
+
+                  {/* Description - FIXED FORM HEIGHT */}
+                  <div className="h-[44px] sm:h-[50px] flex items-center">
+                    <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-2xl font-light line-clamp-2">
                       {slides[activeSlide].description}
                     </p>
                   </div>
@@ -147,7 +164,7 @@ export default function Home() {
                       href="/courses"
                       className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold text-xs shadow-lg shadow-blue-500/30 hover:shadow-cyan-500/50 transition-all flex items-center gap-2.5 group"
                     >
-                      <span>Bắt đầu Lộ trình 2025</span>
+                      <span>Bắt đầu Lộ trình Ngay</span>
                       <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
                     </Link>
                     <a
@@ -159,7 +176,7 @@ export default function Home() {
                     </a>
                   </div>
 
-                  {/* Dynamic Live Slide Tabs & Progress Bar */}
+                  {/* Dynamic Live Slide Tabs & Auto 3s Progress Bar */}
                   <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3">
                     <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto">
                       {slides.map((s, idx) => (
@@ -178,10 +195,10 @@ export default function Home() {
                       ))}
                     </div>
 
-                    {/* Auto-Progress Timer Bar & Controls */}
+                    {/* Auto-Progress Timer Bar (Synced 3s with activeSlide) */}
                     <div className="flex items-center gap-3 shrink-0">
-                      <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden" title="Chuyển slide">
-                        <div className="slide-progress h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full" />
+                      <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden" title="Chuyển slide tự động sau 3s">
+                        <div key={activeSlide} className="slide-progress h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full" />
                       </div>
                       <div className="flex items-center gap-1">
                         <button
@@ -634,7 +651,7 @@ export default function Home() {
               <div className="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-3xl p-6 text-white border border-slate-800 shadow-md flex flex-col justify-between">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">Roadmap Canvas 2025</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">Roadmap Canvas</span>
                     <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
                   </div>
                   <h4 className="text-base font-bold">Cây Kỹ Năng Tự Sinh (Dynamic Skill Tree)</h4>
