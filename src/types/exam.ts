@@ -141,6 +141,7 @@ export interface StudentAssignedExamResponse {
   enableProctoring?: boolean;
   maxViolationCount?: number;
   status: ExamStatus;
+  visibility?: ExamVisibility;
   attemptsTaken: number;
   bestScore?: number;
   passed?: boolean;

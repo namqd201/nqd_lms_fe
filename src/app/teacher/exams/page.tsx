@@ -98,11 +98,11 @@ const VISIBILITY_CONFIGS: {
   },
   {
     visibility: 'PUBLIC',
-    label: 'Công khai toàn trường',
+    label: 'Công khai',
     icon: Globe,
     color: 'bg-indigo-50 text-indigo-700',
     badge: 'border-indigo-300',
-    description: 'Mọi giáo viên và học sinh đều có thể tham khảo',
+    description: 'Tất cả mọi người đều có thể thấy và tham gia làm bài',
   },
 ];
 
@@ -1081,7 +1081,7 @@ export default function TeacherExamsPage() {
                                   >
                                     <option value="PRIVATE">🔒 Riêng tư</option>
                                     <option value="SUBJECT_SHARED">👥 Cùng bộ môn</option>
-                                    <option value="PUBLIC">🌍 Toàn trường</option>
+                                    <option value="PUBLIC">🌐 Công khai</option>
                                   </select>
                                 ) : (
                                   <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${vConf.color} ${vConf.badge}`}>
@@ -1335,7 +1335,7 @@ export default function TeacherExamsPage() {
                   </div>
                   <h3 className="text-lg font-bold text-slate-900">Chưa có đề thi nào trong Thư viện dùng chung</h3>
                   <p className="text-xs text-slate-500 max-w-md mx-auto">
-                    Các đề thi được giáo viên hoặc ban giám hiệu chia sẻ quyền &quot;Cùng tổ bộ môn&quot; hoặc &quot;Công khai toàn trường&quot; sẽ xuất hiện tại đây để mọi người tham khảo và sao chép.
+                    Các đề thi được giáo viên hoặc ban giám hiệu chia sẻ quyền &quot;Cùng tổ bộ môn&quot; hoặc &quot;Công khai&quot; sẽ xuất hiện tại đây để mọi người tham khảo và sao chép.
                   </p>
                 </div>
               ) : (
@@ -1722,7 +1722,7 @@ export default function TeacherExamsPage() {
                       >
                         <option value="PRIVATE">🔒 Riêng tư</option>
                         <option value="SUBJECT_SHARED">👥 Cùng tổ bộ môn</option>
-                        <option value="PUBLIC">🌍 Toàn trường</option>
+                        <option value="PUBLIC">🌐 Công khai</option>
                       </select>
                     </div>
                   </div>

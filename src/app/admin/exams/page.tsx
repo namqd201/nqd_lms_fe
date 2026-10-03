@@ -64,11 +64,11 @@ const VISIBILITY_CONFIGS: {
   },
   {
     visibility: 'PUBLIC',
-    label: 'Công khai toàn trường',
+    label: 'Công khai',
     icon: Globe,
     color: 'bg-emerald-50 text-emerald-700',
     badge: 'border-emerald-300',
-    description: 'Mọi giáo viên và học sinh đều có thể xem và tham khảo',
+    description: 'Tất cả mọi người đều có thể thấy và truy cập đề thi',
   },
 ];
 
@@ -356,7 +356,7 @@ export default function AdminExamsPage() {
                 <option value="ALL">🌐 Tất cả Quyền chia sẻ</option>
                 <option value="PRIVATE">🔒 Riêng tư</option>
                 <option value="SUBJECT_SHARED">👥 Cùng tổ bộ môn</option>
-                <option value="PUBLIC">🌍 Công khai toàn trường</option>
+                <option value="PUBLIC">🌐 Công khai</option>
               </select>
             </div>
           </div>
@@ -464,7 +464,7 @@ export default function AdminExamsPage() {
                             >
                               <option value="PRIVATE">🔒 Riêng tư</option>
                               <option value="SUBJECT_SHARED">👥 Cùng bộ môn (Dùng chung)</option>
-                              <option value="PUBLIC">🌍 Công khai toàn trường</option>
+                              <option value="PUBLIC">🌐 Công khai</option>
                             </select>
                             {updatingId === exam.id && (
                               <RefreshCw className="w-3.5 h-3.5 text-purple-600 animate-spin" />
