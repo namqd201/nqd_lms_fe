@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { RoleGuard } from '@/components/RoleGuard';
 import { courseService } from '@/services/course.service';
 import { marketplaceService } from '@/services/marketplace.service';
@@ -66,6 +67,8 @@ import { CourseFreeGrantSummaryResponse } from '@/types/freeGrant';
 export default function TeacherCourseEditorPage() {
   const params = useParams();
   const courseId = params?.id as string;
+  const { user } = useAuth();
+  const isAdmin = Boolean(user?.roles?.some(r => r === 'ADMIN' || r === 'ROLE_ADMIN'));
 
   const [activeTab, setActiveTab] = useState<'SYLLABUS' | 'PROGRESS' | 'ENROLLMENTS' | 'FREE_GRANTS'>('SYLLABUS');
   const [courseDetail, setCourseDetail] = useState<TeacherCourseDetailResponse | null>(null);
@@ -2099,29 +2102,59 @@ export default function TeacherCourseEditorPage() {
                           </span>
                         </div>
 
-                        <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex items-center justify-between">
-                          <div>
-                            <span className="text-xs font-extrabold text-emerald-900">Giảng viên nhận về (80%)</span>
-                            <p className="text-[10px] text-emerald-700">Cộng trực tiếp vào số dư khả dụng</p>
-                          </div>
-                          <span className="text-base font-black text-emerald-700 font-mono">
-                            {Math.round((coursePrice || 0) * 0.8).toLocaleString('vi-VN')} đ
-                          </span>
-                        </div>
+                        {isAdmin ? (
+                          <>
+                            <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex items-center justify-between">
+                              <div>
+                                <span className="text-xs font-extrabold text-emerald-900">Admin nhận về (100%)</span>
+                                <p className="text-[10px] text-emerald-700">Cộng trực tiếp vào số dư khả dụng (Không trừ phí sàn)</p>
+                              </div>
+                              <span className="text-base font-black text-emerald-700 font-mono">
+                                {(coursePrice || 0).toLocaleString('vi-VN')} đ
+                              </span>
+                            </div>
 
-                        <div className="p-2.5 bg-slate-100 rounded-xl flex items-center justify-between text-xs">
-                          <div>
-                            <span className="font-semibold text-slate-700">Phí duy trì nền tảng (20%)</span>
-                            <p className="text-[10px] text-slate-500">Chi trả hạ tầng, streaming video & cổng thanh toán</p>
-                          </div>
-                          <span className="font-mono font-bold text-slate-600">
-                            {Math.round((coursePrice || 0) * 0.2).toLocaleString('vi-VN')} đ
-                          </span>
-                        </div>
+                            <div className="p-2.5 bg-purple-50 border border-purple-200/60 rounded-xl flex items-center justify-between text-xs">
+                              <div>
+                                <span className="font-semibold text-purple-900">Phí duy trì nền tảng (0%)</span>
+                                <p className="text-[10px] text-purple-700">Khóa học do Admin đăng bán được miễn 100% phí sàn</p>
+                              </div>
+                              <span className="font-mono font-bold text-purple-700">
+                                0 đ
+                              </span>
+                            </div>
 
-                        <p className="text-[11px] text-slate-500 italic leading-relaxed pt-1">
-                          * Lưu ý: Học viên chuyển khoản qua VietQR vào tài khoản trung tâm của hệ thống. Khi đơn hàng hoàn tất, 80% doanh thu sẽ được cộng ngay vào Ví của bạn để rút tiền về ngân hàng cá nhân.
-                        </p>
+                            <p className="text-[11px] text-purple-700 font-medium italic leading-relaxed pt-1">
+                              * Đặc quyền Admin: Khóa học do chính Quản trị viên (Admin) tạo và mở bán sẽ không bị trừ phần trăm phí sàn nền tảng, toàn bộ 100% doanh thu sẽ thuộc về bạn.
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex items-center justify-between">
+                              <div>
+                                <span className="text-xs font-extrabold text-emerald-900">Giảng viên nhận về (80%)</span>
+                                <p className="text-[10px] text-emerald-700">Cộng trực tiếp vào số dư khả dụng</p>
+                              </div>
+                              <span className="text-base font-black text-emerald-700 font-mono">
+                                {Math.round((coursePrice || 0) * 0.8).toLocaleString('vi-VN')} đ
+                              </span>
+                            </div>
+
+                            <div className="p-2.5 bg-slate-100 rounded-xl flex items-center justify-between text-xs">
+                              <div>
+                                <span className="font-semibold text-slate-700">Phí duy trì nền tảng (20%)</span>
+                                <p className="text-[10px] text-slate-500">Chi trả hạ tầng, streaming video & cổng thanh toán</p>
+                              </div>
+                              <span className="font-mono font-bold text-slate-600">
+                                {Math.round((coursePrice || 0) * 0.2).toLocaleString('vi-VN')} đ
+                              </span>
+                            </div>
+
+                            <p className="text-[11px] text-slate-500 italic leading-relaxed pt-1">
+                              * Lưu ý: Học viên chuyển khoản qua VietQR vào tài khoản trung tâm của hệ thống. Khi đơn hàng hoàn tất, 80% doanh thu sẽ được cộng ngay vào Ví của bạn để rút tiền về ngân hàng cá nhân.
+                            </p>
+                          </>
+                        )}
                       </div>
                     </div>
                   ) : (

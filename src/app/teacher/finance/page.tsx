@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import { RoleGuard } from '@/components/RoleGuard';
 import { financeService } from '@/services/finance.service';
 import {
@@ -27,6 +28,8 @@ import {
 } from 'lucide-react';
 
 export default function TeacherFinancePage() {
+  const { user } = useAuth();
+  const isAdmin = Boolean(user?.roles?.some(r => r === 'ADMIN' || r === 'ROLE_ADMIN'));
   const [balance, setBalance] = useState<TeacherBalanceSummaryResponse | null>(null);
   const [earnings, setEarnings] = useState<TeacherEarningResponse[]>([]);
   const [withdrawals, setWithdrawals] = useState<TeacherWithdrawalResponse[]>([]);
@@ -269,14 +272,18 @@ export default function TeacherFinancePage() {
 
                 <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2">
                   <div className="flex items-center justify-between text-slate-500">
-                    <span className="text-xs font-bold uppercase tracking-wider text-amber-700">Chuyển lại hệ thống (20%)</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-amber-700">
+                      {isAdmin ? 'Phí sàn nền tảng (0% Admin)' : 'Chuyển lại hệ thống (20%)'}
+                    </span>
                     <Building2 className="w-4 h-4 text-amber-600" />
                   </div>
                   <p className="text-xl font-black text-amber-700">
                     {platformFee.toLocaleString('vi-VN')}{' '}
                     <span className="text-xs text-slate-500 font-bold">VND</span>
                   </p>
-                  <span className="text-[11px] text-slate-400 font-medium">Phí sàn & hạ tầng LMS (20%)</span>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    {isAdmin ? 'Đặc quyền: Admin không bị trừ % phí sàn' : 'Phí sàn & hạ tầng LMS (20%)'}
+                  </span>
                 </div>
 
                 <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2">
@@ -288,7 +295,9 @@ export default function TeacherFinancePage() {
                     {(balance?.totalEarned || 0).toLocaleString('vi-VN')}{' '}
                     <span className="text-xs text-slate-500 font-bold">VND</span>
                   </p>
-                  <span className="text-[11px] text-slate-400 font-medium">80% sau trừ phí nền tảng</span>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    {isAdmin ? '100% doanh thu (Không trừ phí)' : '80% sau trừ phí nền tảng'}
+                  </span>
                 </div>
 
                 <div className="bg-white p-5 rounded-3xl border-2 border-emerald-500/80 shadow-md shadow-emerald-500/5 space-y-2">
@@ -388,7 +397,11 @@ export default function TeacherFinancePage() {
                             {e.grossAmount.toLocaleString('vi-VN')} {e.currency}
                           </td>
                           <td className="p-4 font-mono text-slate-500">
-                            -{e.platformFee.toLocaleString('vi-VN')} {e.currency}
+                            {e.platformFee === 0 ? (
+                              <span className="text-emerald-600 font-bold">0 đ (0%)</span>
+                            ) : (
+                              `-${e.platformFee.toLocaleString('vi-VN')} ${e.currency}`
+                            )}
                           </td>
                           <td className="p-4 font-mono font-black text-emerald-600">
                             +{e.teacherAmount.toLocaleString('vi-VN')} {e.currency}
