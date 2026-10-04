@@ -113,6 +113,9 @@ export interface TeacherCourseDetailResponse {
   currency?: string;
   creatorId?: string | null;
   creatorName?: string | null;
+  enrolledStudentsCount?: number | null;
+  activeStudentsCount?: number | null;
+  completedStudentsCount?: number | null;
   chapters: TeacherChapterResponse[];
   createdAt: string;
   updatedAt?: string | null;
@@ -174,6 +177,9 @@ export interface StudentCourseDetailResponse {
   creatorName?: string | null;
   isOwner?: boolean;
   isEnrolled: boolean;
+  enrolledStudentsCount?: number | null;
+  activeStudentsCount?: number | null;
+  completedStudentsCount?: number | null;
   chapters: StudentChapterResponse[];
 }
 

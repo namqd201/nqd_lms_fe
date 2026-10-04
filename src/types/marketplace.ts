@@ -77,4 +77,7 @@ export interface MarketplaceCourseDetailResponse extends MarketplaceCourseRespon
   totalDurationSeconds?: number;
   proDiscountPrice?: number;
   isUltraMember?: boolean;
+  enrolledStudentsCount?: number | null;
+  activeStudentsCount?: number | null;
+  completedStudentsCount?: number | null;
 }

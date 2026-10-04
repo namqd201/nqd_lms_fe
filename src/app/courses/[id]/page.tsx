@@ -52,6 +52,7 @@ import {
   Megaphone,
   Zap,
   Settings,
+  Users,
 } from 'lucide-react';
 
 export default function StudentCourseDetailPage() {
@@ -365,6 +366,11 @@ export default function StudentCourseDetailPage() {
   const isProMember = Boolean(isPro && !isUltraMember);
   const proDiscountPrice = marketplaceDetail?.proDiscountPrice ?? (isPaid && price > 0 ? Math.round(price * 0.8) : undefined);
   const isTeacherOrAdmin = isOwner || !!(user?.roles?.some(r => r === 'TEACHER' || r === 'ADMIN' || r === 'ROLE_TEACHER' || r === 'ROLE_ADMIN'));
+  const isAdmin = !!(user?.roles?.some(r => r === 'ADMIN' || r === 'ROLE_ADMIN'));
+  const canViewStudentEnrollmentStats = isOwner || isAdmin;
+  const enrolledStudentsCount = course?.enrolledStudentsCount ?? marketplaceDetail?.enrolledStudentsCount;
+  const activeStudentsCount = course?.activeStudentsCount ?? marketplaceDetail?.activeStudentsCount;
+  const completedStudentsCount = course?.completedStudentsCount ?? marketplaceDetail?.completedStudentsCount;
   const isCourseCompleted = (courseProgress?.overallProgressPercent ?? 0) >= 100 || isOwner;
   const myReview = reviews.find((r) => user?.id && r.userId === user.id);
   const rating = marketplaceDetail?.averageRating || 5.0;
@@ -440,6 +446,25 @@ export default function StudentCourseDetailPage() {
                   <span className="font-bold text-slate-800">{rating.toFixed(1)}</span>
                   <span className="text-slate-400">({reviewCount} đánh giá)</span>
                 </div>
+                {canViewStudentEnrollmentStats && (enrolledStudentsCount != null || isOwner || isAdmin) && (
+                  <div
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 border border-purple-200 text-purple-700 font-bold text-xs"
+                    title="Thông tin chỉ hiển thị cho Giảng viên tạo khóa học & Quản trị viên"
+                  >
+                    <Users className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                    <span>
+                      {enrolledStudentsCount ?? 0} học viên tham gia
+                      {(activeStudentsCount != null || completedStudentsCount != null) && (
+                        <span className="font-semibold text-purple-600/90 ml-1">
+                          ({activeStudentsCount ?? 0} đang học, {completedStudentsCount ?? 0} hoàn thành)
+                        </span>
+                      )}
+                    </span>
+                    <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-purple-200/70 text-purple-800 font-extrabold tracking-wider">
+                      Riêng tư
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 

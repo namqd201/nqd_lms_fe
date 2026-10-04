@@ -787,7 +787,7 @@ export default function TeacherCourseEditorPage() {
 
             {/* Quick Stats & Tabs Switcher */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-100">
-              <div className="flex items-center gap-4 text-xs font-bold text-slate-600">
+              <div className="flex items-center gap-4 text-xs font-bold text-slate-600 flex-wrap">
                 <span className="flex items-center gap-1.5">
                   <Layers className="w-4 h-4 text-[#83C75D]" />
                   <span>{courseDetail.chapters.length} Chương</span>
@@ -797,6 +797,25 @@ export default function TeacherCourseEditorPage() {
                   <BookOpen className="w-4 h-4 text-blue-600" />
                   <span>{courseDetail.chapters.reduce((acc, ch) => acc + ch.lessons.length, 0)} Bài học</span>
                 </span>
+                {courseDetail.enrolledStudentsCount != null && (
+                  <>
+                    <span>•</span>
+                    <span
+                      className="flex items-center gap-1.5 text-purple-700 bg-purple-50 px-2.5 py-1 rounded-xl border border-purple-200"
+                      title="Số lượng học viên đã và đang tham gia khóa học (Chỉ hiển thị cho Giáo viên tạo khóa học & Quản trị viên)"
+                    >
+                      <Users className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                      <span>
+                        {courseDetail.enrolledStudentsCount} Học viên tham gia
+                        {(courseDetail.activeStudentsCount != null || courseDetail.completedStudentsCount != null) && (
+                          <span className="font-medium text-purple-600/90 ml-1">
+                            ({courseDetail.activeStudentsCount ?? 0} đang học, {courseDetail.completedStudentsCount ?? 0} hoàn thành)
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                  </>
+                )}
               </div>
 
               {/* Phase 5 Tabs */}
