@@ -143,4 +143,20 @@ export const labService = {
     });
     return handleApiResponse<void>(response, 'Không thể xóa video bản ghi');
   },
+
+  getLivePresence: async (labId: string): Promise<{
+    labId: string;
+    status: string;
+    isLiveNow: boolean;
+    participantCount: number;
+    peers: Array<{ id: string; name: string; role: string; userId?: string; joinedAt?: string }>;
+  }> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/public/labs/${labId}/live-presence`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    return handleApiResponse(response, 'Không thể kiểm tra trạng thái phòng Lab');
+  },
 };
+

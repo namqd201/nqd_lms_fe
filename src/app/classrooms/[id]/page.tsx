@@ -15,6 +15,7 @@ import {
   ClassroomRecordedVideo,
   ClassroomSchedule,
   ClassroomFile,
+  ClassroomLivePresence,
 } from '@/types/classroom';
 import {
   GraduationCap,
@@ -22,6 +23,8 @@ import {
   Copy,
   Check,
   Plus,
+  RefreshCw,
+
   ArrowLeft,
   Mail,
   UserCheck,
@@ -113,6 +116,9 @@ export default function ClassroomDetailPage() {
   const [schedules, setSchedules] = useState<ClassroomSchedule[]>([]);
   const [classroomFiles, setClassroomFiles] = useState<ClassroomFile[]>([]);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [livePresence, setLivePresence] = useState<ClassroomLivePresence | null>(null);
+  const [isRefreshingPresence, setIsRefreshingPresence] = useState<boolean>(false);
+
 
   // Search queries & filters
   const [searchStudentQuery, setSearchStudentQuery] = useState('');
@@ -183,6 +189,31 @@ export default function ClassroomDetailPage() {
       loadClassroomData();
     }
   }, [classroomId, isAuthenticated]);
+
+  const fetchLivePresence = async () => {
+    if (!classroomId) return;
+    try {
+      setIsRefreshingPresence(true);
+      const data = await classroomService.getLivePresence(classroomId);
+      setLivePresence(data);
+      if (data && classroom) {
+        setClassroom(prev => prev ? { ...prev, isLiveNow: data.isLiveNow } : null);
+      }
+    } catch (err) {
+      console.error('Lỗi khi tải trạng thái phòng học:', err);
+    } finally {
+      setIsRefreshingPresence(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeFeature === 'ONLINE_CLASS') {
+      fetchLivePresence();
+      const interval = setInterval(fetchLivePresence, 15000);
+      return () => clearInterval(interval);
+    }
+  }, [activeFeature, classroomId]);
+
 
   // Click outside to hide suggestion dropdown
   useEffect(() => {
@@ -1425,10 +1456,10 @@ export default function ClassroomDetailPage() {
                       <span className="text-[11px] font-extrabold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded-full border border-rose-500/20">
                         LỚP HỌC TRỰC TUYẾN
                       </span>
-                      {classroom.isLiveNow ? (
-                        <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1">
+                      {classroom.isLiveNow || livePresence?.isLiveNow ? (
+                        <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                          <span>Đang trong giờ học</span>
+                          <span>Đang trong giờ học {livePresence && livePresence.participantCount > 0 ? `(${livePresence.participantCount} đang online)` : ''}</span>
                         </span>
                       ) : (
                         <span className="text-[11px] font-medium text-slate-400">
@@ -1512,6 +1543,106 @@ export default function ClassroomDetailPage() {
                 )}
               </div>
             </div>
+
+            {/* Live Room Presence & Participants */}
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-lg shadow-sm ${
+                    livePresence?.isLiveNow ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-base font-bold text-slate-800">
+                        Thành viên đang trong phòng học
+                      </h4>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                        livePresence?.isLiveNow ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {livePresence?.participantCount || 0} đang online
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Cập nhật tự động theo thời gian thực từ 100ms Webhook &amp; Active Room API
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 ${
+                    livePresence?.hostOnline 
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${livePresence?.hostOnline ? 'bg-emerald-500 animate-ping' : 'bg-amber-400'}`} />
+                    <span>{livePresence?.hostOnline ? 'Giáo viên đang có mặt' : 'Giáo viên chưa vào phòng'}</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={fetchLivePresence}
+                    disabled={isRefreshingPresence}
+                    className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition cursor-pointer disabled:opacity-50"
+                    title="Làm mới trạng thái"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isRefreshingPresence ? 'animate-spin text-[#83C75D]' : ''}`} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Peers list or empty state */}
+              {livePresence && livePresence.peers && livePresence.peers.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {livePresence.peers.map((peer, idx) => {
+                    const isHost = peer.role?.toLowerCase() === 'host' || peer.role?.toLowerCase() === 'teacher';
+                    return (
+                      <div
+                        key={peer.id || idx}
+                        className={`p-3.5 rounded-2xl border transition flex items-center justify-between gap-3 ${
+                          isHost
+                            ? 'bg-emerald-50/60 border-emerald-200 shadow-2xs'
+                            : 'bg-slate-50/80 border-slate-200/80'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs uppercase shrink-0 ${
+                            isHost ? 'bg-emerald-600 text-white shadow-sm' : 'bg-indigo-600 text-white shadow-sm'
+                          }`}>
+                            {peer.name ? peer.name.slice(0, 2) : 'HV'}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-800 truncate">
+                              {peer.name || 'Người tham gia'}
+                            </p>
+                            <p className="text-[10px] text-slate-400">
+                              {peer.joinedAt ? `Vào lúc ${new Date(peer.joinedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}` : 'Đang kết nối'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold uppercase shrink-0 ${
+                          isHost ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
+                        }`}>
+                          {isHost ? 'Host' : 'Học viên'}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-6 rounded-2xl bg-slate-50 text-center border border-dashed border-slate-200 space-y-1">
+                  <p className="text-xs font-bold text-slate-600">
+                    Hiện chưa có thành viên nào trong phòng trực tuyến
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    Khi giáo viên hoặc học sinh bấm &quot;Vào phòng học&quot;, tên thành viên và trạng thái sẽ tự động xuất hiện tại đây.
+                  </p>
+                </div>
+              )}
+            </div>
+
 
             {/* Recorded Videos Section */}
             <div className="space-y-4">

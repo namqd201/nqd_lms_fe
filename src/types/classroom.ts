@@ -221,3 +221,21 @@ export interface CreateFileRequest {
   fileSize?: number;
   fileType?: string;
 }
+
+export interface LivePeer {
+  id: string;
+  name: string;
+  role: string;
+  userId?: string;
+  joinedAt?: string;
+}
+
+export interface ClassroomLivePresence {
+  classroomId: string;
+  roomId?: string;
+  isLiveNow: boolean;
+  hostOnline: boolean;
+  participantCount: number;
+  peers: LivePeer[];
+}
+

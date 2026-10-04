@@ -14,6 +14,7 @@ import {
   CreateAssignmentRequest,
   ClassroomMeeting,
   UpdateMeetingRequest,
+  ClassroomLivePresence,
   ClassroomRecordedVideo,
   CreateRecordedVideoRequest,
   ClassroomSchedule,
@@ -282,6 +283,16 @@ export const classroomService = {
     });
     return handleApiResponse<ClassroomMeeting>(response, 'Không thể tải thông tin phòng học online');
   },
+
+  getLivePresence: async (classroomId: string): Promise<ClassroomLivePresence> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/classrooms/${classroomId}/meeting/live-presence`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    return handleApiResponse<ClassroomLivePresence>(response, 'Không thể kiểm tra trạng thái phòng học trực tuyến');
+  },
+
 
   updateMeetingInfo: async (classroomId: string, data: UpdateMeetingRequest): Promise<ClassroomMeeting> => {
     const response = await fetch(`${API_BASE_URL}/api/v1/classrooms/${classroomId}/meeting`, {
