@@ -11,9 +11,17 @@ import { UserStatus } from '@/types/auth';
 import { RoleBadge } from '@/components/RoleBadge';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useAuth } from '@/context/AuthContext';
-import { GraduationCap, ChevronRight, UserCheck, Clock, ShieldCheck } from 'lucide-react';
+import { GraduationCap, ChevronRight, UserCheck, Clock, ShieldCheck, Lock, Unlock, ShieldAlert, AlertTriangle } from 'lucide-react';
 
 const AVAILABLE_ROLES = ['ADMIN', 'TEACHER', 'STUDENT'];
+
+const QUICK_LOCK_REASONS = [
+  'Vi phạm quy chế thi cử / gian lận thi',
+  'Spam liên kết độc hại / quảng cáo trái phép',
+  'Quấy rối, gây mất trật tự lớp học / phòng Lab',
+  'Có hành vi gian lận thanh toán hoặc lừa đảo',
+  'Tạm khóa theo yêu cầu cá nhân của học viên',
+];
 
 export default function AdminUsersPage() {
   const { user: currentUser } = useAuth();
@@ -32,6 +40,13 @@ export default function AdminUsersPage() {
   const [modalRoleToAdd, setModalRoleToAdd] = useState<string>('TEACHER');
   const [modalStatus, setModalStatus] = useState<UserStatus>('ACTIVE');
   const [isActionLoading, setIsActionLoading] = useState<boolean>(false);
+
+  // Lock User Modal State
+  const [lockModalOpen, setLockModalOpen] = useState<boolean>(false);
+  const [userToLock, setUserToLock] = useState<UserProfileResponse | null>(null);
+  const [lockTargetStatus, setLockTargetStatus] = useState<'BANNED' | 'INACTIVE'>('BANNED');
+  const [lockReasonInput, setLockReasonInput] = useState<string>('');
+  const [isLocking, setIsLocking] = useState<boolean>(false);
 
   // VIP / Subscription State in Modal
   const [userSubscription, setUserSubscription] = useState<UserSubscriptionResponse | null>(null);
@@ -81,6 +96,65 @@ export default function AdminUsersPage() {
   const studentCount = users.filter((u) => u.roles.some((r) => r.includes('STUDENT'))).length;
   const vipCount = users.filter((u) => u.isVip).length;
 
+  const handleOpenLockModal = (user: UserProfileResponse, defaultStatus: UserStatus = 'BANNED') => {
+    const isTargetAdmin = user.roles.some((r) => r.toUpperCase().includes('ADMIN')) || user.id === currentUser?.id;
+    if (isTargetAdmin) {
+      setErrorMessage('Tài khoản Quản trị viên (Admin) luôn ở trạng thái ACTIVE và không thể bị khóa.');
+      setTimeout(() => setErrorMessage(null), 5000);
+      return;
+    }
+    setUserToLock(user);
+    setLockTargetStatus(defaultStatus === 'INACTIVE' ? 'INACTIVE' : 'BANNED');
+    setLockReasonInput(user.lockReason || '');
+    setLockModalOpen(true);
+  };
+
+  const handleConfirmLock = async () => {
+    if (!userToLock) return;
+    if (!lockReasonInput.trim()) {
+      alert('Vui lòng nhập lý do khóa tài khoản học viên.');
+      return;
+    }
+    setIsLocking(true);
+    try {
+      const updated = await adminService.updateUserStatus(userToLock.id, lockTargetStatus, lockReasonInput.trim());
+      setUsers((prev) => prev.map((u) => (u.id === userToLock.id ? updated : u)));
+      if (selectedUser?.id === userToLock.id) {
+        setSelectedUser(updated);
+        setModalStatus(lockTargetStatus);
+      }
+      setSuccessMessage(`Đã khóa tài khoản của ${userToLock.fullName} (Lý do: ${lockReasonInput.trim()})`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+      setLockModalOpen(false);
+      setUserToLock(null);
+      setLockReasonInput('');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Khóa tài khoản thất bại';
+      setErrorMessage(msg);
+    } finally {
+      setIsLocking(false);
+    }
+  };
+
+  const handleUnlockUser = async (user: UserProfileResponse) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn mở khóa cho tài khoản ${user.fullName} (${user.email}) không? Học viên sẽ có thể đăng nhập và tham gia các hoạt động bình thường.`)) {
+      return;
+    }
+    try {
+      const updated = await adminService.updateUserStatus(user.id, 'ACTIVE');
+      setUsers((prev) => prev.map((u) => (u.id === user.id ? updated : u)));
+      if (selectedUser?.id === user.id) {
+        setSelectedUser(updated);
+        setModalStatus('ACTIVE');
+      }
+      setSuccessMessage(`Đã mở khóa tài khoản của ${user.fullName} thành công!`);
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Mở khóa thất bại';
+      setErrorMessage(msg);
+    }
+  };
+
   const handleQuickStatusChange = async (user: UserProfileResponse, newStatus: UserStatus) => {
     const isTargetAdmin = user.roles.some((r) => r.toUpperCase().includes('ADMIN')) || user.id === currentUser?.id;
     if (isTargetAdmin && newStatus !== 'ACTIVE') {
@@ -88,14 +162,10 @@ export default function AdminUsersPage() {
       setTimeout(() => setErrorMessage(null), 5000);
       return;
     }
-    try {
-      const updated = await adminService.updateUserStatus(user.id, newStatus);
-      setUsers((prev) => prev.map((u) => (u.id === user.id ? updated : u)));
-      setSuccessMessage(`Đã cập nhật trạng thái của ${user.fullName} thành ${newStatus}`);
-      setTimeout(() => setSuccessMessage(null), 4000);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Cập nhật trạng thái thất bại';
-      setErrorMessage(msg);
+    if (newStatus === 'ACTIVE') {
+      await handleUnlockUser(user);
+    } else {
+      handleOpenLockModal(user, newStatus);
     }
   };
 
@@ -139,22 +209,17 @@ export default function AdminUsersPage() {
       setTimeout(() => setErrorMessage(null), 5000);
       return;
     }
-    setIsActionLoading(true);
-    try {
-      if (modalStatus !== selectedUser.status) {
-        const updated = await adminService.updateUserStatus(selectedUser.id, modalStatus);
-        setSelectedUser(updated);
-        setUsers((prev) => prev.map((u) => (u.id === selectedUser.id ? updated : u)));
+    if (modalStatus !== selectedUser.status) {
+      if (modalStatus === 'BANNED' || modalStatus === 'INACTIVE') {
+        handleOpenLockModal(selectedUser, modalStatus);
+        return;
+      } else {
+        await handleUnlockUser(selectedUser);
+        setModalOpen(false);
+        return;
       }
-      setSuccessMessage(`Cập nhật người dùng ${selectedUser.fullName} thành công!`);
-      setTimeout(() => setSuccessMessage(null), 4000);
-      setModalOpen(false);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Cập nhật thất bại';
-      setErrorMessage(msg);
-    } finally {
-      setIsActionLoading(false);
     }
+    setModalOpen(false);
   };
 
   const openUserModal = async (user: UserProfileResponse) => {
@@ -510,25 +575,36 @@ export default function AdminUsersPage() {
                           )}
                         </td>
 
-                        {/* Status with Quick Toggle */}
+                        {/* Status with Quick Toggle & Reason */}
                         <td className="py-4 px-6">
-                          <div className="inline-flex items-center gap-2">
-                            <StatusBadge status={u.status} size="sm" />
-                            {u.roles.some((r) => r.toUpperCase().includes('ADMIN')) || u.id === currentUser?.id ? (
-                              <span className="text-[11px] text-slate-400 font-medium italic" title="Admin luôn ở trạng thái ACTIVE">
-                                (Cố định)
-                              </span>
-                            ) : (
-                              <select
-                                value={u.status}
-                                onChange={(e) => handleQuickStatusChange(u, e.target.value as UserStatus)}
-                                className="text-[11px] text-slate-500 bg-transparent hover:bg-slate-100 rounded px-1.5 py-0.5 border border-transparent hover:border-slate-200 cursor-pointer outline-none"
-                                title="Thay đổi trạng thái nhanh"
+                          <div className="space-y-1">
+                            <div className="inline-flex items-center gap-2">
+                              <StatusBadge status={u.status} size="sm" />
+                              {u.roles.some((r) => r.toUpperCase().includes('ADMIN')) || u.id === currentUser?.id ? (
+                                <span className="text-[11px] text-slate-400 font-medium italic" title="Admin luôn ở trạng thái ACTIVE">
+                                  (Cố định)
+                                </span>
+                              ) : (
+                                <select
+                                  value={u.status}
+                                  onChange={(e) => handleQuickStatusChange(u, e.target.value as UserStatus)}
+                                  className="text-[11px] text-slate-500 bg-transparent hover:bg-slate-100 rounded px-1.5 py-0.5 border border-transparent hover:border-slate-200 cursor-pointer outline-none"
+                                  title="Thay đổi trạng thái nhanh"
+                                >
+                                  <option value="ACTIVE">ACTIVE</option>
+                                  <option value="INACTIVE">INACTIVE</option>
+                                  <option value="BANNED">BANNED</option>
+                                </select>
+                              )}
+                            </div>
+                            {(u.status === 'BANNED' || u.status === 'INACTIVE') && u.lockReason && (
+                              <div
+                                className="text-[10px] text-rose-700 bg-rose-50 border border-rose-200/80 rounded-md px-2 py-0.5 max-w-[220px] truncate"
+                                title={`Lý do khóa: ${u.lockReason}`}
                               >
-                                <option value="ACTIVE">ACTIVE</option>
-                                <option value="INACTIVE">INACTIVE</option>
-                                <option value="BANNED">BANNED</option>
-                              </select>
+                                <span className="font-bold">Lý do: </span>
+                                <span>{u.lockReason}</span>
+                              </div>
                             )}
                           </div>
                         </td>
@@ -558,15 +634,41 @@ export default function AdminUsersPage() {
 
                         {/* Actions */}
                         <td className="py-4 px-6 text-right">
-                          <button
-                            onClick={() => openUserModal(u)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-[#83C75D] hover:bg-[#83C75D]/10 hover:text-[#4e8231] text-xs font-semibold text-slate-700 shadow-sm transition-all"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Chi tiết & Phân quyền
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            {!(u.roles.some((r) => r.toUpperCase().includes('ADMIN')) || u.id === currentUser?.id) && (
+                              u.status === 'BANNED' || u.status === 'INACTIVE' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleUnlockUser(u)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+                                  title="Mở khóa tài khoản học viên"
+                                >
+                                  <Unlock className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Mở khóa</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenLockModal(u, 'BANNED')}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-200 bg-rose-50/70 hover:bg-rose-100 text-rose-700 text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+                                  title="Khóa tài khoản và điền lý do"
+                                >
+                                  <Lock className="w-3.5 h-3.5 text-rose-500" />
+                                  <span>Khóa</span>
+                                </button>
+                              )
+                            )}
+
+                            <button
+                              onClick={() => openUserModal(u)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-[#83C75D] hover:bg-[#83C75D]/10 hover:text-[#4e8231] text-xs font-semibold text-slate-700 shadow-sm transition-all"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Chi tiết
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -809,6 +911,36 @@ export default function AdminUsersPage() {
                 </div>
               </div>
 
+              {/* Locked Account Notice Banner if currently locked */}
+              {(selectedUser.status === 'BANNED' || selectedUser.status === 'INACTIVE') && (
+                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-rose-800 flex items-center gap-1.5">
+                      <ShieldAlert className="w-4 h-4 text-rose-600" />
+                      <span>Tài khoản hiện đang bị khóa ({selectedUser.status})</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleUnlockUser(selectedUser)}
+                      className="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs cursor-pointer"
+                    >
+                      <Unlock className="w-3 h-3" />
+                      <span>Mở khóa ngay</span>
+                    </button>
+                  </div>
+                  {selectedUser.lockReason && (
+                    <p className="text-rose-700">
+                      <strong className="text-rose-900">Lý do khóa:</strong> {selectedUser.lockReason}
+                    </p>
+                  )}
+                  {selectedUser.lockedAt && (
+                    <p className="text-[11px] text-rose-500">
+                      Thời gian khóa: {new Date(selectedUser.lockedAt).toLocaleString('vi-VN')}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Status Management */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -891,6 +1023,140 @@ export default function AdminUsersPage() {
                   className="px-5 py-2.5 rounded-xl bg-[#83C75D] hover:bg-[#72b44e] text-white font-semibold text-xs shadow-md shadow-[#83C75D]/20 transition-all disabled:opacity-50"
                 >
                   {isActionLoading ? 'Đang lưu...' : 'Lưu thay đổi'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================
+            MODAL: KHÓA TÀI KHOẢN HỌC VIÊN & FORM ĐIỀN LÝ DO
+            ======================================================== */}
+        {lockModalOpen && userToLock && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl">
+                    <ShieldAlert className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900">Khóa Tài Khoản Học Viên</h3>
+                    <p className="text-xs text-slate-500">Điền lý do để hiển thị thông báo cho học viên khi đăng nhập</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setLockModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 p-1 rounded-full text-lg font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* User Summary */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-3">
+                {userToLock.avatarUrl ? (
+                  <img src={userToLock.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover border" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-sm">
+                    {userToLock.fullName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xs font-bold text-slate-900 truncate">{userToLock.fullName}</h4>
+                  <p className="text-[11px] text-slate-500 font-mono truncate">{userToLock.email}</p>
+                </div>
+              </div>
+
+              {/* Lock Mode Selector */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700">Mức độ khóa:</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLockTargetStatus('BANNED')}
+                    className={`p-3 rounded-2xl border text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                      lockTargetStatus === 'BANNED'
+                        ? 'bg-rose-50 border-rose-300 text-rose-700 ring-2 ring-rose-500/20'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="text-base">🚫</span>
+                    <div className="text-left">
+                      <span className="block font-bold">BANNED</span>
+                      <span className="text-[10px] text-slate-400 font-normal">Khóa tài khoản</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLockTargetStatus('INACTIVE')}
+                    className={`p-3 rounded-2xl border text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                      lockTargetStatus === 'INACTIVE'
+                        ? 'bg-amber-50 border-amber-300 text-amber-700 ring-2 ring-amber-500/20'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="text-base">⏸️</span>
+                    <div className="text-left">
+                      <span className="block font-bold">INACTIVE</span>
+                      <span className="text-[10px] text-slate-400 font-normal">Tạm ngưng hoạt động</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick suggestion chips */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-semibold text-slate-600">Gợi ý lý do nhanh:</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {QUICK_LOCK_REASONS.map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setLockReasonInput(r)}
+                      className="px-2.5 py-1 rounded-lg text-[11px] bg-slate-100 hover:bg-rose-50 hover:text-rose-700 border border-slate-200 transition text-slate-600 cursor-pointer"
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reason input */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700">
+                  Lý do khóa tài khoản <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={lockReasonInput}
+                  onChange={(e) => setLockReasonInput(e.target.value)}
+                  placeholder="Ví dụ: Vi phạm quy chế thi cử, gian lận bài tập trắc nghiệm nhiều lần..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-rose-500 outline-none resize-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400">
+                  Lý do này sẽ hiển thị trực tiếp cho học viên thấy khi đăng nhập vào hệ thống LMS.
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setLockModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-xs cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  disabled={isLocking || !lockReasonInput.trim()}
+                  onClick={handleConfirmLock}
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isLocking ? 'Đang khóa...' : 'Xác nhận khóa tài khoản'}
                 </button>
               </div>
             </div>

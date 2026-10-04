@@ -3,16 +3,25 @@
 import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Lock, AlertTriangle } from 'lucide-react';
+import { Lock, AlertTriangle, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
+  const reason = searchParams.get('reason');
   const redirectParam = searchParams.get('redirect');
   const invitedEmail = searchParams.get('invitedEmail');
   const { isAuthenticated, loginWithGoogle } = useAuth();
+
+  useEffect(() => {
+    if (error === 'account_locked') {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_session_id');
+      localStorage.removeItem('auth_redirect');
+    }
+  }, [error]);
 
   useEffect(() => {
     if (redirectParam) {
@@ -21,7 +30,7 @@ function LoginContent() {
   }, [redirectParam]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && error !== 'account_locked') {
       const savedRedirect = localStorage.getItem('auth_redirect');
       if (savedRedirect) {
         localStorage.removeItem('auth_redirect');
@@ -30,7 +39,7 @@ function LoginContent() {
         router.push('/');
       }
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, error]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-sans">
@@ -65,12 +74,38 @@ function LoginContent() {
           </div>
         )}
 
-        {error && (
+        {error === 'account_locked' ? (
+          <div className="p-5 rounded-2xl bg-rose-50/90 border-2 border-rose-300 text-rose-900 text-left space-y-3 shadow-sm animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center gap-2.5 font-black text-rose-800 text-sm">
+              <div className="w-8 h-8 rounded-xl bg-rose-200/80 text-rose-700 flex items-center justify-center shrink-0">
+                <ShieldAlert className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-rose-900">Tài khoản của bạn đã bị khóa!</h3>
+                <p className="text-[11px] text-rose-600 font-normal">Hệ thống tạm ngưng quyền truy cập của tài khoản này</p>
+              </div>
+            </div>
+
+            <div className="text-xs text-rose-900 bg-white/90 p-3 rounded-xl border border-rose-200/80 space-y-1">
+              <span className="font-bold text-rose-950 block text-[11px] uppercase tracking-wider">Lý do khóa từ Ban Quản Trị:</span>
+              <p className="text-xs font-semibold text-rose-800 leading-relaxed italic">
+                "{reason || 'Vi phạm chính sách hoặc điều khoản sử dụng của hệ thống.'}"
+              </p>
+            </div>
+
+            <p className="text-[11px] text-rose-700 leading-relaxed">
+              Nếu bạn cho rằng đây là sự nhầm lẫn hoặc cần khiếu nại để mở khóa, vui lòng liên hệ trực tiếp với Ban Quản Trị qua email{' '}
+              <a href="mailto:support@nqdlms.online" className="underline font-bold text-rose-900 hover:text-rose-700">
+                support@nqdlms.online
+              </a>.
+            </p>
+          </div>
+        ) : error ? (
           <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 text-left">
             <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
             <span>Đăng nhập không thành công ({error}). Vui lòng thử lại.</span>
           </div>
-        )}
+        ) : null}
 
         <button
           onClick={loginWithGoogle}

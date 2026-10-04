@@ -14,6 +14,8 @@ export interface UserProfileResponse {
   currentPlanName?: string | null;
   isVip?: boolean;
   subscriptionEndDate?: string | null;
+  lockReason?: string | null;
+  lockedAt?: string | null;
 }
 
 export interface AdminGrantVipRequest {
@@ -61,4 +63,5 @@ export interface AssignRoleRequest {
 
 export interface UpdateUserStatusRequest {
   status: UserStatus;
+  reason?: string;
 }

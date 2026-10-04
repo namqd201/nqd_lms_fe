@@ -50,8 +50,8 @@ export const adminService = {
     return handleApiResponse<UserProfileResponse>(response, `Không thể tải thông tin người dùng`);
   },
 
-  updateUserStatus: async (id: string, status: UserStatus): Promise<UserProfileResponse> => {
-    const payload: UpdateUserStatusRequest = { status };
+  updateUserStatus: async (id: string, status: UserStatus, reason?: string): Promise<UserProfileResponse> => {
+    const payload: UpdateUserStatusRequest = { status, reason };
     const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/${id}/status`, {
       method: 'PUT',
       headers: {

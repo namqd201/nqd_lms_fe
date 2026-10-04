@@ -13,6 +13,8 @@ export interface User {
   activePlanCode?: string;
   activePlanName?: string;
   isOnboarded?: boolean;
+  lockReason?: string | null;
+  lockedAt?: string | null;
 }
 
 export interface MessageResponse {
