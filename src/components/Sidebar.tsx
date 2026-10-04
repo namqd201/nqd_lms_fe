@@ -22,6 +22,7 @@ import {
   BookMarked,
   GraduationCap,
   Trophy,
+  FlaskConical,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -50,6 +51,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
       href: '/classrooms',
       label: 'Lớp học',
       icon: GraduationCap,
+    },
+    {
+      href: '/labs',
+      label: 'Phòng Lab',
+      icon: FlaskConical,
+      badge: 'Live Call',
+      badgeColor: 'bg-rose-100 text-rose-700 border-rose-200 font-bold',
     },
     {
       href: '/courses',
