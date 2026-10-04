@@ -14,7 +14,9 @@ import {
   Layers,
   ChevronRight,
   ChevronLeft,
+  Trophy,
 } from 'lucide-react';
+import { gamificationService, GamificationDashboardData } from '@/services/gamification.service';
 
 export default function Home() {
   const { user, isLoading, isAuthenticated, loginWithGoogle } = useAuth();
@@ -23,6 +25,8 @@ export default function Home() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [promptInput, setPromptInput] = useState('');
   const [rewardClaimed, setRewardClaimed] = useState(false);
+  const [gamification, setGamification] = useState<GamificationDashboardData | null>(null);
+  const [claiming, setClaiming] = useState(false);
 
   const isAdmin = user?.roles?.some((r) => r === 'ADMIN' || r === 'ROLE_ADMIN');
   const isTeacher = user?.roles?.some((r) => r === 'TEACHER' || r === 'ROLE_TEACHER');
@@ -61,6 +65,49 @@ export default function Home() {
     }, 7000);
     return () => clearInterval(timer);
   }, [slides.length]);
+
+  // Load real gamification metrics (Streak, XP, Missions, Weekly study)
+  useEffect(() => {
+    if (isAuthenticated) {
+      gamificationService
+        .getDashboard()
+        .then((data) => {
+          setGamification(data);
+          setRewardClaimed(data.dailyRewardClaimed);
+        })
+        .catch((err) => console.error('Failed to load gamification dashboard', err));
+    }
+  }, [isAuthenticated]);
+
+  const handleClaimReward = async () => {
+    if (!gamification || claiming) return;
+    const unclaimed = gamification.dailyMissions?.find((m) => m.isCompleted && !m.isClaimed);
+    if (!unclaimed) {
+      setRewardClaimed(true);
+      return;
+    }
+    try {
+      setClaiming(true);
+      const res = await gamificationService.claimMission(unclaimed.id);
+      if (res.success) {
+        setGamification((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            totalXp: res.newTotalXp,
+            monthlyXp: res.newMonthlyXp,
+            todayXp: res.newTodayXp,
+            dailyRewardClaimed: true,
+          };
+        });
+        setRewardClaimed(true);
+      }
+    } catch (e) {
+      console.error('Failed to claim mission reward', e);
+    } finally {
+      setClaiming(false);
+    }
+  };
 
   const handleQuickAsk = (questionText?: string) => {
     const q = (questionText ?? promptInput).trim();
@@ -318,9 +365,11 @@ export default function Home() {
                 <div className="space-y-1">
                   <span className="text-xs text-slate-500 font-medium">Thời gian học tuần này</span>
                   <div className="flex items-baseline gap-2">
-                    <h2 className="text-2xl font-black text-slate-800">14.5 giờ</h2>
+                    <h2 className="text-2xl font-black text-slate-800">
+                      {gamification ? gamification.studyHoursThisWeek : 14.5} giờ
+                    </h2>
                     <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                      ↑ 24%
+                      ↑ {gamification ? gamification.studyGrowthPercent : 24}%
                     </span>
                   </div>
                 </div>
@@ -329,19 +378,20 @@ export default function Home() {
                 </div>
               </div>
               <div className="mt-3 pt-2 border-t border-slate-100 flex items-end justify-between gap-1">
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                <div className="flex items-center gap-1 text-[11px] text-slate-400">
                   <span>T2-CN:</span>
                 </div>
                 <div className="flex items-end gap-1.5 h-6">
-                  <span className="w-1.5 bg-blue-200 rounded-t h-3" title="T2: 2h" />
-                  <span className="w-1.5 bg-blue-300 rounded-t h-4" title="T3: 2.5h" />
-                  <span className="w-1.5 bg-blue-200 rounded-t h-2" title="T4: 1.5h" />
-                  <span className="w-1.5 bg-blue-400 rounded-t h-5" title="T5: 3.2h" />
-                  <span className="w-1.5 bg-blue-600 rounded-t h-6" title="Hôm nay: 4h" />
-                  <span className="w-1.5 bg-slate-100 rounded-t h-2" />
-                  <span className="w-1.5 bg-slate-100 rounded-t h-2" />
+                  {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((day, idx) => {
+                    const h = gamification?.dailyStudyHoursOfWeek?.[idx] ?? [2, 2.5, 1.5, 3.2, 4, 0, 0][idx];
+                    const heightClass =
+                      h > 3 ? 'h-6 bg-blue-600' : h > 2 ? 'h-5 bg-blue-500' : h > 1 ? 'h-4 bg-blue-300' : h > 0 ? 'h-3 bg-blue-200' : 'h-2 bg-slate-100';
+                    return <span key={day} className={`w-1.5 rounded-t ${heightClass}`} title={`${day}: ${h}h`} />;
+                  })}
                 </div>
-                <span className="text-[11px] font-semibold text-blue-600">Mục tiêu: 18h</span>
+                <span className="text-[11px] font-semibold text-blue-600">
+                  Mục tiêu: {gamification ? gamification.studyTargetHours : 18}h
+                </span>
               </div>
             </div>
 
@@ -352,10 +402,13 @@ export default function Home() {
                   <span className="text-xs text-slate-500 font-medium">Nhiệm vụ hôm nay</span>
                   <div className="flex items-baseline gap-2">
                     <h2 className="text-2xl font-black text-slate-800">
-                      2<span className="text-slate-400 text-lg font-normal">/3 xong</span>
+                      {gamification ? gamification.dailyMissionsCompleted : 2}
+                      <span className="text-slate-400 text-lg font-normal">
+                        /{gamification ? gamification.dailyMissionsTotal : 3} xong
+                      </span>
                     </h2>
                     <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                      66%
+                      {gamification ? gamification.dailyCompletionPercent : 66}%
                     </span>
                   </div>
                 </div>
@@ -364,17 +417,19 @@ export default function Home() {
                 </div>
               </div>
               <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[11px] text-slate-500 truncate max-w-[130px]">Giải 1 bài quiz toán</span>
+                <span className="text-[11px] text-slate-500 truncate max-w-[130px]">
+                  {gamification?.nextMissionTitle || 'Giải 1 bài quiz toán'}
+                </span>
                 <button
-                  onClick={() => setRewardClaimed(true)}
-                  disabled={rewardClaimed}
+                  onClick={handleClaimReward}
+                  disabled={rewardClaimed || claiming}
                   className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition shadow-2xs ${
                     rewardClaimed
                       ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                      : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
                   }`}
                 >
-                  {rewardClaimed ? '✓ Đã nhận' : 'Nhận +50 XP'}
+                  {claiming ? 'Đang nhận...' : rewardClaimed ? '✓ Đã nhận' : 'Nhận +50 XP'}
                 </button>
               </div>
             </div>
@@ -391,25 +446,37 @@ export default function Home() {
                   </div>
                   <div className="flex items-baseline gap-2">
                     <h2 className="text-2xl font-black text-orange-600 flex items-center gap-1">
-                      <span className="flame-anim">🔥</span> 12
+                      <span className="flame-anim">🔥</span> {gamification ? gamification.currentStreak : 12}
                     </h2>
                     <span className="text-xs font-semibold text-slate-600">ngày liền</span>
                   </div>
                 </div>
-                <div className="w-10 h-10 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-xl shadow-2xs">
+                <Link
+                  href="/leaderboard"
+                  className="w-10 h-10 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-xl shadow-2xs hover:scale-105 transition"
+                  title="Xem Bảng Vàng Vinh Danh"
+                >
                   🏆
-                </div>
+                </Link>
               </div>
               <div className="mt-3 pt-2 border-t border-orange-100/80 flex items-center justify-between">
                 <div className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-orange-300 ring-2 ring-orange-200" />
+                  {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((day, idx) => {
+                    const studied = gamification?.weeklyStreakStatus?.[idx] ?? idx < 5;
+                    return (
+                      <span
+                        key={day}
+                        title={`${day}: ${studied ? 'Đã học' : 'Chưa học'}`}
+                        className={`w-2.5 h-2.5 rounded-full transition-all ${
+                          studied ? 'bg-orange-500 shadow-2xs' : 'bg-orange-200/50'
+                        }`}
+                      />
+                    );
+                  })}
                 </div>
-                <span className="text-[11px] font-semibold text-orange-700">Giữ chuỗi hôm nay</span>
+                <span className="text-[11px] font-semibold text-orange-700">
+                  {gamification?.hasStudiedToday ? 'Đã giữ chuỗi hôm nay ✓' : 'Giữ chuỗi hôm nay'}
+                </span>
               </div>
             </div>
 
@@ -419,21 +486,33 @@ export default function Home() {
                 <div className="space-y-1">
                   <span className="text-xs text-slate-500 font-medium">Điểm năng động XP</span>
                   <div className="flex items-baseline gap-2">
-                    <h2 className="text-2xl font-black text-violet-700">1,450</h2>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-2xs">
-                      Cyber Rank #12
-                    </span>
+                    <h2 className="text-2xl font-black text-violet-700">
+                      {gamification ? gamification.totalXp.toLocaleString() : '1,450'}
+                    </h2>
+                    <Link
+                      href="/leaderboard"
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-2xs hover:opacity-90 transition flex items-center gap-0.5"
+                    >
+                      <span>Cyber Rank #{gamification ? gamification.monthlyRank : 12}</span>
+                      <ChevronRight className="w-2.5 h-2.5" />
+                    </Link>
                   </div>
                 </div>
-                <div className="w-10 h-10 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center text-lg">
+                <Link
+                  href="/leaderboard"
+                  className="w-10 h-10 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center text-lg hover:scale-105 transition"
+                  title="Xem Bảng Xếp Hạng Tháng"
+                >
                   ⚡
-                </div>
+                </Link>
               </div>
               <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
                 <span className="text-[11px] text-slate-500">
-                  Hạng: <strong className="text-violet-700 font-semibold">Bạch Kim III</strong>
+                  Hạng: <strong className="text-violet-700 font-semibold">{gamification?.rankTierName || 'Bạch Kim III'}</strong>
                 </span>
-                <span className="text-[11px] text-emerald-600 font-medium">+120 XP hôm nay</span>
+                <span className="text-[11px] text-emerald-600 font-medium">
+                  +{gamification ? gamification.todayXp : 120} XP hôm nay
+                </span>
               </div>
             </div>
           </section>

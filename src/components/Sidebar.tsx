@@ -21,6 +21,7 @@ import {
   Dumbbell,
   BookMarked,
   GraduationCap,
+  Trophy,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -102,6 +103,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
           },
         ]
       : []),
+    {
+      href: '/leaderboard',
+      label: 'Bảng xếp hạng',
+      icon: Trophy,
+      badge: 'Thưởng TOP',
+      badgeColor: 'bg-amber-100 text-amber-800 border-amber-300 font-bold',
+    },
     {
       href: '/profile/progress',
       label: 'Tiến độ học tập',
