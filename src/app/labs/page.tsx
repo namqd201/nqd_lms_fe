@@ -45,6 +45,7 @@ export default function LabsPage() {
   const { user, isAuthenticated } = useAuth();
   const isAdmin = user?.roles?.some((r) => r === 'ADMIN' || r === 'ROLE_ADMIN');
   const isTeacher = user?.roles?.some((r) => r === 'TEACHER' || r === 'ROLE_TEACHER');
+  const canCreateLab = Boolean(isAdmin || isTeacher);
 
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
 
@@ -162,6 +163,11 @@ export default function LabsPage() {
 
   const handleCreateLab = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canCreateLab) {
+      showToast.error('Chỉ Giảng viên/Giáo viên hoặc Quản trị viên mới có quyền tạo phòng Lab');
+      setIsCreateOpen(false);
+      return;
+    }
     if (!formData.title.trim() || !formData.speakerName.trim() || !formData.scheduledStartTime) {
       showToast.error('Vui lòng điền đầy đủ các thông tin bắt buộc');
       return;
@@ -285,19 +291,35 @@ export default function LabsPage() {
 
             {/* Action button */}
             <div className="shrink-0">
-              <button
-                onClick={() => {
-                  if (!isAuthenticated) {
-                    showToast.info('Vui lòng đăng nhập để đăng ký tạo phòng Lab');
-                    return;
-                  }
-                  setIsCreateOpen(true);
-                }}
-                className="px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-sm shadow-lg hover:shadow-xl transition-all flex items-center gap-2.5 active:scale-95 cursor-pointer"
-              >
-                <Plus className="w-5 h-5" />
-                <span>+ Đăng Ký Tạo Phòng Lab</span>
-              </button>
+              {isAuthenticated && !canCreateLab ? (
+                <div className="flex flex-col items-end gap-1.5">
+                  <div className="px-4 py-2.5 rounded-2xl bg-white/10 border border-white/20 text-slate-200 font-semibold text-xs flex items-center gap-2 backdrop-blur-xs">
+                    <GraduationCap className="w-4 h-4 text-amber-400" />
+                    <span>Chế độ Học viên (Người tham gia)</span>
+                  </div>
+                  <span className="text-[11px] text-slate-300">
+                    Chỉ Giảng viên & Admin mới có quyền tạo phòng Lab
+                  </span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      showToast.info('Vui lòng đăng nhập để đăng ký tạo phòng Lab');
+                      return;
+                    }
+                    if (!canCreateLab) {
+                      showToast.error('Chỉ Giảng viên/Giáo viên hoặc Quản trị viên mới có quyền tạo phòng Lab');
+                      return;
+                    }
+                    setIsCreateOpen(true);
+                  }}
+                  className="px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-sm shadow-lg hover:shadow-xl transition-all flex items-center gap-2.5 active:scale-95 cursor-pointer"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span>+ Đăng Ký Tạo Phòng Lab</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -353,8 +375,16 @@ export default function LabsPage() {
                 <div className="max-w-md mx-auto">
                   <h3 className="text-lg font-bold text-slate-800">Chưa có buổi Online Lab nào</h3>
                   <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    Bạn là giảng viên, giáo sư, tiến sĩ hay chuyên gia muốn chia sẻ kiến thức? Hãy bấm nút
-                    <strong> "+ Đăng Ký Tạo Phòng Lab"</strong> để bắt đầu buổi training công khai đầu tiên!
+                    {canCreateLab ? (
+                      <>
+                        Bạn là giảng viên, giáo sư, tiến sĩ hay chuyên gia muốn chia sẻ kiến thức? Hãy bấm nút
+                        <strong> "+ Đăng Ký Tạo Phòng Lab"</strong> để bắt đầu buổi training công khai đầu tiên!
+                      </>
+                    ) : (
+                      <>
+                        Hiện chưa có lịch phòng Lab trực tuyến nào sắp diễn ra. Vui lòng quay lại sau khi các thầy cô hoặc diễn giả mở phòng nhé!
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
