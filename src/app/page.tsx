@@ -54,11 +54,11 @@ export default function Home() {
     },
   ];
 
-  // Auto-switch tabs every 3 seconds
+  // Auto-switch tabs every 7 seconds
   useEffect(() => {
     const timer = setInterval(() => {
       setActiveSlide((prev) => (prev < slides.length - 1 ? prev + 1 : 0));
-    }, 3000);
+    }, 7000);
     return () => clearInterval(timer);
   }, [slides.length]);
 
@@ -195,9 +195,9 @@ export default function Home() {
                       ))}
                     </div>
 
-                    {/* Auto-Progress Timer Bar (Synced 3s with activeSlide) */}
+                    {/* Auto-Progress Timer Bar (Synced 7s with activeSlide) */}
                     <div className="flex items-center gap-3 shrink-0">
-                      <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden" title="Chuyển slide tự động sau 3s">
+                      <div className="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden" title="Chuyển slide tự động sau 7s">
                         <div key={activeSlide} className="slide-progress h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full" />
                       </div>
                       <div className="flex items-center gap-1">

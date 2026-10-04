@@ -54,7 +54,7 @@ nextjs-portal,
   to { width: 100%; }
 }
 .slide-progress {
-  animation: progress-fill 3s linear infinite;
+  animation: progress-fill 7s linear infinite;
 }
 
 @keyframes wave-bar {
