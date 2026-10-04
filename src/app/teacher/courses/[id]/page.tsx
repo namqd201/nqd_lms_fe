@@ -74,6 +74,13 @@ export default function TeacherCourseEditorPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [openChapters, setOpenChapters] = useState<Record<string, boolean>>({});
 
+  const isFreeCourse = Boolean(
+    courseDetail &&
+    (courseDetail.pricingType === 'FREE' ||
+     !courseDetail.price ||
+     courseDetail.price === 0)
+  );
+
   // Chapter Modal
   const [chapterModalOpen, setChapterModalOpen] = useState<boolean>(false);
   const [editingChapter, setEditingChapter] = useState<TeacherChapterResponse | null>(null);
@@ -234,10 +241,12 @@ export default function TeacherCourseEditorPage() {
       } else if (activeTab === 'ENROLLMENTS') {
         loadEnrollments();
       } else if (activeTab === 'FREE_GRANTS') {
-        loadFreeGrants();
+        if (!isFreeCourse) {
+          loadFreeGrants();
+        }
       }
     }
-  }, [courseId, activeTab]);
+  }, [courseId, activeTab, isFreeCourse]);
 
   const loadEnrollments = async () => {
     setIsEnrollmentsLoading(true);
@@ -1319,8 +1328,24 @@ export default function TeacherCourseEditorPage() {
           {/* TAB 4: FREE_GRANTS (Tặng học viên miễn phí & Quản lý Quota) */}
           {activeTab === 'FREE_GRANTS' && (
             <div className="space-y-6 animate-in fade-in duration-200">
-              {/* Header & Quick Action Buttons */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              {isFreeCourse ? (
+                <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center shadow-xs space-y-4">
+                  <div className="w-16 h-16 rounded-3xl bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center shadow-xs">
+                    <Sparkles className="w-8 h-8 text-emerald-600" />
+                  </div>
+                  <div className="space-y-1.5 max-w-md mx-auto">
+                    <h3 className="text-base font-bold text-slate-900">
+                      Khóa học miễn phí không cần tặng học viên
+                    </h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Khóa học này đang ở chế độ học miễn phí (0 đ). Mọi học viên đều có thể tự do đăng ký và tham gia học tập ngay mà không cần cấp suất tặng.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Header & Quick Action Buttons */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                     <Gift className="w-5 h-5 text-amber-500" />
@@ -1562,6 +1587,8 @@ export default function TeacherCourseEditorPage() {
                     </div>
                   </div>
                 </div>
+              )}
+                </>
               )}
             </div>
           )}
