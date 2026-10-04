@@ -27,6 +27,10 @@ import {
   Tv,
   Layers,
   CheckCircle,
+  Upload,
+  Image as ImageIcon,
+  Loader2,
+  X,
 } from 'lucide-react';
 import {
   labService,
@@ -34,6 +38,7 @@ import {
   LabRecordedVideoItem,
   CreateLabRoomInput,
 } from '@/services/lab.service';
+import { mediaService } from '@/services/media.service';
 import { useAuth } from '@/context/AuthContext';
 
 export default function LabsPage() {
@@ -84,6 +89,42 @@ export default function LabsPage() {
 
   // Syncing State
   const [syncingId, setSyncingId] = useState<string | null>(null);
+
+  // Image Upload State
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast.error('Vui lòng chọn tệp định dạng hình ảnh (PNG, JPG, JPEG, WEBP)');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      showToast.error('Kích thước ảnh không được vượt quá 10MB');
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      const res = await mediaService.uploadImage(file);
+      if (res && res.url) {
+        setFormData((prev) => ({ ...prev, coverImageUrl: res.url }));
+        showToast.success('Tải ảnh bìa thành công!');
+      } else {
+        showToast.error('Không thể tải ảnh lên, vui lòng thử lại');
+      }
+    } catch (err: any) {
+      console.error('Image upload failed', err);
+      showToast.error(err.message || 'Lỗi khi tải ảnh lên');
+    } finally {
+      setUploadingImage(false);
+      if (e.target) e.target.value = '';
+    }
+  };
 
   const fetchLabs = async () => {
     try {
@@ -739,16 +780,89 @@ export default function LabsPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">
-                  URL Ảnh bìa / Poster (Tùy chọn)
+                <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Ảnh bìa / Poster buổi Lab (Tùy chọn)</span>
+                  <span className="text-[11px] font-normal text-rose-600">Tải lên từ máy</span>
                 </label>
+
                 <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/..."
-                  value={formData.coverImageUrl}
-                  onChange={(e) => setFormData({ ...formData, coverImageUrl: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-rose-500 text-slate-800"
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageFileChange}
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  className="hidden"
                 />
+
+                {formData.coverImageUrl ? (
+                  <div className="relative rounded-2xl overflow-hidden border border-slate-200 group bg-slate-100">
+                    <img
+                      src={formData.coverImageUrl}
+                      alt="Ảnh bìa Lab"
+                      className="w-full h-36 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingImage}
+                        className="px-3 py-1.5 rounded-xl bg-white/90 hover:bg-white text-slate-800 text-xs font-bold shadow-md transition flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Đổi ảnh khác</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, coverImageUrl: '' }))}
+                        className="px-3 py-1.5 rounded-xl bg-red-600/90 hover:bg-red-600 text-white text-xs font-bold shadow-md transition flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Xóa ảnh</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => !uploadingImage && fileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1.5 ${
+                      uploadingImage
+                        ? 'bg-rose-50/50 border-rose-300'
+                        : 'border-slate-300 hover:border-rose-400 hover:bg-rose-50/30 bg-slate-50/60'
+                    }`}
+                  >
+                    {uploadingImage ? (
+                      <div className="flex flex-col items-center gap-2 py-2">
+                        <Loader2 className="w-6 h-6 text-rose-600 animate-spin" />
+                        <span className="text-xs font-semibold text-rose-700">Đang tải ảnh từ máy lên...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="w-9 h-9 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-2xs">
+                          <Upload className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="text-xs font-bold text-slate-800 block">
+                            Bấm để chọn ảnh từ máy tính
+                          </span>
+                          <span className="text-[11px] text-slate-500 block mt-0.5">
+                            Hỗ trợ PNG, JPG, JPEG, WEBP (tối đa 10MB)
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Optional direct URL fallback */}
+                <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-500">
+                  <span className="shrink-0">Hoặc dán URL ảnh:</span>
+                  <input
+                    type="url"
+                    placeholder="https://..."
+                    value={formData.coverImageUrl}
+                    onChange={(e) => setFormData({ ...formData, coverImageUrl: e.target.value })}
+                    className="flex-1 px-2.5 py-1 text-[11px] rounded-lg border border-slate-200 focus:outline-hidden focus:ring-1 focus:ring-rose-500 text-slate-700"
+                  />
+                </div>
               </div>
 
               <div>
