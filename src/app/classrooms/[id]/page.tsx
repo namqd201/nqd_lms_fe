@@ -191,6 +191,10 @@ export default function ClassroomDetailPage() {
     if (initialTab === 'requests') {
       setActiveFeature('MEMBERS');
       setActiveTab('REQUESTS');
+    } else if (initialTab === 'schedule' || initialTab === 'SCHEDULE') {
+      setActiveFeature('SCHEDULE');
+    } else if (initialTab === 'online' || initialTab === 'ONLINE_CLASS') {
+      setActiveFeature('ONLINE_CLASS');
     }
   }, [initialTab]);
 

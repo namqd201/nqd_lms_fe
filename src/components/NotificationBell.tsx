@@ -19,6 +19,7 @@ import {
   Megaphone,
   AtSign,
   Smartphone,
+  Video,
 } from 'lucide-react';
 import { notificationService } from '@/services/notification.service';
 import { pushNotificationService } from '@/services/pushNotification.service';
@@ -170,6 +171,10 @@ export const NotificationBell: React.FC = () => {
         return <AtSign className="w-4 h-4 text-violet-600" />;
       case 'COURSE_ANNOUNCEMENT':
         return <Megaphone className="w-4 h-4 text-amber-500" />;
+      case 'CLASS_LIVE_REMINDER':
+        return <Video className="w-4 h-4 text-emerald-600 animate-pulse" />;
+      case 'LAB_LIVE_REMINDER':
+        return <Clock className="w-4 h-4 text-purple-600 animate-pulse" />;
       default:
         return <Info className="w-4 h-4 text-slate-500" />;
     }
