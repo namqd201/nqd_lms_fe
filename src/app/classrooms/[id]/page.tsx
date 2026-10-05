@@ -910,8 +910,8 @@ export default function ClassroomDetailPage() {
                   {isTeacher ? 'Bạn là giáo viên phụ trách' : 'Lớp học chính khóa'}
                 </span>
                 {classroom.isLiveNow && (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200 flex items-center gap-1.5 animate-pulse">
-                    <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping" />
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#83C75D]/15 text-[#4e8231] border border-[#83C75D]/30 flex items-center gap-1.5 animate-pulse">
+                    <span className="w-2 h-2 rounded-full bg-[#83C75D] animate-ping" />
                     <span>ĐANG HỌC TRỰC TUYẾN</span>
                   </span>
                 )}
@@ -994,10 +994,10 @@ export default function ClassroomDetailPage() {
                       : 'bg-white border border-slate-200 text-slate-700 hover:border-[#83C75D] hover:text-[#4e8231] hover:bg-[#83C75D]/10'
                   }`}
                 >
-                  <Radio className="w-4 h-4 text-rose-500 animate-pulse" />
+                  <Radio className="w-4 h-4 text-[#83C75D] animate-pulse" />
                   <span>Link học online</span>
                   {classroom.isLiveNow && (
-                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                    <span className="w-2 h-2 rounded-full bg-[#83C75D] animate-ping" />
                   )}
                 </button>
 
@@ -1469,12 +1469,12 @@ export default function ClassroomDetailPage() {
             <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white relative overflow-hidden shadow-xl border border-slate-700 space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center font-bold text-2xl shadow-inner">
-                    <Radio className="w-6 h-6 animate-pulse text-rose-400" />
+                  <div className="w-12 h-12 rounded-2xl bg-[#83C75D]/20 text-[#4e8231] border border-[#83C75D]/30 flex items-center justify-center font-bold text-2xl shadow-inner">
+                    <Radio className="w-6 h-6 animate-pulse text-[#83C75D]" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded-full border border-rose-500/20">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#4e8231] bg-[#83C75D]/15 px-2.5 py-0.5 rounded-full border border-[#83C75D]/30">
                         LỚP HỌC TRỰC TUYẾN
                       </span>
                       {classroom.isLiveNow || livePresence?.isLiveNow ? (
@@ -1850,7 +1850,7 @@ export default function ClassroomDetailPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
               <div>
                 <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-indigo-600" />
+                  <Calendar className="w-5 h-5 text-[#83C75D]" />
                   <span>Thời khóa biểu & Lịch học của lớp</span>
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -1872,7 +1872,7 @@ export default function ClassroomDetailPage() {
                       });
                       setScheduleModalOpen(true);
                     }}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#83C75D] hover:bg-[#72b44e] text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Thêm lịch học</span>
@@ -3067,7 +3067,7 @@ export default function ClassroomDetailPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-md shadow-amber-600/20 transition cursor-pointer"
+                    className="px-5 py-2.5 rounded-2xl bg-[#83C75D] hover:bg-[#72b44e] text-white font-bold shadow-md shadow-[#83C75D]/20 transition cursor-pointer"
                   >
                     Thêm lịch học
                   </button>

@@ -139,7 +139,7 @@ export const ClassroomWeeklyTimetable: React.FC<ClassroomWeeklyTimetableProps> =
           {!isCurrentWeek && (
             <button
               onClick={() => setWeekOffset(0)}
-              className="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-xl transition-colors cursor-pointer ml-1"
+              className="text-xs font-bold text-[#4e8231] hover:text-[#3b6724] bg-[#83C75D]/15 px-2.5 py-1 rounded-xl transition-colors cursor-pointer ml-1"
             >
               Tuần hiện tại
             </button>
@@ -149,7 +149,7 @@ export const ClassroomWeeklyTimetable: React.FC<ClassroomWeeklyTimetableProps> =
         {/* Legends (Matching Reference Image) */}
         <div className="flex flex-wrap items-center gap-4 text-xs font-bold select-none">
           <div className="flex items-center gap-1.5 text-slate-700">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs shadow-emerald-500/50" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#83C75D] shadow-xs shadow-[#83C75D]/50" />
             <span>Phòng học 100ms</span>
           </div>
 
@@ -180,7 +180,7 @@ export const ClassroomWeeklyTimetable: React.FC<ClassroomWeeklyTimetableProps> =
               key={day.key}
               className={`rounded-2xl border flex flex-col justify-between transition-all p-3 sm:p-3.5 ${
                 dayDate?.isToday
-                  ? 'border-indigo-400 bg-indigo-50/15 shadow-sm ring-1 ring-indigo-400/30'
+                  ? 'border-[#83C75D] bg-[#83C75D]/5 shadow-sm ring-1 ring-[#83C75D]/30'
                   : 'border-slate-200/80 bg-slate-50/40 hover:border-slate-300'
               }`}
             >
@@ -188,10 +188,10 @@ export const ClassroomWeeklyTimetable: React.FC<ClassroomWeeklyTimetableProps> =
               <div className="text-center pb-3 border-b border-slate-200/70">
                 <div
                   className={`text-xs font-extrabold uppercase tracking-wide ${
-                    day.isSunday
-                      ? 'text-rose-600'
-                      : dayDate?.isToday
-                      ? 'text-indigo-600'
+                    dayDate?.isToday
+                      ? 'text-[#4e8231]'
+                      : day.isSunday
+                      ? 'text-[#4e8231]'
                       : 'text-slate-800'
                   }`}
                 >
@@ -200,13 +200,13 @@ export const ClassroomWeeklyTimetable: React.FC<ClassroomWeeklyTimetableProps> =
                 <div
                   className={`text-[11px] font-semibold mt-0.5 ${
                     dayDate?.isToday
-                      ? 'text-indigo-600 font-bold'
+                      ? 'text-[#4e8231] font-bold'
                       : 'text-slate-400'
                   }`}
                 >
                   {dayDate?.dateStr}
                   {dayDate?.isToday && (
-                    <span className="ml-1 text-[10px] text-indigo-700 bg-indigo-100 px-1.5 py-0.2 rounded-md">
+                    <span className="ml-1 text-[10px] text-[#4e8231] bg-[#83C75D]/20 px-1.5 py-0.2 rounded-md font-bold">
                       Hôm nay
                     </span>
                   )}

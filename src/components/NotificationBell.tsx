@@ -210,11 +210,11 @@ export const NotificationBell: React.FC = () => {
       >
         <Bell className="w-5 h-5" />
 
-        {/* Red dot badge when unreadCount > 0 */}
+        {/* Green dot badge when unreadCount > 0 */}
         {unreadCount > 0 && (
           <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 ring-2 ring-white" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#83C75D] opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#83C75D] ring-2 ring-white" />
           </span>
         )}
       </button>
@@ -227,7 +227,7 @@ export const NotificationBell: React.FC = () => {
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-slate-900 text-sm">Thông báo</h3>
               {unreadCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-rose-500 text-white">
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-[#83C75D] text-white">
                   {unreadCount} mới
                 </span>
               )}
