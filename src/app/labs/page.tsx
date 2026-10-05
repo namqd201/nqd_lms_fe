@@ -274,18 +274,18 @@ export default function LabsPage() {
       {/* ========================================================
           HERO BANNER
           ======================================================== */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-rose-950 to-indigo-950 text-white pt-10 pb-16 px-4 sm:px-6 lg:px-8 border-b border-rose-500/20 shadow-xl">
-        <div className="absolute -top-32 -left-32 w-96 h-96 bg-rose-500/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 text-white pt-10 pb-16 px-4 sm:px-6 lg:px-8 border-b border-[#83C75D]/20 shadow-xl">
+        <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#83C75D]/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-1/2 -right-32 w-96 h-96 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
 
         <div className="max-w-6xl mx-auto relative z-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-400/40 text-rose-300 text-xs font-semibold backdrop-blur-xs">
-                <Radio className="w-3.5 h-3.5 animate-pulse text-rose-400" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#83C75D]/20 border border-[#83C75D]/40 text-[#a3e47a] text-xs font-semibold backdrop-blur-xs">
+                <Radio className="w-3.5 h-3.5 animate-pulse text-[#83C75D]" />
                 <span>Không Gian Training & Chia Sẻ Kiến Thức Mở • Public Video Call</span>
               </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-rose-100 to-amber-200 bg-clip-text text-transparent">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-emerald-100 to-[#a3e47a] bg-clip-text text-transparent">
                 Phòng Lab Trực Tuyến
               </h1>
               <p className="text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed">
@@ -325,7 +325,7 @@ export default function LabsPage() {
                     }));
                     setIsCreateOpen(true);
                   }}
-                  className="px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-sm shadow-lg hover:shadow-xl transition-all flex items-center gap-2.5 active:scale-95 cursor-pointer"
+                  className="px-5 py-3 rounded-2xl bg-[#83C75D] hover:bg-[#72b44e] text-white font-bold text-sm shadow-lg shadow-[#83C75D]/25 transition-all flex items-center gap-2.5 active:scale-95 cursor-pointer"
                 >
                   <Plus className="w-5 h-5" />
                   <span>+ Đăng Ký Tạo Phòng Lab</span>
@@ -340,7 +340,7 @@ export default function LabsPage() {
               onClick={() => setActiveTab('rooms')}
               className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 ${
                 activeTab === 'rooms'
-                  ? 'bg-rose-600 text-white shadow-md'
+                  ? 'bg-[#83C75D] text-white shadow-md shadow-[#83C75D]/30'
                   : 'text-slate-300 hover:text-white'
               }`}
             >
@@ -354,7 +354,7 @@ export default function LabsPage() {
               onClick={() => setActiveTab('videos')}
               className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 ${
                 activeTab === 'videos'
-                  ? 'bg-rose-600 text-white shadow-md'
+                  ? 'bg-[#83C75D] text-white shadow-md shadow-[#83C75D]/30'
                   : 'text-slate-300 hover:text-white'
               }`}
             >
@@ -375,12 +375,12 @@ export default function LabsPage() {
           <div>
             {loading ? (
               <div className="py-24 text-center bg-white rounded-3xl border border-slate-200 shadow-xs">
-                <div className="w-10 h-10 border-3 border-rose-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <div className="w-10 h-10 border-3 border-[#83C75D] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                 <p className="text-sm font-medium text-slate-500">Đang tải danh sách phòng Lab...</p>
               </div>
             ) : labs.length === 0 ? (
               <div className="py-20 text-center bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-4">
-                <div className="w-16 h-16 rounded-3xl bg-rose-50 text-rose-500 flex items-center justify-center mx-auto text-2xl">
+                <div className="w-16 h-16 rounded-3xl bg-[#83C75D]/10 text-[#4e8231] flex items-center justify-center mx-auto text-2xl">
                   🧪
                 </div>
                 <div className="max-w-md mx-auto">
@@ -410,7 +410,7 @@ export default function LabsPage() {
                   return (
                     <div
                       key={room.id}
-                      className="bg-white rounded-3xl border border-slate-200/90 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between overflow-hidden group hover:border-rose-300"
+                      className="bg-white rounded-3xl border border-slate-200/90 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between overflow-hidden group hover:border-[#83C75D]/50"
                     >
                       {/* Image / Header banner */}
                       <div className="relative h-44 w-full bg-slate-800 overflow-hidden">
@@ -427,7 +427,7 @@ export default function LabsPage() {
                         {/* Status Badge */}
                         <div className="absolute top-3 left-3 flex items-center gap-2">
                           {isLive ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white text-[11px] font-black shadow-md animate-pulse">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#83C75D] text-white text-[11px] font-black shadow-md shadow-[#83C75D]/30 animate-pulse">
                               <Radio className="w-3.5 h-3.5" />
                               <span>ĐANG TRỰC TIẾP</span>
                             </span>
@@ -457,7 +457,7 @@ export default function LabsPage() {
                       <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-200">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-[#83C75D]/15 text-[#4e8231] border border-[#83C75D]/30">
                               {room.speakerTitle || 'Giảng viên'}
                             </span>
                             <span className="text-xs font-bold text-slate-700 truncate">
@@ -465,7 +465,7 @@ export default function LabsPage() {
                             </span>
                           </div>
 
-                          <h3 className="font-extrabold text-slate-900 text-base line-clamp-2 leading-snug group-hover:text-rose-600 transition-colors">
+                          <h3 className="font-extrabold text-slate-900 text-base line-clamp-2 leading-snug group-hover:text-[#4e8231] transition-colors">
                             {room.title}
                           </h3>
 
@@ -480,7 +480,7 @@ export default function LabsPage() {
                         <div className="pt-3 border-t border-slate-100 space-y-2.5 text-xs text-slate-600">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5 text-slate-500">
-                              <Calendar className="w-3.5 h-3.5 text-rose-500" />
+                              <Calendar className="w-3.5 h-3.5 text-[#83C75D]" />
                               <span>{startDate.toLocaleDateString('vi-VN')}</span>
                             </div>
                             <div className="font-semibold text-slate-700">
@@ -501,7 +501,7 @@ export default function LabsPage() {
                             href={room.guestMeetingUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs hover:shadow-md transition text-center"
+                            className="w-full py-2.5 px-4 rounded-xl bg-[#83C75D] hover:bg-[#72b44e] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm shadow-[#83C75D]/20 transition text-center"
                           >
                             <Video className="w-4 h-4" />
                             <span>Tham Gia Phòng Lab (Public)</span>
@@ -548,7 +548,7 @@ export default function LabsPage() {
                                 {!isLive && !isEnded && (
                                   <button
                                     onClick={() => handleUpdateStatus(room, 'LIVE')}
-                                    className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 font-semibold hover:bg-rose-100"
+                                    className="px-2 py-0.5 rounded bg-[#83C75D]/15 text-[#4e8231] font-semibold hover:bg-[#83C75D]/25"
                                   >
                                     Bắt đầu Live
                                   </button>
@@ -624,12 +624,12 @@ export default function LabsPage() {
               </div>
             ) : loading ? (
               <div className="py-20 text-center bg-white rounded-3xl border border-slate-200 shadow-xs">
-                <div className="w-10 h-10 border-3 border-rose-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <div className="w-10 h-10 border-3 border-[#83C75D] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                 <p className="text-sm font-medium text-slate-500">Đang tải video bản ghi của bạn...</p>
               </div>
             ) : videos.length === 0 ? (
               <div className="py-20 text-center bg-white rounded-3xl border border-slate-200 shadow-xs p-8 space-y-4">
-                <div className="w-16 h-16 rounded-3xl bg-rose-50 text-rose-500 flex items-center justify-center mx-auto text-2xl">
+                <div className="w-16 h-16 rounded-3xl bg-[#83C75D]/10 text-[#4e8231] flex items-center justify-center mx-auto text-2xl">
                   🎬
                 </div>
                 <h3 className="text-base font-bold text-slate-800">Chưa có video bản ghi nào</h3>
@@ -648,13 +648,13 @@ export default function LabsPage() {
                     {/* Video thumbnail placeholder */}
                     <div className="relative h-44 bg-slate-900 flex items-center justify-center group overflow-hidden">
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                      <div className="w-14 h-14 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform cursor-pointer z-10"
+                      <div className="w-14 h-14 rounded-full bg-[#83C75D]/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform cursor-pointer z-10"
                         onClick={() => setPlayingVideo(vid)}
                       >
                         <Play className="w-6 h-6 fill-current ml-0.5" />
                       </div>
                       <span className="absolute bottom-3 left-3 text-xs text-white/90 font-medium z-10 flex items-center gap-1.5">
-                        <Film className="w-3.5 h-3.5 text-rose-400" />
+                        <Film className="w-3.5 h-3.5 text-[#83C75D]" />
                         <span>{vid.durationMinutes ? `${vid.durationMinutes} phút` : 'Bản ghi'}</span>
                       </span>
                       {isAdmin && (
@@ -666,7 +666,7 @@ export default function LabsPage() {
 
                     <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
                       <div>
-                        <span className="text-[11px] font-semibold text-rose-600 block line-clamp-1">
+                        <span className="text-[11px] font-semibold text-[#4e8231] block line-clamp-1">
                           {vid.labRoomTitle}
                         </span>
                         <h4 className="font-bold text-slate-900 text-sm mt-0.5 line-clamp-2">
@@ -725,7 +725,7 @@ export default function LabsPage() {
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-200 my-8">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl">
+                <div className="w-10 h-10 rounded-2xl bg-[#83C75D]/15 text-[#4e8231] flex items-center justify-center text-xl">
                   🧪
                 </div>
                 <div>
@@ -752,7 +752,7 @@ export default function LabsPage() {
                   placeholder="Ví dụ: Workshop Giải đề Toán 3D & Phương pháp Tư duy Socratic"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-rose-500 text-slate-800"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-[#83C75D] focus:border-[#83C75D] text-slate-800"
                 />
               </div>
 
@@ -764,7 +764,7 @@ export default function LabsPage() {
                   <select
                     value={formData.speakerTitle}
                     onChange={(e) => setFormData({ ...formData, speakerTitle: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-rose-500 text-slate-800 bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-[#83C75D] focus:border-[#83C75D] text-slate-800 bg-white"
                   >
                     <option value="Giáo sư">Giáo sư (GS)</option>
                     <option value="Phó Giáo sư">Phó Giáo sư (PGS)</option>
@@ -786,7 +786,7 @@ export default function LabsPage() {
                     placeholder="Họ và tên diễn giả"
                     value={formData.speakerName}
                     onChange={(e) => setFormData({ ...formData, speakerName: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-rose-500 text-slate-800"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-[#83C75D] focus:border-[#83C75D] text-slate-800"
                   />
                 </div>
               </div>
@@ -801,7 +801,7 @@ export default function LabsPage() {
                     required
                     value={formData.scheduledStartTime}
                     onChange={(e) => setFormData({ ...formData, scheduledStartTime: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-rose-500 text-slate-800"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-[#83C75D] focus:border-[#83C75D] text-slate-800"
                   />
                 </div>
 
@@ -815,7 +815,7 @@ export default function LabsPage() {
                     max={360}
                     value={formData.estimatedDurationMinutes}
                     onChange={(e) => setFormData({ ...formData, estimatedDurationMinutes: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-rose-500 text-slate-800"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-[#83C75D] focus:border-[#83C75D] text-slate-800"
                   />
                 </div>
               </div>
@@ -823,7 +823,7 @@ export default function LabsPage() {
               <div>
                 <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
                   <span>Ảnh bìa / Poster buổi Lab (Tùy chọn)</span>
-                  <span className="text-[11px] font-normal text-rose-600">Tải lên từ máy</span>
+                  <span className="text-[11px] font-normal text-[#4e8231]">Tải lên từ máy</span>
                 </label>
 
                 <input
@@ -866,18 +866,18 @@ export default function LabsPage() {
                     onClick={() => !uploadingImage && fileInputRef.current?.click()}
                     className={`border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1.5 ${
                       uploadingImage
-                        ? 'bg-rose-50/50 border-rose-300'
-                        : 'border-slate-300 hover:border-rose-400 hover:bg-rose-50/30 bg-slate-50/60'
+                        ? 'bg-[#83C75D]/5 border-[#83C75D]/50'
+                        : 'border-slate-300 hover:border-[#83C75D] hover:bg-[#83C75D]/5 bg-slate-50/60'
                     }`}
                   >
                     {uploadingImage ? (
                       <div className="flex flex-col items-center gap-2 py-2">
-                        <Loader2 className="w-6 h-6 text-rose-600 animate-spin" />
-                        <span className="text-xs font-semibold text-rose-700">Đang tải ảnh từ máy lên...</span>
+                        <Loader2 className="w-6 h-6 text-[#83C75D] animate-spin" />
+                        <span className="text-xs font-semibold text-[#4e8231]">Đang tải ảnh từ máy lên...</span>
                       </div>
                     ) : (
                       <>
-                        <div className="w-9 h-9 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-2xs">
+                        <div className="w-9 h-9 rounded-2xl bg-[#83C75D]/15 text-[#4e8231] flex items-center justify-center shadow-2xs">
                           <Upload className="w-4 h-4" />
                         </div>
                         <div>
@@ -901,7 +901,7 @@ export default function LabsPage() {
                     placeholder="https://..."
                     value={formData.coverImageUrl}
                     onChange={(e) => setFormData({ ...formData, coverImageUrl: e.target.value })}
-                    className="flex-1 px-2.5 py-1 text-[11px] rounded-lg border border-slate-200 focus:outline-hidden focus:ring-1 focus:ring-rose-500 text-slate-700"
+                    className="flex-1 px-2.5 py-1 text-[11px] rounded-lg border border-slate-200 focus:outline-hidden focus:ring-1 focus:ring-[#83C75D] focus:border-[#83C75D] text-slate-700"
                   />
                 </div>
               </div>
@@ -915,11 +915,11 @@ export default function LabsPage() {
                   placeholder="Tóm tắt những kiến thức bổ ích sẽ được chia sẻ trong buổi Lab..."
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-rose-500 text-slate-800 resize-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-[#83C75D] focus:border-[#83C75D] text-slate-800 resize-none"
                 />
               </div>
 
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-[11px] leading-relaxed">
+              <div className="p-3 bg-[#83C75D]/10 border border-[#83C75D]/25 rounded-xl text-[#385f22] text-[11px] leading-relaxed">
                 💡 <strong>Lưu ý:</strong> Link tham gia sẽ được tạo công khai. Sau khi kết thúc, video lưu lại sẽ chỉ hiển thị riêng tư cho bạn và Quản trị viên.
               </div>
 
@@ -934,7 +934,7 @@ export default function LabsPage() {
                 <button
                   type="submit"
                   disabled={creating}
-                  className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-md transition disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-[#83C75D] hover:bg-[#72b44e] text-white font-bold shadow-md shadow-[#83C75D]/25 transition disabled:opacity-50"
                 >
                   {creating ? 'Đang tạo phòng...' : 'Xác nhận tạo phòng Lab'}
                 </button>
