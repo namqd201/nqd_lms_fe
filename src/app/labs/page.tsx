@@ -72,14 +72,21 @@ export default function LabsPage() {
   // Create Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [formData, setFormData] = useState<CreateLabRoomInput>({
-    title: '',
-    description: '',
-    speakerName: user?.fullName || '',
-    speakerTitle: 'Giảng viên',
-    coverImageUrl: '',
-    scheduledStartTime: new Date(Date.now() + 3600000).toISOString().slice(0, 16),
-    estimatedDurationMinutes: 60,
+  const [formData, setFormData] = useState<CreateLabRoomInput>(() => {
+    const d = new Date(Date.now() + 3600000);
+    const pad = (n: number) => (n < 10 ? '0' + n : n);
+    const tzOffsetMs = (7 * 60 + d.getTimezoneOffset()) * 60000;
+    const vnDate = new Date(d.getTime() + tzOffsetMs);
+    const defaultStartTime = `${vnDate.getFullYear()}-${pad(vnDate.getMonth() + 1)}-${pad(vnDate.getDate())}T${pad(vnDate.getHours())}:${pad(vnDate.getMinutes())}`;
+    return {
+      title: '',
+      description: '',
+      speakerName: '',
+      speakerTitle: 'Giảng viên',
+      coverImageUrl: '',
+      scheduledStartTime: defaultStartTime,
+      estimatedDurationMinutes: 60,
+    };
   });
 
   // Video Player Modal State
@@ -312,6 +319,10 @@ export default function LabsPage() {
                       showToast.error('Chỉ Giảng viên/Giáo viên hoặc Quản trị viên mới có quyền tạo phòng Lab');
                       return;
                     }
+                    setFormData(prev => ({
+                      ...prev,
+                      speakerName: prev.speakerName || user?.fullName || '',
+                    }));
                     setIsCreateOpen(true);
                   }}
                   className="px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-sm shadow-lg hover:shadow-xl transition-all flex items-center gap-2.5 active:scale-95 cursor-pointer"
