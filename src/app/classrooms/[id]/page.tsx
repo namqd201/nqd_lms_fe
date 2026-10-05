@@ -17,6 +17,7 @@ import {
   ClassroomFile,
   ClassroomLivePresence,
 } from '@/types/classroom';
+import { ClassroomWeeklyTimetable } from '@/components/classroom/ClassroomWeeklyTimetable';
 import {
   GraduationCap,
   Users,
@@ -59,6 +60,8 @@ import {
   Pencil,
   ChevronLeft,
   ChevronRight,
+  Box,
+  Bot,
 } from 'lucide-react';
 import { UserAvatar } from '@/components/UserAvatar';
 import LessonSlideButton from '@/components/slide/LessonSlideButton';
@@ -160,7 +163,14 @@ export default function ClassroomDetailPage() {
   const [meetingForm, setMeetingForm] = useState({ larkMeetingUrl: '', meetingId: '', passcode: '', meetingNote: '', isLiveNow: false });
   const [newVideo, setNewVideo] = useState({ title: '', videoUrl: '', sessionDate: '', durationMinutes: 60, description: '' });
   const [playingVideo, setPlayingVideo] = useState<ClassroomRecordedVideo | null>(null);
-  const [newSchedule, setNewSchedule] = useState({ dayOfWeek: 'MONDAY', startTime: '19:30', endTime: '21:00', title: '', roomNote: 'Học online trực tuyến' });
+  const [newSchedule, setNewSchedule] = useState({
+    dayOfWeek: 'MONDAY',
+    startTime: '19:30',
+    endTime: '21:00',
+    title: '',
+    roomNote: '',
+    sessionType: 'ONLINE_100MS',
+  });
 
   // Autocomplete suggestions for inviting students
   const [inviteEmail, setInviteEmail] = useState('');
@@ -677,7 +687,14 @@ export default function ClassroomDetailPage() {
       setSuccessMessage('Đã thêm lịch học mới vào thời khóa biểu!');
       setTimeout(() => setSuccessMessage(null), 4000);
       setScheduleModalOpen(false);
-      setNewSchedule({ dayOfWeek: 'MONDAY', startTime: '19:30', endTime: '21:00', title: '', roomNote: 'Học online trực tuyến' });
+      setNewSchedule({
+        dayOfWeek: 'MONDAY',
+        startTime: '19:30',
+        endTime: '21:00',
+        title: '',
+        roomNote: '',
+        sessionType: 'ONLINE_100MS',
+      });
       const scheds = await classroomService.getSchedules(classroomId);
       setSchedules(scheds);
     } catch (err: unknown) {
@@ -1826,10 +1843,10 @@ export default function ClassroomDetailPage() {
         {/* ========================================================================= */}
         {activeFeature === 'SCHEDULE' && (
           <div className="space-y-6 animate-in fade-in">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
               <div>
                 <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-amber-600" />
+                  <Calendar className="w-5 h-5 text-indigo-600" />
                   <span>Thời khóa biểu & Lịch học của lớp</span>
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -1840,8 +1857,18 @@ export default function ClassroomDetailPage() {
               <div className="flex items-center gap-3">
                 {isTeacher && (
                   <button
-                    onClick={() => setScheduleModalOpen(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+                    onClick={() => {
+                      setNewSchedule({
+                        dayOfWeek: 'MONDAY',
+                        startTime: '19:30',
+                        endTime: '21:00',
+                        title: '',
+                        roomNote: '',
+                        sessionType: 'ONLINE_100MS',
+                      });
+                      setScheduleModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Thêm lịch học</span>
@@ -1850,60 +1877,28 @@ export default function ClassroomDetailPage() {
               </div>
             </div>
 
-            {schedules.length === 0 ? (
-              <div className="py-20 text-center bg-white rounded-3xl border border-slate-200 p-8 space-y-3">
-                <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
-                  <Calendar className="w-8 h-8" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900">Chưa có lịch học nào được thiết lập</h3>
-                <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  {isTeacher
-                    ? 'Bấm nút "Thêm lịch học" để tạo thời khóa biểu các buổi học hàng tuần cho học sinh.'
-                    : 'Giáo viên chưa cập nhật thời khóa biểu cho lớp học này.'}
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {schedules.map((sc) => (
-                  <div
-                    key={sc.id}
-                    className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-amber-300 transition-all flex flex-col justify-between space-y-4 shadow-2xs"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 uppercase">
-                          {DAY_NAMES[sc.dayOfWeek] || sc.dayOfWeek}
-                        </span>
-                        {isTeacher && (
-                          <button
-                            onClick={() => handleDeleteSchedule(sc.id)}
-                            className="p-1 text-slate-400 hover:text-rose-600 transition cursor-pointer"
-                            title="Xóa lịch"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-
-                      <h4 className="font-bold text-slate-900 text-base mt-2">
-                        {sc.title}
-                      </h4>
-
-                      <div className="flex items-center gap-1.5 text-xs text-slate-600 font-semibold bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                        <Clock className="w-4 h-4 text-amber-600 shrink-0" />
-                        <span>{sc.startTime} - {sc.endTime}</span>
-                      </div>
-
-                      {sc.roomNote && (
-                        <p className="text-xs text-slate-500 pt-1">
-                          📍 {sc.roomNote}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <ClassroomWeeklyTimetable
+              schedules={schedules}
+              studentCount={classroom.studentCount || enrolledStudents.length}
+              isTeacher={isTeacher}
+              meetingUrl={
+                isTeacher
+                  ? (classroom.hostMeetingUrl || (classroom.passcode && classroom.passcode.includes('-') ? `https://small-forest-267978.app.100ms.live/meeting/${classroom.passcode}` : classroom.larkMeetingUrl))
+                  : (classroom.guestMeetingUrl || classroom.larkMeetingUrl)
+              }
+              onAddSchedule={(dayKey) => {
+                setNewSchedule({
+                  dayOfWeek: dayKey,
+                  startTime: '19:30',
+                  endTime: '21:00',
+                  title: '',
+                  roomNote: '',
+                  sessionType: 'ONLINE_100MS',
+                });
+                setScheduleModalOpen(true);
+              }}
+              onDeleteSchedule={handleDeleteSchedule}
+            />
           </div>
         )}
 
@@ -2952,6 +2947,50 @@ export default function ClassroomDetailPage() {
               </div>
 
               <form onSubmit={handleCreateSchedule} className="space-y-4 text-xs">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1.5">Hình thức buổi học</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setNewSchedule({ ...newSchedule, sessionType: 'ONLINE_100MS' })}
+                      className={`p-2.5 rounded-2xl border text-center transition flex flex-col items-center gap-1 cursor-pointer ${
+                        (newSchedule.sessionType || 'ONLINE_100MS') === 'ONLINE_100MS'
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-500/20 font-bold'
+                          : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold'
+                      }`}
+                    >
+                      <Video className="w-4 h-4 text-emerald-600" />
+                      <span className="text-[11px] leading-tight">Phòng 100ms</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setNewSchedule({ ...newSchedule, sessionType: 'LAB' })}
+                      className={`p-2.5 rounded-2xl border text-center transition flex flex-col items-center gap-1 cursor-pointer ${
+                        newSchedule.sessionType === 'LAB'
+                          ? 'border-purple-500 bg-purple-50 text-purple-800 ring-2 ring-purple-500/20 font-bold'
+                          : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold'
+                      }`}
+                    >
+                      <Box className="w-4 h-4 text-purple-600" />
+                      <span className="text-[11px] leading-tight">Lab ảo LMS</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setNewSchedule({ ...newSchedule, sessionType: 'EXAM' })}
+                      className={`p-2.5 rounded-2xl border text-center transition flex flex-col items-center gap-1 cursor-pointer ${
+                        newSchedule.sessionType === 'EXAM'
+                          ? 'border-amber-500 bg-amber-50 text-amber-800 ring-2 ring-amber-500/20 font-bold'
+                          : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold'
+                      }`}
+                    >
+                      <Bot className="w-4 h-4 text-amber-600" />
+                      <span className="text-[11px] leading-tight">Luyện đề</span>
+                    </button>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Ngày trong tuần</label>
                   <select

@@ -193,6 +193,7 @@ export interface ClassroomSchedule {
   endTime: string; // e.g. "21:00"
   title: string;
   roomNote?: string;
+  sessionType?: 'ONLINE_100MS' | 'LAB' | 'EXAM' | string;
 }
 
 export interface CreateScheduleRequest {
@@ -201,6 +202,7 @@ export interface CreateScheduleRequest {
   endTime: string;
   title: string;
   roomNote?: string;
+  sessionType?: 'ONLINE_100MS' | 'LAB' | 'EXAM' | string;
 }
 
 export interface ClassroomFile {
