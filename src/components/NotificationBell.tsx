@@ -18,8 +18,10 @@ import {
   Award,
   Megaphone,
   AtSign,
+  Smartphone,
 } from 'lucide-react';
 import { notificationService } from '@/services/notification.service';
+import { pushNotificationService } from '@/services/pushNotification.service';
 import { NotificationResponse } from '@/types/notification';
 
 export const NotificationBell: React.FC = () => {
@@ -27,6 +29,8 @@ export const NotificationBell: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [enablingPush, setEnablingPush] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -58,13 +62,37 @@ export const NotificationBell: React.FC = () => {
   useEffect(() => {
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 15000); // 15s polling
+
+    if (pushNotificationService.isSupported()) {
+      setPushSubscribed(pushNotificationService.getPermission() === 'granted');
+    }
+
     return () => clearInterval(interval);
   }, []);
+
+  const handleEnablePush = async () => {
+    setEnablingPush(true);
+    try {
+      const ok = await pushNotificationService.subscribe();
+      if (ok) {
+        setPushSubscribed(true);
+      }
+    } finally {
+      setEnablingPush(false);
+    }
+  };
+
+  const handleSendTestPush = async () => {
+    await pushNotificationService.sendTestPush();
+  };
 
   // Handle open dropdown
   const handleToggle = () => {
     if (!isOpen) {
       loadNotifications();
+      if (pushNotificationService.isSupported()) {
+        setPushSubscribed(pushNotificationService.getPermission() === 'granted');
+      }
     }
     setIsOpen(!isOpen);
   };
@@ -272,6 +300,31 @@ export const NotificationBell: React.FC = () => {
                   <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors shrink-0 self-center" />
                 </div>
               ))
+            )}
+          </div>
+
+          {/* Footer - Push Notification Quick Enable & Test */}
+          <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span className="text-[11px] text-slate-500 flex items-center gap-1.5 font-medium">
+              <Smartphone className="w-3.5 h-3.5 text-indigo-500" />
+              Thông báo điện thoại:
+            </span>
+            {pushSubscribed ? (
+              <button
+                onClick={handleSendTestPush}
+                className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-xl border border-indigo-200 transition-colors cursor-pointer"
+                title="Bấm để gửi 1 thông báo thử nghiệm về điện thoại của bạn"
+              >
+                Gửi thử chuông 🔔
+              </button>
+            ) : (
+              <button
+                onClick={handleEnablePush}
+                disabled={enablingPush}
+                className="text-[11px] font-bold text-white bg-indigo-600 hover:bg-indigo-500 px-2.5 py-1 rounded-xl transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+              >
+                {enablingPush ? 'Đang bật...' : 'Bật ngay'}
+              </button>
             )}
           </div>
         </div>

@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "@/utils/apiInterceptor";
 import { AuthProvider } from "@/context/AuthContext";
 import { AppShell } from "@/components/AppShell";
+import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,9 +16,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#4f46e5",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export const metadata: Metadata = {
   title: "NQD-LMS | Tự tin học hỏi - Vững bước tương lai",
   description: "Nền tảng học tập trực tuyến thông minh NQD-LMS",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "NQD LMS",
+  },
   icons: {
     icon: "/logo.png",
     shortcut: "/logo.png",
@@ -43,6 +57,7 @@ export default function RootLayout({
         <AuthProvider>
           <AppShell>
             {children}
+            <PwaInstallPrompt />
           </AppShell>
         </AuthProvider>
       </body>
