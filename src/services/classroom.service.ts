@@ -485,4 +485,16 @@ export const classroomService = {
     });
     return handleApiResponse<void>(response, 'Không thể xóa lớp học');
   },
+
+  logLiveJoin: async (classroomId: string): Promise<void> => {
+    try {
+      await fetch(`${API_BASE_URL}/api/v1/classrooms/${classroomId}/live-join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+    } catch (e) {
+      console.warn('Failed to log live join:', e);
+    }
+  },
 };

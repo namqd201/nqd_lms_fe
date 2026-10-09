@@ -1516,6 +1516,7 @@ export default function ClassroomDetailPage() {
                           href={classroom.hostMeetingUrl || (classroom.passcode && classroom.passcode.includes('-') ? `https://small-forest-267978.app.100ms.live/meeting/${classroom.passcode}` : classroom.larkMeetingUrl)}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={() => classroomService.logLiveJoin(classroomId)}
                           className="inline-flex items-center justify-center gap-2.5 px-6 py-3 bg-[#83C75D] hover:bg-[#72b44e] text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-[#83C75D]/30 transition hover:scale-102"
                         >
                           <span>🚀 Vào phòng dạy (Host - Có nút Ghi hình)</span>
@@ -1540,6 +1541,7 @@ export default function ClassroomDetailPage() {
                         href={classroom.guestMeetingUrl || classroom.larkMeetingUrl}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={() => classroomService.logLiveJoin(classroomId)}
                         className="inline-flex items-center justify-center gap-2.5 px-6 py-3 bg-[#83C75D] hover:bg-[#72b44e] text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-[#83C75D]/30 transition hover:scale-102"
                       >
                         <span>🚀 Vào phòng học ngay</span>
