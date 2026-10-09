@@ -33,6 +33,7 @@ export interface ClassroomResponse {
   passcode?: string;
   meetingNote?: string;
   isLiveNow?: boolean;
+  youtubePlaylistId?: string;
   createdAt: string;
   updatedAt?: string;
 }

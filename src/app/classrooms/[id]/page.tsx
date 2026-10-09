@@ -1464,7 +1464,7 @@ export default function ClassroomDetailPage() {
         {/* VIEW 3: LINK HỌC ONLINE & VIDEO BẢN GHI GOOGLE MEET                     */}
         {/* ========================================================================= */}
         {activeFeature === 'ONLINE_CLASS' && (
-          <div className="space-y-8 animate-in fade-in">
+          <div className="space-y-8 animate-in fade-in pb-24">
             {/* Live Google Meet Room Banner Card */}
             <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white relative overflow-hidden shadow-xl border border-slate-700 space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1670,7 +1670,7 @@ export default function ClassroomDetailPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200">
                 <div>
                   <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                    <Video className="w-5 h-5 text-blue-600" />
+                    <Video className="w-5 h-5 text-[#83C75D]" />
                     <span>Video bản ghi các buổi học</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
@@ -1678,26 +1678,44 @@ export default function ClassroomDetailPage() {
                   </p>
                 </div>
 
-                {isTeacher && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleSyncDriveRecordings}
-                      disabled={isSyncingDrive}
-                      className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition cursor-pointer disabled:opacity-50 shadow-sm"
-                      title="Đồng bộ video bản ghi mới nhất"
+                <div className="flex flex-wrap items-center gap-2">
+                  {classroom.youtubePlaylistId && (
+                    <a
+                      href={`https://www.youtube.com/playlist?list=${classroom.youtubePlaylistId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold rounded-xl transition cursor-pointer shadow-2xs"
+                      title="Mở danh sách phát YouTube của lớp học này"
                     >
-                      {isSyncingDrive ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
-                      <span>{isSyncingDrive ? 'Đang kiểm tra bản ghi...' : 'Đồng bộ bản ghi'}</span>
-                    </button>
-                    <button
-                      onClick={() => setVideoModalOpen(true)}
-                      className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Thêm video bản ghi</span>
-                    </button>
-                  </div>
-                )}
+                      <svg className="w-4 h-4 text-red-600 fill-current" viewBox="0 0 24 24">
+                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                      </svg>
+                      <span>Playlist YouTube</span>
+                      <ExternalLink className="w-3 h-3 text-red-400" />
+                    </a>
+                  )}
+
+                  {isTeacher && (
+                    <>
+                      <button
+                        onClick={handleSyncDriveRecordings}
+                        disabled={isSyncingDrive}
+                        className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition cursor-pointer disabled:opacity-50 shadow-sm"
+                        title="Đồng bộ video bản ghi mới nhất"
+                      >
+                        {isSyncingDrive ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
+                        <span>{isSyncingDrive ? 'Đang kiểm tra bản ghi...' : 'Đồng bộ bản ghi'}</span>
+                      </button>
+                      <button
+                        onClick={() => setVideoModalOpen(true)}
+                        className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Thêm video bản ghi</span>
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
 
               {recordedVideos.length === 0 ? (
@@ -1711,59 +1729,92 @@ export default function ClassroomDetailPage() {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {recordedVideos.map((vid) => (
-                    <div
-                      key={vid.id}
-                      className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-blue-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-4"
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs text-slate-400">
-                          {vid.sessionDate && <span>Buổi ngày: {vid.sessionDate}</span>}
-                          {vid.durationMinutes && (
-                            <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
-                              {vid.durationMinutes} phút
-                            </span>
-                          )}
+                <div className="flex flex-col gap-3">
+                  {recordedVideos.map((vid) => {
+                    const isYt = vid.videoUrl.includes('youtube.com') || vid.videoUrl.includes('youtu.be');
+                    const cleanDesc = vid.description
+                      ? vid.description
+                          .replace(/100ms Live Class/gi, 'trực tuyến')
+                          .replace(/100ms/gi, '')
+                          .replace(/Mã bản ghi:\s*-[^\s]*/gi, '')
+                          .replace(/Mã:\s*100ms-[^\s]*/gi, '')
+                          .replace(/Mã:\s*[a-zA-Z0-9_-]+/gi, '')
+                          .trim()
+                      : '';
+
+                    return (
+                      <div
+                        key={vid.id}
+                        className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 hover:border-emerald-300 hover:shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
+                      >
+                        <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                          {/* Video Icon / Indicator */}
+                          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs transition group-hover:scale-105 ${
+                            isYt ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                          }`}>
+                            {isYt ? <Play className="w-5 h-5 fill-current" /> : <Video className="w-5 h-5" />}
+                          </div>
+
+                          <div className="space-y-1 min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2 text-xs">
+                              {vid.sessionDate && (
+                                <span className="inline-flex items-center gap-1 font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">
+                                  <Calendar className="w-3 h-3 text-slate-400" />
+                                  <span>Buổi ngày: {vid.sessionDate}</span>
+                                </span>
+                              )}
+                              {vid.durationMinutes && (
+                                <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">
+                                  {vid.durationMinutes} phút
+                                </span>
+                              )}
+                              {isYt ? (
+                                <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-md border border-red-100">
+                                  YouTube
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                                  Đám mây
+                                </span>
+                              )}
+                            </div>
+
+                            <h4 className="font-bold text-slate-900 text-sm sm:text-base leading-snug line-clamp-1 group-hover:text-emerald-700 transition">
+                              {vid.title}
+                            </h4>
+
+                            {cleanDesc && (
+                              <p className="text-xs text-slate-500 line-clamp-1">
+                                {cleanDesc}
+                              </p>
+                            )}
+                          </div>
                         </div>
 
-                        <h4 className="font-bold text-slate-900 text-sm line-clamp-2">
-                          {vid.title}
-                        </h4>
-
-                        {vid.description && (
-                          <p className="text-xs text-slate-500 line-clamp-2">
-                            {vid.description
-                              .replace(/100ms Live Class/gi, 'trực tuyến')
-                              .replace(/100ms/gi, '')
-                              .replace(/Mã bản ghi:\s*-[^\s]*/gi, '')
-                              .trim()}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() => setPlayingVideo(vid)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
-                        >
-                          <Play className="w-3.5 h-3.5 fill-current" />
-                          <span>Xem lại bài giảng</span>
-                        </button>
-
-                        {isTeacher && (
+                        {/* Action buttons */}
+                        <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                           <button
-                            onClick={() => handleDeleteVideo(vid.id)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 transition cursor-pointer"
-                            title="Xóa video"
+                            type="button"
+                            onClick={() => setPlayingVideo(vid)}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#83C75D] hover:bg-[#72b44e] text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                            <span>Xem lại bài giảng</span>
                           </button>
-                        )}
+
+                          {isTeacher && (
+                            <button
+                              onClick={() => handleDeleteVideo(vid.id)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                              title="Xóa video"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
