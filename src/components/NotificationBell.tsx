@@ -65,7 +65,11 @@ export const NotificationBell: React.FC = () => {
     const interval = setInterval(fetchUnreadCount, 15000); // 15s polling
 
     if (pushNotificationService.isSupported()) {
-      setPushSubscribed(pushNotificationService.getPermission() === 'granted');
+      const isGranted = pushNotificationService.getPermission() === 'granted';
+      setPushSubscribed(isGranted);
+      if (isGranted) {
+        pushNotificationService.subscribe().catch(() => {});
+      }
     }
 
     return () => clearInterval(interval);

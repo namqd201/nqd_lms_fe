@@ -23,16 +23,19 @@ self.addEventListener('push', (event) => {
   }
 
   const title = data.title || 'NQD LMS Thông báo';
+  const tag = data.tag || `nqd-push-${Date.now()}`;
   const options = {
     body: data.body || 'Bạn có thông báo mới từ hệ thống học tập NQD LMS.',
     icon: data.icon || '/logo.png',
     badge: data.badge || '/logo.png',
-    vibrate: [200, 100, 200],
-    tag: data.tag || 'nqd-lms-notification',
+    vibrate: [300, 100, 300, 100, 400],
+    tag: tag,
     renotify: true,
+    requireInteraction: true,
+    silent: false,
     data: {
       url: data.linkUrl || data.url || '/',
-      timestamp: Date.now(),
+      timestamp: data.timestamp || Date.now(),
     },
     actions: [
       { action: 'open', title: 'Xem ngay' },

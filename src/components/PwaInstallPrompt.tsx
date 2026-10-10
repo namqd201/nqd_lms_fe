@@ -68,6 +68,10 @@ export const PwaInstallPrompt: React.FC = () => {
         }
       } else if (perm === 'granted') {
         setPushSubscribed(true);
+        // Automatically ensure this device's push subscription is active for the current user
+        pushNotificationService.subscribe().catch((err) => {
+          console.debug('Background push subscription sync:', err);
+        });
       }
     }
 
