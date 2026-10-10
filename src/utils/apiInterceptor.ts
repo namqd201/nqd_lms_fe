@@ -2,7 +2,7 @@
 
 /**
  * Central API Interceptor and Auth Token Manager for NQD-LMS
- * Ensures that all outgoing requests to the backend API automatically carry the 7-day JWT token
+ * Ensures that all outgoing requests to the backend API automatically carry the 90-day JWT token
  * in the Authorization: Bearer <token> header and X-Session-Id header.
  */
 
