@@ -164,4 +164,90 @@ export const billingService = {
     });
     return await response.json();
   },
+
+  applyCoupon: async (orderIdentifier: string, couponCode: string): Promise<OrderResponse> => {
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/orders/${encodeURIComponent(orderIdentifier)}/coupon?couponCode=${encodeURIComponent(couponCode.trim())}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      }
+    );
+    const res = await handleApiResponse<{ data: OrderResponse } | OrderResponse>(
+      response,
+      'Không thể áp dụng mã giảm giá'
+    );
+    return (res as { data: OrderResponse }).data ?? (res as OrderResponse);
+  },
+
+  removeCoupon: async (orderIdentifier: string): Promise<OrderResponse> => {
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/orders/${encodeURIComponent(orderIdentifier)}/coupon`,
+      {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      }
+    );
+    const res = await handleApiResponse<{ data: OrderResponse } | OrderResponse>(
+      response,
+      'Không thể gỡ mã giảm giá'
+    );
+    return (res as { data: OrderResponse }).data ?? (res as OrderResponse);
+  },
+
+  getAvailableCoupons: async (courseId?: string): Promise<import('@/types/billing').CouponDto[]> => {
+    const qs = courseId ? `?courseId=${encodeURIComponent(courseId)}` : '';
+    const response = await fetch(`${API_BASE_URL}/api/v1/coupons/available${qs}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    const res = await handleApiResponse<any>(response, 'Không thể tải danh sách mã giảm giá');
+    return res.data ?? res ?? [];
+  },
+
+  getManagedCoupons: async (courseId?: string): Promise<import('@/types/billing').CouponDto[]> => {
+    const qs = courseId ? `?courseId=${encodeURIComponent(courseId)}` : '';
+    const response = await fetch(`${API_BASE_URL}/api/v1/coupons/manage${qs}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    const res = await handleApiResponse<any>(response, 'Không thể tải danh sách mã giảm giá');
+    return res.data ?? res ?? [];
+  },
+
+  createCoupon: async (
+    payload: import('@/types/billing').UpsertCouponRequest
+  ): Promise<import('@/types/billing').CouponDto> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/coupons/manage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+    const res = await handleApiResponse<any>(response, 'Không thể tạo mã giảm giá');
+    return res.data ?? res;
+  },
+
+  toggleCoupon: async (id: string): Promise<import('@/types/billing').CouponDto> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/coupons/manage/${id}/toggle`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    const res = await handleApiResponse<any>(response, 'Không thể cập nhật trạng thái mã giảm giá');
+    return res.data ?? res;
+  },
+
+  deleteCoupon: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/coupons/manage/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    await handleApiResponse<any>(response, 'Không thể xóa mã giảm giá');
+  },
 };

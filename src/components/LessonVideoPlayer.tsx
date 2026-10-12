@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle2, Lock, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 interface LessonVideoPlayerProps {
   videoUrl: string;
@@ -9,6 +10,15 @@ interface LessonVideoPlayerProps {
   videoWatched: boolean;
   onVideoComplete: () => void;
 }
+
+const WATERMARK_POSITIONS = [
+  'top-4 left-5',
+  'top-4 right-5',
+  'bottom-14 right-6',
+  'bottom-14 left-6',
+  'top-1/3 left-8',
+  'bottom-1/3 right-8',
+];
 
 declare global {
   interface Window {
@@ -38,11 +48,20 @@ export function LessonVideoPlayer({
   videoWatched,
   onVideoComplete,
 }: LessonVideoPlayerProps) {
+  const { user } = useAuth();
   const [seekWarning, setSeekWarning] = useState<string | null>(null);
   const [isCompletedLocally, setIsCompletedLocally] = useState<boolean>(videoWatched);
   const [watchedTime, setWatchedTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [progressPct, setProgressPct] = useState<number>(videoWatched ? 100 : 0);
+  const [watermarkPosIdx, setWatermarkPosIdx] = useState<number>(0);
+
+  useEffect(() => {
+    const wmInterval = setInterval(() => {
+      setWatermarkPosIdx((prev) => (prev + 1) % WATERMARK_POSITIONS.length);
+    }, 10000);
+    return () => clearInterval(wmInterval);
+  }, []);
 
   // References to preserve state across intervals without triggering re-renders
   const maxWatchedTimeRef = useRef<number>(0);
@@ -304,13 +323,25 @@ export function LessonVideoPlayer({
       )}
 
       {/* Video Container */}
-      <div className="relative w-full aspect-video rounded-3xl overflow-hidden bg-black shadow-xl border border-slate-200">
+      <div
+        className="relative w-full aspect-video rounded-3xl overflow-hidden bg-black shadow-xl border border-slate-200 select-none"
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        {user && (
+          <div
+            aria-hidden="true"
+            className={`absolute ${WATERMARK_POSITIONS[watermarkPosIdx]} z-20 pointer-events-none select-none opacity-30 text-white text-[10px] sm:text-xs font-mono font-bold tracking-wider bg-black/25 px-2.5 py-1 rounded-lg backdrop-blur-[1px] transition-all duration-1000 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]`}
+          >
+            {user.email || user.fullName} • ID:{String(user.id).slice(0, 8).toUpperCase()} • NQD-LMS
+          </div>
+        )}
         {isYouTube ? (
           <div ref={ytContainerRef} className="w-full h-full" />
         ) : isDirectVideo ? (
           <video
             ref={videoRef}
             controls
+            controlsList="nodownload"
             playsInline
             src={videoUrl}
             onTimeUpdate={handleHtml5TimeUpdate}

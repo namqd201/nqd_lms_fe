@@ -59,6 +59,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { LessonExerciseManagerModal } from '@/components/LessonExerciseManagerModal';
+import { CouponManagerModal } from '@/components/CouponManagerModal';
 import { RichMathEditor } from '@/components/RichMathEditor';
 import LessonSlideButton from '@/components/slide/LessonSlideButton';
 import { freeGrantService } from '@/services/freeGrant.service';
@@ -76,6 +77,7 @@ export default function TeacherCourseEditorPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [openChapters, setOpenChapters] = useState<Record<string, boolean>>({});
+  const [isCouponModalOpen, setIsCouponModalOpen] = useState<boolean>(false);
 
   const isFreeCourse = Boolean(
     courseDetail &&
@@ -757,6 +759,17 @@ export default function TeacherCourseEditorPage() {
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Gỡ xuất bản (Về nháp)</span>
+                  </button>
+                )}
+
+                {!isFreeCourse && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCouponModalOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold shadow-xs transition-all cursor-pointer"
+                  >
+                    <Gift className="w-3.5 h-3.5" />
+                    <span>Mã giảm giá / Voucher</span>
                   </button>
                 )}
 
@@ -2337,6 +2350,14 @@ export default function TeacherCourseEditorPage() {
               </div>
             </div>
           )}
+
+          {/* Coupon Manager Modal */}
+          <CouponManagerModal
+            isOpen={isCouponModalOpen}
+            onClose={() => setIsCouponModalOpen(false)}
+            courseId={courseId}
+            courseName={courseDetail?.name}
+          />
         </div>
       </div>
     </RoleGuard>

@@ -186,7 +186,17 @@ export interface StudentExamTakingResponse {
   violationCount?: number;
   isFlagged?: boolean;
   flagReason?: string;
+  remainingSeconds?: number;
+  resumed?: boolean;
+  savedAnswers?: StudentAnswerSubmissionDto[];
   questions: StudentQuestionTakingResponse[];
+}
+
+export interface SaveExamDraftResponse {
+  attemptId: string;
+  savedCount: number;
+  savedAt: string;
+  remainingSeconds: number;
 }
 
 export interface StudentAnswerSubmissionDto {

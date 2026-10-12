@@ -67,7 +67,14 @@ export default function StudentExamTakingPage() {
   const [lastViolationWarning, setLastViolationWarning] = useState<string | null>(null);
   const [showFullscreenModal, setShowFullscreenModal] = useState<boolean>(false);
 
+  // Auto-save & Recovery States
+  const [syncStatus, setSyncStatus] = useState<'IDLE' | 'SAVING' | 'SAVED' | 'OFFLINE'>('IDLE');
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
+  const [recoveryNotice, setRecoveryNotice] = useState<string | null>(null);
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const draftSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isDirtyRef = useRef<boolean>(false);
   const answersRef = useRef<Record<string, { optionId?: string; text?: string }>>({});
   const examDataRef = useRef<StudentExamTakingResponse | null>(null);
   const violationCountRef = useRef<number>(0);
@@ -222,6 +229,42 @@ export default function StudentExamTakingPage() {
     };
   }, [examData, result, sendProctoringEvent]);
 
+  const syncDraftToServer = useCallback(async (force = false) => {
+    const currentExam = examDataRef.current;
+    if (!currentExam || isSubmittingRef.current) return;
+    if (!force && !isDirtyRef.current) return;
+
+    const currentAnswers = answersRef.current;
+    const formattedAnswers: StudentAnswerSubmissionDto[] = Object.entries(currentAnswers).map(
+      ([qId, ans]) => ({
+        questionId: qId,
+        selectedOptionId: ans.optionId,
+        answerText: ans.text,
+      })
+    );
+
+    if (formattedAnswers.length === 0) return;
+
+    setSyncStatus('SAVING');
+    isDirtyRef.current = false;
+
+    try {
+      await examService.saveExamDraft(currentExam.attemptId, {
+        answers: formattedAnswers,
+      });
+      const nowStr = new Date().toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+      setLastSavedTime(nowStr);
+      setSyncStatus('SAVED');
+    } catch {
+      isDirtyRef.current = true;
+      setSyncStatus('OFFLINE');
+    }
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated) {
       return;
@@ -231,6 +274,7 @@ export default function StudentExamTakingPage() {
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (draftSyncTimerRef.current) clearInterval(draftSyncTimerRef.current);
     };
   }, [examId, isAuthenticated]);
 
@@ -241,10 +285,63 @@ export default function StudentExamTakingPage() {
       const data = await examService.startExam(examId);
       setExamData(data);
       examDataRef.current = data;
-      setTimeLeftSeconds(data.durationMinutes * 60);
+
+      const initialRemaining =
+        typeof data.remainingSeconds === 'number' && data.remainingSeconds > 0
+          ? data.remainingSeconds
+          : data.durationMinutes * 60;
+      setTimeLeftSeconds(initialRemaining);
       setViolationCount(data.violationCount || 0);
       setIsFlagged(Boolean(data.isFlagged));
       setFlagReason(data.flagReason || null);
+
+      // Restore answers from Server Draft + LocalStorage (Crash/F5 Recovery)
+      const restoredAnswers: Record<string, { optionId?: string; text?: string }> = {};
+      if (Array.isArray(data.savedAnswers)) {
+        for (const item of data.savedAnswers) {
+          if (item.questionId) {
+            restoredAnswers[item.questionId] = {
+              optionId: item.selectedOptionId || undefined,
+              text: item.answerText || undefined,
+            };
+          }
+        }
+      }
+
+      try {
+        const draftKey = `nqd_exam_draft_${data.attemptId}`;
+        const rawLocal = localStorage.getItem(draftKey);
+        if (rawLocal) {
+          const parsed = JSON.parse(rawLocal);
+          if (parsed && parsed.answers && typeof parsed.answers === 'object') {
+            for (const [qId, ansVal] of Object.entries(parsed.answers)) {
+              const typedVal = ansVal as { optionId?: string; text?: string };
+              if (typedVal?.optionId || typedVal?.text) {
+                restoredAnswers[qId] = typedVal;
+              }
+            }
+          }
+          if (typeof parsed?.currentQIndex === 'number' && parsed.currentQIndex >= 0 && parsed.currentQIndex < data.questions.length) {
+            setCurrentQIndex(parsed.currentQIndex);
+          }
+        }
+      } catch {
+        // Ignore corrupted localStorage draft
+      }
+
+      const restoredCount = Object.keys(restoredAnswers).length;
+      if (restoredCount > 0) {
+        setAnswers(restoredAnswers);
+        answersRef.current = restoredAnswers;
+        setSyncStatus('SAVED');
+        setRecoveryNotice(
+          `Đã tự động khôi phục phiên làm bài cùng ${restoredCount} câu trả lời đã lưu trước đó.`
+        );
+        setTimeout(() => setRecoveryNotice(null), 7000);
+      } else if (data.resumed) {
+        setRecoveryNotice('Đã tiếp tục phiên làm bài đang diễn ra.');
+        setTimeout(() => setRecoveryNotice(null), 5000);
+      }
 
       if (data.enableProctoring && !document.fullscreenElement) {
         setShowFullscreenModal(true);
@@ -263,6 +360,12 @@ export default function StudentExamTakingPage() {
           return prev - 1;
         });
       }, 1000);
+
+      // Start background draft sync every 15 seconds
+      if (draftSyncTimerRef.current) clearInterval(draftSyncTimerRef.current);
+      draftSyncTimerRef.current = setInterval(() => {
+        syncDraftToServer(false);
+      }, 15000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Không thể bắt đầu bài kiểm tra';
       setErrorMessage(msg);
@@ -271,18 +374,50 @@ export default function StudentExamTakingPage() {
     }
   };
 
+  const persistLocalDraft = (
+    nextAnswers: Record<string, { optionId?: string; text?: string }>,
+    qIndex: number
+  ) => {
+    const currentExam = examDataRef.current;
+    if (!currentExam) return;
+    try {
+      localStorage.setItem(
+        `nqd_exam_draft_${currentExam.attemptId}`,
+        JSON.stringify({
+          answers: nextAnswers,
+          currentQIndex: qIndex,
+          updatedAt: Date.now(),
+        })
+      );
+    } catch {
+      // Ignore storage quota errors
+    }
+  };
+
   const handleSelectOption = (questionId: string, optionId: string) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: { ...prev[questionId], optionId },
-    }));
+    setAnswers((prev) => {
+      const next = {
+        ...prev,
+        [questionId]: { ...prev[questionId], optionId },
+      };
+      answersRef.current = next;
+      isDirtyRef.current = true;
+      persistLocalDraft(next, currentQIndex);
+      return next;
+    });
   };
 
   const handleTextAnswer = (questionId: string, text: string) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: { ...prev[questionId], text },
-    }));
+    setAnswers((prev) => {
+      const next = {
+        ...prev,
+        [questionId]: { ...prev[questionId], text },
+      };
+      answersRef.current = next;
+      isDirtyRef.current = true;
+      persistLocalDraft(next, currentQIndex);
+      return next;
+    });
   };
 
   const handleSubmitExam = async (isAutoSubmit = false, autoReason?: string) => {
@@ -291,6 +426,7 @@ export default function StudentExamTakingPage() {
     setIsSubmitting(true);
     isSubmittingRef.current = true;
     if (timerRef.current) clearInterval(timerRef.current);
+    if (draftSyncTimerRef.current) clearInterval(draftSyncTimerRef.current);
 
     const currentAnswers = answersRef.current || answers;
 
@@ -306,6 +442,11 @@ export default function StudentExamTakingPage() {
       const res = await examService.submitExam(currentExamData.attemptId, {
         answers: formattedAnswers,
       });
+      try {
+        localStorage.removeItem(`nqd_exam_draft_${currentExamData.attemptId}`);
+      } catch {
+        // Ignore
+      }
       setResult(res);
       setShowSubmitConfirm(false);
       setShowFullscreenModal(false);
@@ -524,6 +665,24 @@ export default function StudentExamTakingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-16 select-none">
+      {/* Recovery Notice Banner */}
+      {recoveryNotice && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 max-w-lg w-full px-4 animate-in slide-in-from-top-4 duration-300">
+          <div className="p-3.5 bg-emerald-600 text-white rounded-2xl shadow-xl shadow-emerald-900/20 flex items-center justify-between gap-3 border border-emerald-400">
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-bold">
+              <CheckCircle2 className="w-5 h-5 shrink-0" />
+              <span>{recoveryNotice}</span>
+            </div>
+            <button
+              onClick={() => setRecoveryNotice(null)}
+              className="text-white/80 hover:text-white text-xs font-bold shrink-0 cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Real-time Violation Toast Banner */}
       {lastViolationWarning && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 max-w-lg w-full px-4 animate-in slide-in-from-top-4 duration-300">
@@ -554,7 +713,7 @@ export default function StudentExamTakingPage() {
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded uppercase tracking-wider">
                   Bài kiểm tra
                 </span>
@@ -562,6 +721,28 @@ export default function StudentExamTakingPage() {
                   <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3 text-indigo-600" />
                     <span>Giám sát AI & Chống gian lận</span>
+                  </span>
+                )}
+                {syncStatus !== 'IDLE' && (
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border hidden sm:inline-flex items-center gap-1 ${
+                      syncStatus === 'SAVING'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : syncStatus === 'OFFLINE'
+                        ? 'bg-slate-100 text-slate-600 border-slate-300'
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>
+                      {syncStatus === 'SAVING'
+                        ? 'Đang tự động lưu...'
+                        : syncStatus === 'OFFLINE'
+                        ? 'Đã lưu trên thiết bị'
+                        : lastSavedTime
+                        ? `Đã lưu nháp ${lastSavedTime}`
+                        : 'Đã tự động lưu'}
+                    </span>
                   </span>
                 )}
               </div>
@@ -755,7 +936,12 @@ export default function StudentExamTakingPage() {
                 <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                   <button
                     disabled={currentQIndex === 0}
-                    onClick={() => setCurrentQIndex((prev) => Math.max(0, prev - 1))}
+                    onClick={() => {
+                      const nextIdx = Math.max(0, currentQIndex - 1);
+                      setCurrentQIndex(nextIdx);
+                      persistLocalDraft(answersRef.current, nextIdx);
+                      syncDraftToServer(false);
+                    }}
                     className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                   >
                     <ChevronLeft className="w-4 h-4" />
@@ -764,11 +950,12 @@ export default function StudentExamTakingPage() {
 
                   <button
                     disabled={currentQIndex === examData.questions.length - 1}
-                    onClick={() =>
-                      setCurrentQIndex((prev) =>
-                        Math.min(examData.questions.length - 1, prev + 1)
-                      )
-                    }
+                    onClick={() => {
+                      const nextIdx = Math.min(examData.questions.length - 1, currentQIndex + 1);
+                      setCurrentQIndex(nextIdx);
+                      persistLocalDraft(answersRef.current, nextIdx);
+                      syncDraftToServer(false);
+                    }}
                     className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-md shadow-purple-600/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                   >
                     <span>Câu tiếp theo</span>

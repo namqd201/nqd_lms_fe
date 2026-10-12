@@ -32,6 +32,7 @@ import {
 import { GRADE_LEVEL_GROUPS, getGradeGroup } from '@/constants/gradeLevels';
 import { freeGrantService } from '@/services/freeGrant.service';
 import { CourseFreeQuotaRequestResponse } from '@/types/freeGrant';
+import { CouponManagerModal } from '@/components/CouponManagerModal';
 
 export default function AdminCoursesPage() {
   const { user } = useAuth();
@@ -41,6 +42,7 @@ export default function AdminCoursesPage() {
   const [quotaRequests, setQuotaRequests] = useState<CourseFreeQuotaRequestResponse[]>([]);
   const [quotaStatusFilter, setQuotaStatusFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isCouponModalOpen, setIsCouponModalOpen] = useState<boolean>(false);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -352,13 +354,23 @@ export default function AdminCoursesPage() {
           </p>
         </div>
 
-        <button
-          onClick={loadCourses}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-sm transition-all self-start sm:self-auto cursor-pointer"
-        >
-          <RefreshCw className={'w-3.5 h-3.5 ' + (isLoading ? 'animate-spin text-purple-600' : '')} />
-          <span>Làm mới</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => setIsCouponModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold shadow-sm transition-all cursor-pointer"
+          >
+            <Gift className="w-3.5 h-3.5" />
+            <span>Quản lý Voucher / Mã giảm giá</span>
+          </button>
+          <button
+            onClick={loadCourses}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-sm transition-all cursor-pointer"
+          >
+            <RefreshCw className={'w-3.5 h-3.5 ' + (isLoading ? 'animate-spin text-purple-600' : '')} />
+            <span>Làm mới</span>
+          </button>
+        </div>
       </div>
 
       {/* Tab Selector */}
@@ -1144,6 +1156,12 @@ export default function AdminCoursesPage() {
           </div>
         </div>
       )}
+
+      {/* Coupon Manager Modal (Platform-wide) */}
+      <CouponManagerModal
+        isOpen={isCouponModalOpen}
+        onClose={() => setIsCouponModalOpen(false)}
+      />
     </div>
   );
 }

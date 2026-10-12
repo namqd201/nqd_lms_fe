@@ -298,6 +298,20 @@ export const examService = {
     return handleApiResponse<StudentExamTakingResponse>(response, 'Không thể bắt đầu làm bài kiểm tra');
   },
 
+  saveExamDraft: async (
+    attemptId: string,
+    payload: SubmitExamAttemptRequest
+  ): Promise<{ attemptId: string; savedCount: number; savedAt: string; remainingSeconds: number }> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/student/exams/attempts/${attemptId}/draft`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+
+    return handleApiResponse(response, 'Không thể lưu nháp bài thi');
+  },
+
   submitExam: async (attemptId: string, payload: SubmitExamAttemptRequest): Promise<StudentAttemptResultResponse> => {
     const response = await fetch(`${API_BASE_URL}/api/v1/student/exams/attempts/${attemptId}/submit`, {
       method: 'POST',

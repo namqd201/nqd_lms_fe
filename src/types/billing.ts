@@ -58,3 +58,40 @@ export interface PaymentSimulationRequest {
   orderCode: string;
   amount: number;
 }
+
+export type DiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT';
+
+export interface CouponDto {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  discountType: DiscountType;
+  discountValue: number;
+  minOrderAmount?: number;
+  maxDiscountAmount?: number;
+  usageLimit?: number;
+  usedCount: number;
+  validFrom: string;
+  validUntil?: string;
+  isActive: boolean;
+  courseId?: string;
+  courseName?: string;
+  creatorId?: string;
+  createdAt?: string;
+}
+
+export interface UpsertCouponRequest {
+  code: string;
+  name: string;
+  description?: string;
+  discountType: DiscountType;
+  discountValue: number;
+  minOrderAmount?: number;
+  maxDiscountAmount?: number;
+  usageLimit?: number;
+  validFrom?: string;
+  validUntil?: string;
+  courseId?: string;
+  isActive?: boolean;
+}

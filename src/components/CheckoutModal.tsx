@@ -44,6 +44,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [countdown, setCountdown] = useState<number>(4);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [couponInput, setCouponInput] = useState<string>('');
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState<boolean>(false);
+  const [couponSuccessMsg, setCouponSuccessMsg] = useState<string | null>(null);
+  const [availableCoupons, setAvailableCoupons] = useState<import('@/types/billing').CouponDto[]>([]);
   const [paymentConfig, setPaymentConfig] = useState<{
     bankCode: string;
     accountNumber: string;
@@ -60,10 +64,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setOrder(initialOrder);
     setPaymentSuccess(initialOrder?.status === 'PAID');
     setErrorMsg(null);
+    setCouponSuccessMsg(null);
+    setCouponInput(initialOrder?.couponCode || '');
     setCountdown(4);
   }, [initialOrder]);
 
-  // Load public payment config
+  // Load public payment config & available coupons
   useEffect(() => {
     if (!isOpen) return;
     billingService.getPaymentConfig()
@@ -75,6 +81,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       .catch(() => {
         // Fallback default config already set
       });
+
+    billingService.getAvailableCoupons()
+      .then((list) => setAvailableCoupons(Array.isArray(list) ? list : []))
+      .catch(() => setAvailableCoupons([]));
   }, [isOpen]);
 
   // Polling order status while modal is open and not yet paid
@@ -124,6 +134,44 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     navigator.clipboard.writeText(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleApplyCoupon = async (codeToApply?: string) => {
+    const code = (codeToApply ?? couponInput).trim().toUpperCase();
+    if (!code) return;
+    try {
+      setIsApplyingCoupon(true);
+      setErrorMsg(null);
+      setCouponSuccessMsg(null);
+      const updated = await billingService.applyCoupon(order.orderCode, code);
+      setOrder(updated);
+      setCouponInput(updated.couponCode || code);
+      setCouponSuccessMsg(`Đã áp dụng mã ${code}! Tiết kiệm ${(updated.discountAmount || 0).toLocaleString('vi-VN')}đ`);
+      if (updated.status === 'PAID') {
+        setPaymentSuccess(true);
+        await refreshUser();
+        onPaymentSuccess?.();
+      }
+    } catch (err) {
+      setErrorMsg(formatErrorMessage(err, 'Mã giảm giá không hợp lệ hoặc đã hết hạn'));
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = async () => {
+    try {
+      setIsApplyingCoupon(true);
+      setErrorMsg(null);
+      setCouponSuccessMsg(null);
+      const updated = await billingService.removeCoupon(order.orderCode);
+      setOrder(updated);
+      setCouponInput('');
+    } catch (err) {
+      setErrorMsg(formatErrorMessage(err, 'Không thể gỡ mã giảm giá'));
+    } finally {
+      setIsApplyingCoupon(false);
+    }
   };
 
   const handleSimulatePayment = async () => {
@@ -312,8 +360,25 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     <span className="font-bold text-slate-800">{accountHolder}</span>
                   </div>
 
+                  {order.discountAmount > 0 && (
+                    <>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500">Giá gốc:</span>
+                        <span className="font-mono text-slate-400 line-through">
+                          {(order.totalAmount || 0).toLocaleString('vi-VN')} VND
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-emerald-600 font-semibold">Ưu đãi giảm giá:</span>
+                        <span className="font-mono font-bold text-emerald-600">
+                          -{(order.discountAmount || 0).toLocaleString('vi-VN')} VND
+                        </span>
+                      </div>
+                    </>
+                  )}
+
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-500">Số tiền:</span>
+                    <span className="text-slate-500">Số tiền cần thanh toán:</span>
                     <span className="font-extrabold text-blue-600 text-sm">
                       {order.finalAmount.toLocaleString('vi-VN')} VND
                     </span>
@@ -334,6 +399,87 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       )}
                     </button>
                   </div>
+                </div>
+
+                {/* Coupon / Voucher Box */}
+                <div className="bg-purple-50/60 p-3.5 rounded-2xl border border-purple-200/80 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-purple-900 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                      <span>Mã giảm giá / Voucher</span>
+                    </span>
+                    {order.couponCode && (
+                      <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                        Đã áp mã: {order.couponCode}
+                      </span>
+                    )}
+                  </div>
+
+                  {order.couponCode ? (
+                    <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-emerald-200 text-xs">
+                      <div className="font-bold text-emerald-700">
+                        🎉 Mã <span className="font-mono underline">{order.couponCode}</span> đã giảm{' '}
+                        {(order.discountAmount || 0).toLocaleString('vi-VN')}đ
+                      </div>
+                      <button
+                        type="button"
+                        disabled={isApplyingCoupon}
+                        onClick={handleRemoveCoupon}
+                        className="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer disabled:opacity-50"
+                      >
+                        Gỡ mã
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={couponInput}
+                        onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleApplyCoupon();
+                          }
+                        }}
+                        placeholder="Nhập mã giảm giá (VD: NQD50)..."
+                        className="flex-1 px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs font-mono font-bold uppercase text-slate-900 outline-none focus:border-purple-600"
+                      />
+                      <button
+                        type="button"
+                        disabled={isApplyingCoupon || !couponInput.trim()}
+                        onClick={() => handleApplyCoupon()}
+                        className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition cursor-pointer disabled:opacity-50 shrink-0"
+                      >
+                        {isApplyingCoupon ? 'Đang kiểm tra...' : 'Áp dụng'}
+                      </button>
+                    </div>
+                  )}
+
+                  {couponSuccessMsg && (
+                    <p className="text-[11px] font-semibold text-emerald-700">{couponSuccessMsg}</p>
+                  )}
+
+                  {!order.couponCode && availableCoupons.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-[10px] font-semibold text-slate-500">Gợi ý:</span>
+                      {availableCoupons.slice(0, 3).map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => handleApplyCoupon(c.code)}
+                          className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg bg-white border border-purple-300 text-purple-700 hover:bg-purple-100 transition cursor-pointer"
+                          title={c.name}
+                        >
+                          {c.code} (
+                          {c.discountType === 'PERCENTAGE'
+                            ? `-${c.discountValue}%`
+                            : `-${Number(c.discountValue).toLocaleString('vi-VN')}đ`}
+                          )
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Items Summary */}
