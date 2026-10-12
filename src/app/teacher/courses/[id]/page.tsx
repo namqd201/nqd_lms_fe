@@ -244,12 +244,10 @@ export default function TeacherCourseEditorPage() {
       } else if (activeTab === 'ENROLLMENTS') {
         loadEnrollments();
       } else if (activeTab === 'FREE_GRANTS') {
-        if (!isFreeCourse) {
-          loadFreeGrants();
-        }
+        loadFreeGrants();
       }
     }
-  }, [courseId, activeTab, isFreeCourse]);
+  }, [courseId, activeTab]);
 
   const loadEnrollments = async () => {
     setIsEnrollmentsLoading(true);

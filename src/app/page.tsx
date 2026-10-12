@@ -165,31 +165,31 @@ export default function Home() {
               {/* Subtle Dot Grid */}
               <div className="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none" />
 
-              <div className="relative z-10 p-6 sm:p-8 lg:p-9 flex flex-col xl:flex-row gap-8 items-stretch">
-                {/* Main Slide Showcase (LOCKED MIN-HEIGHT & FIXED FORM) */}
-                <div className="flex-1 flex flex-col justify-between min-h-[440px] xl:min-h-[460px] space-y-5">
+              <div className="relative z-10 p-4 sm:p-8 lg:p-9 flex flex-col xl:flex-row gap-6 sm:gap-8 items-stretch">
+                {/* Main Slide Showcase (RESPONSIVE AUTO HEIGHT ON MOBILE) */}
+                <div className="flex-1 flex flex-col justify-between min-h-0 sm:min-h-[440px] xl:min-h-[460px] gap-4 sm:gap-5">
                   {/* Badges row */}
-                  <div className="flex flex-wrap items-center gap-2.5 h-8">
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-300 border border-rose-500/40 backdrop-blur shadow-glow-blue">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 min-h-[32px] h-auto">
+                    <span className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold bg-rose-500/15 text-rose-300 border border-rose-500/40 backdrop-blur shadow-glow-blue shrink-0">
                       <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
                       </span>
                       LIVE NOW
                     </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 backdrop-blur transition-all">
-                      <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                    <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 backdrop-blur transition-all">
+                      <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                       {slides[activeSlide].badge}
                     </span>
-                    <span className="px-2.5 py-1 rounded-full text-xs text-amber-300 bg-amber-500/10 border border-amber-400/20 backdrop-blur">
+                    <span className="px-2.5 py-1 rounded-full text-[11px] sm:text-xs text-amber-300 bg-amber-500/10 border border-amber-400/20 backdrop-blur">
                       ★ 4.98 (2,450 sinh viên đang online)
                     </span>
                   </div>
 
-                  {/* Typography Headline with dynamic high-tech gradient - FIXED FORM HEIGHT */}
-                  <div className="h-[120px] sm:h-[135px] xl:h-[150px] flex flex-col justify-center">
-                    <h1 className="text-2xl sm:text-4xl xl:text-5xl font-extrabold tracking-tight leading-[1.18] text-white">
-                      <span className="block text-slate-300 text-sm sm:text-xl xl:text-2xl font-semibold mb-1">
+                  {/* Typography Headline with dynamic high-tech gradient - FLUID ON MOBILE */}
+                  <div className="min-h-0 sm:min-h-[135px] xl:min-h-[150px] h-auto flex flex-col justify-center py-1 sm:py-0">
+                    <h1 className="text-xl sm:text-4xl xl:text-5xl font-extrabold tracking-tight leading-snug sm:leading-[1.18] text-white">
+                      <span className="block text-slate-300 text-xs sm:text-xl xl:text-2xl font-semibold mb-1">
                         {slides[activeSlide].prefix}
                       </span>
                       <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-300 drop-shadow-[0_0_20px_rgba(56,189,248,0.35)]">
@@ -198,25 +198,25 @@ export default function Home() {
                     </h1>
                   </div>
 
-                  {/* Description - FIXED FORM HEIGHT */}
-                  <div className="h-[44px] sm:h-[50px] flex items-center">
-                    <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-2xl font-light line-clamp-2">
+                  {/* Description - FLUID ON MOBILE */}
+                  <div className="min-h-[40px] sm:h-[50px] h-auto flex items-center">
+                    <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-2xl font-light line-clamp-3 sm:line-clamp-2">
                       {slides[activeSlide].description}
                     </p>
                   </div>
 
                   {/* Primary CTA Buttons */}
-                  <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 pt-1">
                     <Link
                       href="/courses"
-                      className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold text-xs shadow-lg shadow-blue-500/30 hover:shadow-cyan-500/50 transition-all flex items-center gap-2.5 group"
+                      className="px-5 sm:px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold text-xs shadow-lg shadow-blue-500/30 hover:shadow-cyan-500/50 transition-all flex items-center justify-center gap-2.5 group"
                     >
                       <span>Bắt đầu Lộ trình Ngay</span>
                       <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
                     </Link>
                     <a
                       href="#hierarchy-tree"
-                      className="px-4 py-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 hover:text-white font-medium text-xs border border-slate-600/60 backdrop-blur transition-all flex items-center gap-2"
+                      className="px-4 py-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 hover:text-white font-medium text-xs border border-slate-600/60 backdrop-blur transition-all flex items-center justify-center gap-2"
                     >
                       <span className="w-2 h-2 rounded-full bg-emerald-400" />
                       <span>Khám phá Cây Phân Cấp Tri Thức</span>
@@ -230,7 +230,7 @@ export default function Home() {
                         <button
                           key={idx}
                           onClick={() => setActiveSlide(idx)}
-                          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition border ${
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition border shrink-0 ${
                             activeSlide === idx
                               ? 'bg-blue-600/90 text-white border-blue-400/40 shadow-xs'
                               : 'bg-slate-800/70 hover:bg-slate-700/60 text-slate-400 hover:text-slate-200 border-transparent'

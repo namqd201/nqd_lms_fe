@@ -301,13 +301,22 @@ export function RichMathEditor({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const savedRangeRef = useRef<Range | null>(null);
+  const lastEmittedValueRef = useRef<string>(value);
+  const prevModeRef = useRef(mode);
 
-  // Sync external value to WYSIWYG DOM when mounted or when mode changes to wysiwyg
+  // Sync external value to WYSIWYG DOM only when external prop changes or when mode changes to wysiwyg
   useEffect(() => {
+    const modeChanged = prevModeRef.current !== mode;
+    prevModeRef.current = mode;
+
     if (mode === 'wysiwyg' && editorRef.current) {
-      const currentMd = wysiwygDomToMarkdown(editorRef.current);
-      if (currentMd !== value.trim()) {
-        editorRef.current.innerHTML = markdownToWysiwygHtml(value);
+      const isExternalChange = value !== lastEmittedValueRef.current;
+      if (modeChanged || isExternalChange) {
+        lastEmittedValueRef.current = value;
+        const currentMd = wysiwygDomToMarkdown(editorRef.current);
+        if (modeChanged || currentMd !== value.trim()) {
+          editorRef.current.innerHTML = markdownToWysiwygHtml(value);
+        }
       }
     }
   }, [mode, value]);
@@ -389,6 +398,7 @@ export function RichMathEditor({
 
       // Sync Markdown to parent
       const newMd = wysiwygDomToMarkdown(editor);
+      lastEmittedValueRef.current = newMd;
       onChange(newMd);
     },
     [onChange, restoreSelection]
@@ -400,6 +410,7 @@ export function RichMathEditor({
       if (mode === 'code') {
         const textarea = textareaRef.current;
         if (!textarea) {
+          lastEmittedValueRef.current = value + snippet;
           onChange(value + snippet);
           return;
         }
@@ -407,6 +418,7 @@ export function RichMathEditor({
         const end = textarea.selectionEnd;
         const currentValue = textarea.value;
         const nextValue = currentValue.substring(0, start) + snippet + currentValue.substring(end);
+        lastEmittedValueRef.current = nextValue;
         onChange(nextValue);
         setTimeout(() => {
           textarea.focus();
@@ -440,7 +452,9 @@ export function RichMathEditor({
           sel.addRange(range);
         }
 
-        onChange(wysiwygDomToMarkdown(editor));
+        const newMd = wysiwygDomToMarkdown(editor);
+        lastEmittedValueRef.current = newMd;
+        onChange(newMd);
       }
     },
     [mode, value, onChange, restoreSelection]
@@ -479,7 +493,9 @@ export function RichMathEditor({
       const chip = target.closest('.image-chip');
       if (chip && editorRef.current) {
         chip.remove();
-        onChange(wysiwygDomToMarkdown(editorRef.current));
+        const newMd = wysiwygDomToMarkdown(editorRef.current);
+        lastEmittedValueRef.current = newMd;
+        onChange(newMd);
       }
       return;
     }
@@ -542,7 +558,9 @@ export function RichMathEditor({
       setEditingChip(null);
       setSelectedChip(null);
       setChipPosition(null);
-      onChange(wysiwygDomToMarkdown(editorRef.current));
+      const newMd = wysiwygDomToMarkdown(editorRef.current);
+      lastEmittedValueRef.current = newMd;
+      onChange(newMd);
     } else {
       // Insert brand new chip at saved selection
       const isBlock = latex.includes('\\begin{cases}') || latex.includes('\\begin{pmatrix}');
@@ -556,6 +574,7 @@ export function RichMathEditor({
     if (!editorRef.current) return;
     saveSelection();
     const md = wysiwygDomToMarkdown(editorRef.current);
+    lastEmittedValueRef.current = md;
     onChange(md);
   };
 
@@ -603,7 +622,9 @@ export function RichMathEditor({
               sel.removeAllRanges();
               sel.addRange(newRange);
 
-              onChange(wysiwygDomToMarkdown(editorRef.current));
+              const md = wysiwygDomToMarkdown(editorRef.current);
+              lastEmittedValueRef.current = md;
+              onChange(md);
             }
           }
         }
@@ -652,11 +673,9 @@ export function RichMathEditor({
         imageChip.after(space);
         range.setStartAfter(space);
         range.setEndAfter(space);
-        if (sel) {
-          sel.removeAllRanges();
-          sel.addRange(range);
-        }
-        onChange(wysiwygDomToMarkdown(editor));
+        const newMd = wysiwygDomToMarkdown(editor);
+        lastEmittedValueRef.current = newMd;
+        onChange(newMd);
       } else {
         const imageSnippet = `\n![${file.name.replace(/\.[^/.]+$/, '')}](${res.url})\n`;
         insertSnippet(imageSnippet);
@@ -1008,7 +1027,10 @@ export function RichMathEditor({
               rows={minRows}
               value={value}
               disabled={disabled}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e) => {
+                lastEmittedValueRef.current = e.target.value;
+                onChange(e.target.value);
+              }}
               onPaste={handlePaste}
               placeholder={placeholder}
               className={`w-full p-4 text-xs sm:text-sm font-mono text-slate-900 placeholder-slate-400 outline-none resize-y bg-slate-50/40 leading-relaxed ${
