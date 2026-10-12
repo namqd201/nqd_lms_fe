@@ -29,6 +29,7 @@ import {
   RefreshCw,
   Lightbulb,
 } from 'lucide-react';
+import { VoiceInputButton } from '@/components/VoiceInputButton';
 import Link from 'next/link';
 
 export default function AiTutorPage() {
@@ -744,6 +745,15 @@ export default function AiTutorPage() {
               placeholder="Nhập câu hỏi..."
               rows={1}
               className="flex-1 bg-transparent text-slate-900 text-sm placeholder-slate-400 focus:outline-none resize-none max-h-32 min-h-[2.5rem] py-1.5 px-2"
+            />
+
+            {/* Voice Input Button */}
+            <VoiceInputButton
+              value={inputQuery}
+              onTranscript={setInputQuery}
+              size="md"
+              className="rounded-2xl"
+              title="Nói câu hỏi của bạn bằng giọng nói (Micro)"
             />
 
             {/* Action Button: Send or Stop Generation */}

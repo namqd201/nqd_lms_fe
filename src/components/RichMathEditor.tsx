@@ -19,6 +19,7 @@ import {
   Edit2,
   Info,
 } from 'lucide-react';
+import { VoiceInputButton } from '@/components/VoiceInputButton';
 
 interface RichMathEditorProps {
   value: string;
@@ -1096,19 +1097,28 @@ export function RichMathEditor({
             </p>
 
             <div className="space-y-2">
-              <input
-                type="text"
-                value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleGenerateFormula();
-                  }
-                }}
-                placeholder="Ví dụ: tích phân từ 0 đến 1 của x^2 dx, logarit cơ số a của b..."
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-purple-500"
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleGenerateFormula();
+                    }
+                  }}
+                  placeholder="Ví dụ: tích phân từ 0 đến 1 của x^2 dx, logarit cơ số a của b..."
+                  className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-purple-500"
+                />
+                <VoiceInputButton
+                  value={aiPrompt}
+                  onTranscript={setAiPrompt}
+                  size="md"
+                  className="rounded-xl shrink-0"
+                  title="Nói mô tả công thức bằng giọng nói (Micro)"
+                />
+              </div>
 
               <div className="flex justify-end">
                 <button

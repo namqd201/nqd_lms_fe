@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { LessonSlideResponse, SlideItem, SlideTargetType } from '@/types/slide';
 import { slideService } from '@/services/slide.service';
+import { VoiceInputButton } from '@/components/VoiceInputButton';
 
 interface LessonSlideModalProps {
   isOpen: boolean;
@@ -200,6 +201,7 @@ export default function LessonSlideModal({
   const [showConfig, setShowConfig] = useState<boolean>(false);
   const [slideCount, setSlideCount] = useState<number>(8);
   const [slideStyle, setSlideStyle] = useState<string>('STANDARD');
+  const [slideInstructions, setSlideInstructions] = useState<string>('');
 
   // File upload state
   const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -277,6 +279,7 @@ export default function LessonSlideModal({
         slideCount,
         style: slideStyle,
         language: 'vi',
+        additionalInstructions: slideInstructions.trim() || undefined,
       });
       setSlide(result);
       setCurrentIndex(0);
@@ -837,6 +840,28 @@ export default function LessonSlideModal({
                     <option value="CONCISE">Súc tích & Trực quan (Tóm lược cốt lõi, nhanh gọn)</option>
                     <option value="EXAM_PREP">Luyện thi & Trọng tâm (Điểm lưu ý, bẫy trắc nghiệm)</option>
                   </select>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-slate-400 font-semibold">
+                      Yêu cầu / Ghi chú đặc biệt cho AI:
+                    </label>
+                    <VoiceInputButton
+                      value={slideInstructions}
+                      onTranscript={setSlideInstructions}
+                      size="sm"
+                      className="!bg-slate-800 !border-slate-700 !text-slate-300 hover:!text-white hover:!bg-slate-750"
+                      title="Nói yêu cầu / ghi chú cho Slide (Micro)"
+                    />
+                  </div>
+                  <textarea
+                    rows={2}
+                    value={slideInstructions}
+                    onChange={(e) => setSlideInstructions(e.target.value)}
+                    placeholder="Ví dụ: Nhấn mạnh công thức tính nhanh, thêm nhiều ví dụ minh họa và lưu ý bẫy đề thi..."
+                    className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs placeholder-slate-500 focus:outline-hidden focus:border-indigo-500"
+                  />
                 </div>
               </div>
 

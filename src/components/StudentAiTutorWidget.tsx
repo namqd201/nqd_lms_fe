@@ -11,6 +11,7 @@ import {
 } from '@/types/aiTutor';
 import { aiTutorService } from '@/services/aiTutor.service';
 import { MathMarkdownRenderer } from '@/components/MathMarkdownRenderer';
+import { VoiceInputButton } from '@/components/VoiceInputButton';
 
 interface CustomEventDetail {
   mode?: StudentAiTutorMode;
@@ -593,6 +594,14 @@ export default function StudentAiTutorWidget() {
                     : 'Nhập câu hỏi hoặc tải ảnh bài tập lên...'
                 }
                 className="flex-1 bg-slate-900 border border-slate-700/80 focus:border-indigo-500 rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none max-h-24 transition"
+              />
+
+              <VoiceInputButton
+                value={inputQuestion}
+                onTranscript={setInputQuestion}
+                size="md"
+                className="rounded-2xl !bg-slate-800 !border-slate-700/80 !text-slate-300 hover:!text-white hover:!bg-slate-700"
+                title="Nói câu hỏi của bạn bằng giọng nói (Micro)"
               />
 
               <button

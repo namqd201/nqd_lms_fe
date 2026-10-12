@@ -33,6 +33,7 @@ import { aiService } from '@/services/ai.service';
 import { questionCategoryService } from '@/services/questionCategory.service';
 import { GRADE_LEVEL_GROUPS } from '@/constants/gradeLevels';
 import { MathMarkdownRenderer } from '@/components/MathMarkdownRenderer';
+import { VoiceInputButton } from '@/components/VoiceInputButton';
 
 const QUESTION_TYPE_OPTIONS: { type: QuestionType; label: string; icon: string }[] = [
   { type: 'MULTIPLE_CHOICE', label: 'Trắc nghiệm (4 lựa chọn)', icon: '🔘' },
@@ -491,9 +492,17 @@ export const AiQuestionGeneratorModal: React.FC<AiQuestionGeneratorModalProps> =
 
               {/* Topic / Concepts */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Chủ đề / Khái niệm trọng tâm <span className="text-rose-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Chủ đề / Khái niệm trọng tâm <span className="text-rose-500">*</span>
+                  </label>
+                  <VoiceInputButton
+                    value={topic}
+                    onTranscript={setTopic}
+                    size="sm"
+                    title="Nói chủ đề / khái niệm trọng tâm (Micro)"
+                  />
+                </div>
                 <input
                   type="text"
                   value={topic}
@@ -750,17 +759,25 @@ export const AiQuestionGeneratorModal: React.FC<AiQuestionGeneratorModalProps> =
 
               {/* Additional Instructions */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  {typeSelectionMode === 'MIXED' ? (
-                    <span className="flex items-center gap-1.5">
-                      <span>Mô tả chi tiết yêu cầu bài tập hỗn hợp</span>
-                      <span className="text-rose-500 font-extrabold">*</span>
-                      <span className="text-purple-600 font-medium text-[11px]">(Nêu rõ: số lượng, dạng câu, điểm số &amp; độ khó)</span>
-                    </span>
-                  ) : (
-                    'Yêu cầu / Ghi chú thêm cho AI (Tùy chọn)'
-                  )}
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    {typeSelectionMode === 'MIXED' ? (
+                      <span className="flex items-center gap-1.5">
+                        <span>Mô tả chi tiết yêu cầu bài tập hỗn hợp</span>
+                        <span className="text-rose-500 font-extrabold">*</span>
+                        <span className="text-purple-600 font-medium text-[11px]">(Nêu rõ: số lượng, dạng câu, điểm số &amp; độ khó)</span>
+                      </span>
+                    ) : (
+                      'Yêu cầu / Ghi chú thêm cho AI (Tùy chọn)'
+                    )}
+                  </label>
+                  <VoiceInputButton
+                    value={additionalInstructions}
+                    onTranscript={setAdditionalInstructions}
+                    size="sm"
+                    title="Nói yêu cầu / ghi chú cho AI (Micro)"
+                  />
+                </div>
                 <textarea
                   rows={typeSelectionMode === 'MIXED' ? 4 : 2}
                   value={additionalInstructions}

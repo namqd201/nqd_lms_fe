@@ -28,6 +28,7 @@ import {
 } from '@/types/ai';
 import { aiService } from '@/services/ai.service';
 import { GRADE_LEVEL_GROUPS } from '@/constants/gradeLevels';
+import { VoiceInputButton } from '@/components/VoiceInputButton';
 import { MathMarkdownRenderer } from '@/components/MathMarkdownRenderer';
 
 interface AiExamGeneratorModalProps {
@@ -280,9 +281,17 @@ export const AiExamGeneratorModal: React.FC<AiExamGeneratorModalProps> = ({
               {/* Title & Timing */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Tên đề thi <span className="text-rose-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Tên đề thi <span className="text-rose-500">*</span>
+                    </label>
+                    <VoiceInputButton
+                      value={title}
+                      onTranscript={setTitle}
+                      size="sm"
+                      title="Nói tên đề thi (Micro)"
+                    />
+                  </div>
                   <input
                     type="text"
                     value={title}
@@ -351,7 +360,15 @@ export const AiExamGeneratorModal: React.FC<AiExamGeneratorModalProps> = ({
                       className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center"
                     >
                       <div className="sm:col-span-4">
-                        <label className="block text-[10px] font-bold text-slate-500 mb-1">Chủ đề kiến thức</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-[10px] font-bold text-slate-500">Chủ đề kiến thức</label>
+                          <VoiceInputButton
+                            value={item.topic || ''}
+                            onTranscript={(val) => handleBlueprintChange(idx, 'topic', val)}
+                            size="sm"
+                            title="Nói chủ đề kiến thức (Micro)"
+                          />
+                        </div>
                         <input
                           type="text"
                           value={item.topic || ''}
@@ -523,9 +540,17 @@ export const AiExamGeneratorModal: React.FC<AiExamGeneratorModalProps> = ({
 
               {/* Additional Instructions */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Ghi chú biên soạn đề cho AI
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Ghi chú biên soạn đề cho AI
+                  </label>
+                  <VoiceInputButton
+                    value={additionalInstructions}
+                    onTranscript={setAdditionalInstructions}
+                    size="sm"
+                    title="Nói ghi chú biên soạn đề (Micro)"
+                  />
+                </div>
                 <textarea
                   rows={2}
                   value={additionalInstructions}

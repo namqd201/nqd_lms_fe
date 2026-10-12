@@ -37,4 +37,5 @@ export interface GenerateSlideRequest {
   slideCount?: number;
   style?: string;
   language?: string;
+  additionalInstructions?: string;
 }
