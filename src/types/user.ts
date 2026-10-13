@@ -16,6 +16,11 @@ export interface UserProfileResponse {
   subscriptionEndDate?: string | null;
   lockReason?: string | null;
   lockedAt?: string | null;
+  parentFullName?: string | null;
+  parentEmail?: string | null;
+  parentPhone?: string | null;
+  weeklyReportEnabled?: boolean;
+  lastParentReportSentAt?: string | null;
 }
 
 export interface AdminGrantVipRequest {
@@ -45,6 +50,10 @@ export interface UpdateProfileRequest {
   fullName: string;
   phoneNumber?: string;
   avatarUrl?: string;
+  parentFullName?: string;
+  parentEmail?: string;
+  parentPhone?: string;
+  weeklyReportEnabled?: boolean;
 }
 
 export interface RoleResponse {

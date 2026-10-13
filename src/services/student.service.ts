@@ -28,4 +28,19 @@ export const studentService = {
 
     return handleApiResponse<UserProfileResponse>(response, 'Cập nhật hồ sơ học viên thất bại');
   },
+
+  sendParentReportNow: async (): Promise<{ message: string; parentEmail: string; sentAt: string }> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/student/profile/send-parent-report`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    return handleApiResponse<{ message: string; parentEmail: string; sentAt: string }>(
+      response,
+      'Gửi báo cáo học tập cho phụ huynh thất bại'
+    );
+  },
 };

@@ -119,6 +119,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
       badgeColor: 'bg-amber-100 text-amber-800 border-amber-300 font-bold',
     },
     {
+      href: '/mistake-notebook',
+      label: 'Sổ tay lỗi sai',
+      icon: Dumbbell,
+      badge: 'Ôn tập AI',
+      badgeColor: 'bg-rose-100 text-rose-700 border-rose-200 font-bold',
+    },
+    {
       href: '/profile/progress',
       label: 'Tiến độ học tập',
       icon: TrendingUp,

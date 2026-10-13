@@ -10,7 +10,7 @@ import { UserProfileResponse, UpdateProfileRequest } from '@/types/user';
 import { RoleBadge } from './RoleBadge';
 import { StatusBadge } from './StatusBadge';
 import { UserAvatar } from './UserAvatar';
-import { Camera, Upload, Loader2, Trash2 } from 'lucide-react';
+import { Camera, Upload, Loader2, Trash2, Mail, Users, Send, CheckCircle2 } from 'lucide-react';
 
 const AVATAR_PRESETS = [
   'https://api.dicebear.com/7.x/bottts/svg?seed=Felix',
@@ -27,6 +27,7 @@ export const ProfileForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState<boolean>(false);
+  const [isSendingReport, setIsSendingReport] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -36,6 +37,10 @@ export const ProfileForm: React.FC = () => {
   const [fullName, setFullName] = useState<string>('');
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const [parentFullName, setParentFullName] = useState<string>('');
+  const [parentEmail, setParentEmail] = useState<string>('');
+  const [parentPhone, setParentPhone] = useState<string>('');
+  const [weeklyReportEnabled, setWeeklyReportEnabled] = useState<boolean>(false);
 
   const isTeacher = authUser?.roles.some((r) => r === 'TEACHER' || r === 'ROLE_TEACHER');
   const isStudent = authUser?.roles.some((r) => r === 'STUDENT' || r === 'ROLE_STUDENT');
@@ -63,6 +68,10 @@ export const ProfileForm: React.FC = () => {
       setFullName(data.fullName || '');
       setPhoneNumber(data.phoneNumber || '');
       setAvatarUrl(data.avatarUrl || '');
+      setParentFullName(data.parentFullName || '');
+      setParentEmail(data.parentEmail || '');
+      setParentPhone(data.parentPhone || '');
+      setWeeklyReportEnabled(Boolean(data.weeklyReportEnabled));
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Không thể tải thông tin hồ sơ';
       setErrorMessage(msg);
@@ -116,6 +125,10 @@ export const ProfileForm: React.FC = () => {
       fullName: fullName.trim(),
       phoneNumber: phoneNumber.trim() || undefined,
       avatarUrl: avatarUrl !== undefined ? avatarUrl.trim() : undefined,
+      parentFullName: parentFullName.trim(),
+      parentEmail: parentEmail.trim(),
+      parentPhone: parentPhone.trim(),
+      weeklyReportEnabled,
     };
 
     try {
@@ -129,13 +142,46 @@ export const ProfileForm: React.FC = () => {
       }
 
       setProfile(updated);
-      setSuccessMessage('Cập nhật hồ sơ cá nhân thành công!');
+      setSuccessMessage('Cập nhật hồ sơ cá nhân & cấu hình phụ huynh thành công!');
       await refreshUser();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Cập nhật thất bại';
       setErrorMessage(msg);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSendParentReportNow = async () => {
+    if (!parentEmail.trim()) {
+      setErrorMessage('Vui lòng nhập địa chỉ Email Phụ huynh trước khi gửi báo cáo.');
+      return;
+    }
+    setIsSendingReport(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    try {
+      // Save profile first so the latest parent email/name are persisted
+      const payload: UpdateProfileRequest = {
+        fullName: fullName.trim() || profile?.fullName || 'Học viên',
+        phoneNumber: phoneNumber.trim() || undefined,
+        avatarUrl: avatarUrl !== undefined ? avatarUrl.trim() : undefined,
+        parentFullName: parentFullName.trim(),
+        parentEmail: parentEmail.trim(),
+        parentPhone: parentPhone.trim(),
+        weeklyReportEnabled,
+      };
+      const updated = await studentService.updateProfile(payload);
+      setProfile(updated);
+
+      const res = await studentService.sendParentReportNow();
+      setSuccessMessage(res.message || `Đã gửi báo cáo tới ${res.parentEmail} thành công!`);
+      await loadProfile();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Gửi báo cáo cho phụ huynh thất bại';
+      setErrorMessage(msg);
+    } finally {
+      setIsSendingReport(false);
     }
   };
 
@@ -418,6 +464,121 @@ export const ProfileForm: React.FC = () => {
                     </button>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* Parent Link & Weekly Learning Digest Section */}
+            <div className="p-5 sm:p-6 bg-gradient-to-br from-indigo-50/70 via-white to-cyan-50/50 border border-indigo-200/80 rounded-2xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-indigo-100">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-bold text-slate-900">
+                        Liên kết Phụ huynh & Báo cáo Học tập Hàng tuần
+                      </h4>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                        Tự động Thứ 2 hàng tuần
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      Gửi bảng tổng hợp số bài học hoàn thành, điểm kiểm tra và câu hỏi cần ôn tập về Email phụ huynh.
+                    </p>
+                  </div>
+                </div>
+
+                <label className="inline-flex items-center gap-2.5 cursor-pointer select-none shrink-0 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-2xs">
+                  <input
+                    type="checkbox"
+                    checked={weeklyReportEnabled}
+                    onChange={(e) => setWeeklyReportEnabled(e.target.checked)}
+                    className="w-4 h-4 accent-indigo-600 rounded cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-slate-800">
+                    Nhận báo cáo tuần
+                  </span>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                    Họ tên Phụ huynh
+                  </label>
+                  <input
+                    type="text"
+                    value={parentFullName}
+                    onChange={(e) => setParentFullName(e.target.value)}
+                    placeholder="VD: Nguyễn Văn A"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15 rounded-xl text-slate-900 text-sm outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                    Email Phụ huynh (Nhận báo cáo)
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="email"
+                      value={parentEmail}
+                      onChange={(e) => setParentEmail(e.target.value)}
+                      placeholder="phuhuynh@gmail.com"
+                      className="w-full pl-9 pr-3.5 py-2.5 bg-white border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15 rounded-xl text-slate-900 text-sm outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                    SĐT Phụ huynh
+                  </label>
+                  <input
+                    type="tel"
+                    value={parentPhone}
+                    onChange={(e) => setParentPhone(e.target.value)}
+                    placeholder="VD: 0987654321"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15 rounded-xl text-slate-900 text-sm outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                <div className="text-xs text-slate-500 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  {profile.lastParentReportSentAt ? (
+                    <span>
+                      Lần gửi báo cáo gần nhất:{' '}
+                      <strong className="text-slate-700">
+                        {new Date(profile.lastParentReportSentAt).toLocaleString('vi-VN')}
+                      </strong>
+                    </span>
+                  ) : (
+                    <span>Chưa gửi bản báo cáo nào. Bạn có thể bấm nút bên cạnh để gửi thử ngay!</span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSendParentReportNow}
+                  disabled={isSendingReport || !parentEmail.trim()}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                >
+                  {isSendingReport ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Đang tổng hợp & gửi Email...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Gửi báo cáo ngay qua Email</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
 
