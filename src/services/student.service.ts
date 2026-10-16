@@ -1,4 +1,5 @@
 import { UpdateProfileRequest, UserProfileResponse } from '@/types/user';
+import { StudentResumeLearningResponse } from '@/types/student';
 import { handleApiResponse } from '@/utils/errorMessage';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -43,4 +44,20 @@ export const studentService = {
       'Gửi báo cáo học tập cho phụ huynh thất bại'
     );
   },
+
+  getResumeLearning: async (): Promise<StudentResumeLearningResponse> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/student/progress/resume`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    return handleApiResponse<StudentResumeLearningResponse>(
+      response,
+      'Không thể tải tiến trình học tập tiếp tục'
+    );
+  },
 };
+

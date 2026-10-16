@@ -25,6 +25,10 @@ import {
 import katex from 'katex';
 import { gamificationService, GamificationDashboardData } from '@/services/gamification.service';
 import { labService, LabRoomItem } from '@/services/lab.service';
+import { studentService } from '@/services/student.service';
+import { courseService } from '@/services/course.service';
+import { examService } from '@/services/exam.service';
+import { StudentResumeLearningResponse, ResumeCourseDto, ResumeExamDto } from '@/types/student';
 
 const MATH_COPILOT_FORMULAS = [
   {
@@ -78,6 +82,12 @@ export default function Home() {
   const [activeLab, setActiveLab] = useState<LabRoomItem | null>(null);
   const [isLoadingLab, setIsLoadingLab] = useState<boolean>(true);
   const [formulaIndex, setFormulaIndex] = useState<number>(0);
+
+  // Real Student Learning Resume State (Courses in-progress & Exams in-progress)
+  const [resumeData, setResumeData] = useState<StudentResumeLearningResponse | null>(null);
+  const [isLoadingResume, setIsLoadingResume] = useState<boolean>(true);
+  const [selectedCourseIndex, setSelectedCourseIndex] = useState<number>(0);
+  const [selectedExamIndex, setSelectedExamIndex] = useState<number>(0);
 
   const isAdmin = user?.roles?.some((r) => r === 'ADMIN' || r === 'ROLE_ADMIN');
   const isTeacher = user?.roles?.some((r) => r === 'TEACHER' || r === 'ROLE_TEACHER');
@@ -170,6 +180,106 @@ export default function Home() {
       isMounted = false;
     };
   }, []);
+
+  // Load real student in-progress course, current lesson, and active/recent exam
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadPublicFallback = () => {
+      setIsLoadingResume(true);
+      Promise.all([
+        courseService.getPublishedCourses().catch(() => []),
+        examService.getSharedLibrary().catch(() => []),
+      ])
+        .then(([courses, exams]) => {
+          if (!isMounted) return;
+          const topCourse = courses && courses.length > 0 ? courses[0] : null;
+          const topExam = exams && exams.length > 0 ? exams[0] : null;
+
+          const fallbackData: StudentResumeLearningResponse = {
+            inProgressCourse: topCourse
+              ? {
+                  courseId: topCourse.id,
+                  courseTitle: topCourse.name,
+                  courseDescription: topCourse.description,
+                  courseThumbnail: topCourse.thumbnailUrl,
+                  subjectName: topCourse.subjectName || 'Khóa học',
+                  gradeLevel: topCourse.gradeLevel || 'Toàn diện',
+                  chapterDisplayOrder: 1,
+                  chapterTitle: 'Chương 1: Nền tảng cốt lõi',
+                  lessonDisplayOrder: 1,
+                  lessonTitle: 'Bài 1: Tổng quan chương trình',
+                  totalLessonsInChapter: 6,
+                  courseProgressPercent: 0,
+                  completedLessons: 0,
+                  totalLessons: 12,
+                  isEnrolled: false,
+                }
+              : null,
+            inProgressExam: topExam
+              ? {
+                  examId: topExam.id,
+                  examTitle: topExam.title,
+                  examDescription: topExam.description,
+                  courseId: topExam.courseId,
+                  courseName: topExam.courseName,
+                  subjectName: topExam.subjectName || 'Ngân hàng đề thi',
+                  gradeLevel: topExam.gradeLevel,
+                  durationMinutes: topExam.durationMinutes || 60,
+                  totalMarks: topExam.totalMarks || 10,
+                  questionCount: topExam.questionCount || 40,
+                  attemptStatus: 'NOT_STARTED',
+                  answeredQuestionsCount: 0,
+                  currentQuestionIndex: 1,
+                  scorePercentage: 0,
+                }
+              : null,
+          };
+          setResumeData(fallbackData);
+          setIsLoadingResume(false);
+        })
+        .catch(() => {
+          if (isMounted) setIsLoadingResume(false);
+        });
+    };
+
+    if (isAuthenticated) {
+      setIsLoadingResume(true);
+      studentService
+        .getResumeLearning()
+        .then((data) => {
+          if (!isMounted) return;
+          if (data && (data.inProgressCourse || data.inProgressExam)) {
+            setResumeData(data);
+            setIsLoadingResume(false);
+          } else {
+            loadPublicFallback();
+          }
+        })
+        .catch((err) => {
+          console.warn('Could not load student resume learning, loading public fallback:', err);
+          if (isMounted) loadPublicFallback();
+        });
+    } else {
+      loadPublicFallback();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated]);
+
+  // Derived real courses list & selected course
+  const allResumeCourses: ResumeCourseDto[] = [];
+  if (resumeData?.inProgressCourse) allResumeCourses.push(resumeData.inProgressCourse);
+  if (resumeData?.otherCourses) allResumeCourses.push(...resumeData.otherCourses);
+  const activeResumeCourse = allResumeCourses[selectedCourseIndex] || allResumeCourses[0] || null;
+
+  // Derived real exams list & selected exam
+  const allResumeExams: ResumeExamDto[] = [];
+  if (resumeData?.inProgressExam) allResumeExams.push(resumeData.inProgressExam);
+  if (resumeData?.otherExams) allResumeExams.push(...resumeData.otherExams);
+  const activeResumeExam = allResumeExams[selectedExamIndex] || allResumeExams[0] || null;
 
   const handleClaimReward = async () => {
     if (!gamification || claiming) return;
@@ -872,92 +982,279 @@ export default function Home() {
 
             {/* Interactive Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Cyber Card 1 */}
-              <div className="group relative bg-white rounded-3xl p-6 border-2 border-blue-500/40 shadow-md hover:shadow-xl hover:border-blue-600 transition-all flex flex-col justify-between">
-                <div className="absolute -top-3 right-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[10px] font-bold px-3 py-0.5 rounded-full shadow-xs">
-                  Đang học • 68%
+              {/* Cyber Card 1: Học bài tiếp */}
+              {isLoadingResume ? (
+                <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-md flex flex-col justify-between animate-pulse min-h-[340px]">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="h-4 bg-slate-200 rounded w-28" />
+                      <div className="h-4 bg-slate-200 rounded w-16" />
+                    </div>
+                    <div className="h-6 bg-slate-200 rounded w-3/4" />
+                    <div className="h-10 bg-slate-100 rounded w-full" />
+                    <div className="h-14 bg-slate-50 rounded-2xl p-3 border border-slate-100" />
+                  </div>
+                  <div className="pt-5 border-t border-slate-100 mt-4 flex items-center justify-between">
+                    <div className="h-8 bg-slate-200 rounded-xl w-36" />
+                    <div className="h-4 bg-slate-200 rounded w-20" />
+                  </div>
                 </div>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-1.5 text-[10px] font-semibold">
-                    <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700">Môn: Toán Ứng Dụng</span>
-                    <span className="text-slate-300">/</span>
-                    <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700">Kỳ II</span>
+              ) : (
+                <div className="group relative bg-white rounded-3xl p-6 border-2 border-blue-500/40 shadow-md hover:shadow-xl hover:border-blue-600 transition-all flex flex-col justify-between">
+                  <div className="absolute -top-3 right-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[10px] font-bold px-3 py-0.5 rounded-full shadow-xs">
+                    {activeResumeCourse?.isEnrolled
+                      ? `Đang học • ${activeResumeCourse.courseProgressPercent}%`
+                      : 'Gợi ý học tập • 0%'}
                   </div>
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                      Toán Cao Cấp & Thuật Toán Tối Ưu Hóa AI
-                    </h3>
-                    <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
-                      Phân tích đạo hàm đa biến, Gradient Descent, ma trận Hessian và ứng dụng trực tiếp trong huấn luyện mạng nơ-ron sâu.
-                    </p>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-1 flex-wrap">
+                      <div className="flex items-center gap-1.5 text-[10px] font-semibold">
+                        <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700">
+                          Môn: {activeResumeCourse?.subjectName || 'Khóa học'}
+                        </span>
+                        <span className="text-slate-300">/</span>
+                        <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700">
+                          {activeResumeCourse?.gradeLevel || 'Toàn diện'}
+                        </span>
+                      </div>
+                      {allResumeCourses.length > 1 && (
+                        <div className="flex items-center gap-1">
+                          {allResumeCourses.map((c, idx) => (
+                            <button
+                              key={c.courseId}
+                              onClick={() => setSelectedCourseIndex(idx)}
+                              className={`text-[9px] px-2 py-0.5 rounded-md font-bold transition ${
+                                selectedCourseIndex === idx
+                                  ? 'bg-blue-600 text-white shadow-xs'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              }`}
+                              title={c.courseTitle}
+                            >
+                              Môn #{idx + 1}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                        {activeResumeCourse?.courseTitle || 'Chưa có khóa học đang học dở'}
+                      </h3>
+                      <p className="mt-1.5 text-xs text-slate-500 leading-relaxed line-clamp-2">
+                        {activeResumeCourse?.courseDescription ||
+                          'Hệ thống bài giảng phân cấp đa tầng từ nền tảng đến ứng dụng, tích hợp trợ lý AI giải thích trực tiếp theo thời gian thực.'}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-semibold text-slate-700 flex items-center gap-1 truncate max-w-[200px]">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />
+                          <span className="truncate">
+                            Chương {activeResumeCourse?.chapterDisplayOrder || 1}: {activeResumeCourse?.chapterTitle || 'Chương 1'}
+                          </span>
+                        </span>
+                        <span className="text-blue-600 font-bold shrink-0">
+                          Bài {activeResumeCourse?.lessonDisplayOrder || 1}/{activeResumeCourse?.totalLessonsInChapter || 1}
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                        <div
+                          className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${Math.min(100, Math.max(0, activeResumeCourse?.courseProgressPercent || 0))}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-semibold text-slate-700 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-                        Chương 3: Cực trị hàm nhiều biến
+
+                  <div className="pt-5 border-t border-slate-100 mt-4 flex items-center justify-between gap-2">
+                    <Link
+                      href={
+                        activeResumeCourse
+                          ? activeResumeCourse.lessonId
+                            ? `/courses/${activeResumeCourse.courseId}/lessons/${activeResumeCourse.lessonId}`
+                            : `/courses/${activeResumeCourse.courseId}`
+                          : '/courses'
+                      }
+                      className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs hover:shadow transition flex items-center gap-1.5 min-w-0 max-w-[210px]"
+                    >
+                      <span className="truncate">
+                        {activeResumeCourse
+                          ? `Học tiếp: ${activeResumeCourse.lessonTitle || `Bài ${activeResumeCourse.lessonDisplayOrder || 1}`}`
+                          : 'Khám phá khóa học'}
                       </span>
-                      <span className="text-blue-600 font-bold">Bài 4/6</span>
-                    </div>
-                    <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-blue-600 h-full rounded-full" style={{ width: '68%' }} />
-                    </div>
+                      <ChevronRight className="w-3.5 h-3.5 shrink-0" />
+                    </Link>
+                    <span className="text-[11px] text-slate-400 font-mono shrink-0">
+                      {activeResumeCourse
+                        ? `Xong ${activeResumeCourse.completedLessons}/${activeResumeCourse.totalLessons} bài`
+                        : 'Tất cả khóa'}
+                    </span>
                   </div>
                 </div>
+              )}
 
-                <div className="pt-5 border-t border-slate-100 mt-4 flex items-center justify-between">
-                  <Link
-                    href="/courses"
-                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs hover:shadow transition flex items-center gap-1.5"
+              {/* Cyber Card 2: Luyện đề tiếp */}
+              {isLoadingResume ? (
+                <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-md flex flex-col justify-between animate-pulse min-h-[340px]">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="h-4 bg-slate-200 rounded w-28" />
+                      <div className="h-4 bg-slate-200 rounded w-16" />
+                    </div>
+                    <div className="h-6 bg-slate-200 rounded w-3/4" />
+                    <div className="h-10 bg-slate-100 rounded w-full" />
+                    <div className="h-14 bg-slate-50 rounded-2xl p-3 border border-slate-100" />
+                  </div>
+                  <div className="pt-5 border-t border-slate-100 mt-4 flex items-center justify-between">
+                    <div className="h-8 bg-slate-200 rounded-xl w-36" />
+                    <div className="h-4 bg-slate-200 rounded w-20" />
+                  </div>
+                </div>
+              ) : (
+                <div className="group relative bg-white rounded-3xl p-6 border border-slate-200 shadow-xs hover:shadow-xl hover:border-emerald-400 transition-all flex flex-col justify-between">
+                  <div
+                    className={`absolute -top-3 right-6 text-white text-[10px] font-bold px-3 py-0.5 rounded-full shadow-xs ${
+                      activeResumeExam?.attemptStatus === 'IN_PROGRESS'
+                        ? 'bg-gradient-to-r from-amber-500 to-orange-500'
+                        : activeResumeExam?.attemptStatus === 'SUBMITTED'
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600'
+                        : 'bg-gradient-to-r from-indigo-500 to-blue-600'
+                    }`}
                   >
-                    <span>Học tiếp bài 4: Gradient Descent</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
-                  <span className="text-[11px] text-slate-400 font-mono">Lab #09</span>
-                </div>
-              </div>
+                    {activeResumeExam?.attemptStatus === 'IN_PROGRESS'
+                      ? `Đang làm dở • ${activeResumeExam.scorePercentage}%`
+                      : activeResumeExam?.attemptStatus === 'SUBMITTED'
+                      ? `Đã xong • ${activeResumeExam.scorePercentage}% điểm`
+                      : 'Đề luyện thi • Mới'}
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-1 flex-wrap">
+                      <div className="flex items-center gap-1.5 text-[10px] font-semibold">
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700">
+                          Môn: {activeResumeExam?.subjectName || activeResumeExam?.courseName || 'Đề Thi Chuẩn Hóa'}
+                        </span>
+                        <span className="text-slate-300">/</span>
+                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
+                          {activeResumeExam ? `${activeResumeExam.questionCount} Câu Hỏi` : 'Đề thi'}
+                        </span>
+                      </div>
+                      {allResumeExams.length > 1 && (
+                        <div className="flex items-center gap-1">
+                          {allResumeExams.map((e, idx) => (
+                            <button
+                              key={e.examId}
+                              onClick={() => setSelectedExamIndex(idx)}
+                              className={`text-[9px] px-2 py-0.5 rounded-md font-bold transition ${
+                                selectedExamIndex === idx
+                                  ? 'bg-emerald-600 text-white shadow-xs'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              }`}
+                              title={e.examTitle}
+                            >
+                              Đề #{idx + 1}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-600 transition-colors line-clamp-1">
+                        {activeResumeExam?.examTitle || 'Ngân Hàng Đề Thi Chuẩn Hóa & ĐGNL'}
+                      </h3>
+                      <p className="mt-1.5 text-xs text-slate-500 leading-relaxed line-clamp-2">
+                        {activeResumeExam?.examDescription ||
+                          'Hệ thống ngân hàng đề thi chuẩn hóa tích hợp đồng hồ áp lực, gợi ý chống gian lận và AI phân tích lỗ hổng kiến thức sau nộp bài.'}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-semibold text-slate-700 flex items-center gap-1 truncate max-w-[200px]">
+                          {activeResumeExam?.attemptStatus === 'IN_PROGRESS' ? (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                              <span className="truncate">
+                                Đang làm: Câu {activeResumeExam.currentQuestionIndex}/{activeResumeExam.questionCount}
+                              </span>
+                            </>
+                          ) : activeResumeExam?.attemptStatus === 'SUBMITTED' ? (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                              <span className="truncate">
+                                Điểm: {activeResumeExam.totalScore != null ? `${activeResumeExam.totalScore}/${activeResumeExam.totalMarks || 10}` : `${activeResumeExam.scorePercentage}%`}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+                              <span className="truncate">
+                                Chưa bắt đầu • {activeResumeExam?.durationMinutes || 60} phút
+                              </span>
+                            </>
+                          )}
+                        </span>
+                        <span
+                          className={`font-bold shrink-0 ${
+                            activeResumeExam?.attemptStatus === 'IN_PROGRESS'
+                              ? 'text-amber-600'
+                              : activeResumeExam?.attemptStatus === 'SUBMITTED'
+                              ? 'text-emerald-600'
+                              : 'text-blue-600'
+                          }`}
+                        >
+                          {activeResumeExam?.scorePercentage || 0}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            activeResumeExam?.attemptStatus === 'IN_PROGRESS'
+                              ? 'bg-amber-500'
+                              : activeResumeExam?.attemptStatus === 'SUBMITTED'
+                              ? 'bg-emerald-500'
+                              : 'bg-blue-600'
+                          }`}
+                          style={{
+                            width: `${Math.min(100, Math.max(0, activeResumeExam?.scorePercentage || 0))}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-              {/* Cyber Card 2 */}
-              <div className="group relative bg-white rounded-3xl p-6 border border-slate-200 shadow-xs hover:shadow-xl hover:border-emerald-400 transition-all flex flex-col justify-between">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-1.5 text-[10px] font-semibold">
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700">Môn: Đề Thi ĐGNL</span>
-                    <span className="text-slate-300">/</span>
-                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">120 Câu Hỏi</span>
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
-                      Chiến Thuật Tư Duy Định Lượng & Khoa Học ĐGNL ĐHQG
-                    </h3>
-                    <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
-                      Hệ thống ngân hàng đề thi chuẩn hóa tích hợp đồng hồ áp lực, gợi ý chống gian lận và AI phân tích lỗ hổng kiến thức sau nộp bài.
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-semibold text-slate-700 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Đề thi số 08: ĐGNL ĐHQG HCM
+                  <div className="pt-5 border-t border-slate-100 mt-4 flex items-center justify-between gap-2">
+                    <Link
+                      href={
+                        activeResumeExam
+                          ? `/courses/${activeResumeExam.courseId || 'general'}/exams/${activeResumeExam.examId}`
+                          : '/courses'
+                      }
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs hover:shadow transition flex items-center gap-1.5 min-w-0 max-w-[210px]"
+                    >
+                      <span className="truncate">
+                        {activeResumeExam?.attemptStatus === 'IN_PROGRESS'
+                          ? `Làm tiếp Câu ${activeResumeExam.currentQuestionIndex}`
+                          : activeResumeExam?.attemptStatus === 'SUBMITTED'
+                          ? `Luyện lại: ${activeResumeExam.examTitle}`
+                          : activeResumeExam
+                          ? `Luyện tiếp: ${activeResumeExam.examTitle}`
+                          : 'Khám phá ngân hàng đề'}
                       </span>
-                      <span className="text-emerald-600 font-bold">82%</span>
-                    </div>
-                    <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-emerald-500 h-full rounded-full" style={{ width: '82%' }} />
-                    </div>
+                      <ChevronRight className="w-3.5 h-3.5 shrink-0" />
+                    </Link>
+                    <span className="text-[11px] text-emerald-600 font-semibold shrink-0">
+                      {activeResumeExam?.attemptStatus === 'SUBMITTED'
+                        ? activeResumeExam.passed
+                          ? '✓ Đạt chuẩn'
+                          : 'Cần cải thiện'
+                        : activeResumeExam?.attemptStatus === 'IN_PROGRESS'
+                        ? `Đã làm ${activeResumeExam.answeredQuestionsCount}/${activeResumeExam.questionCount}`
+                        : `${activeResumeExam?.durationMinutes || 60} phút`}
+                    </span>
                   </div>
                 </div>
-
-                <div className="pt-5 border-t border-slate-100 mt-4 flex items-center justify-between">
-                  <Link
-                    href="/courses"
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs hover:shadow transition flex items-center gap-1.5"
-                  >
-                    <span>Luyện tiếp Đề 08</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
-                  <span className="text-[11px] text-emerald-600 font-semibold">Top 5% Điểm</span>
-                </div>
-              </div>
+              )}
 
               {/* Visual Interactive Knowledge Canvas Showcase */}
               <div className="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-3xl p-6 text-white border border-slate-800 shadow-md flex flex-col justify-between">
