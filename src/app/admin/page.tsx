@@ -26,6 +26,8 @@ import {
   GraduationCap,
   FileSpreadsheet,
   Presentation,
+  Flame,
+  Ticket,
 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
@@ -285,7 +287,7 @@ export default function AdminDashboardPage() {
             </div>
           </Link>
 
-          {/* Classroom Management */}
+          {/* Classrooms Management */}
           <Link
             href="/admin/classrooms"
             className="bg-white border border-slate-200 hover:border-indigo-400 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between"
@@ -303,6 +305,50 @@ export default function AdminDashboardPage() {
             </div>
             <div className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-indigo-700 group-hover:translate-x-1 transition-transform">
               <span>Vào trang Lớp học</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </div>
+          </Link>
+
+          {/* Promotion Events Management */}
+          <Link
+            href="/admin/promotions"
+            className="bg-white border border-slate-200 hover:border-rose-400 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between"
+          >
+            <div>
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Flame className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 group-hover:text-rose-600 transition-colors">
+                Sự kiện Giảm giá (Flash Sale)
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed mt-1">
+                Tạo sự kiện ưu đãi, cấu hình % giảm giá cho các gói thành viên. Tự động hoàn về giá gốc khi hết hạn.
+              </p>
+            </div>
+            <div className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-rose-600 group-hover:translate-x-1 transition-transform">
+              <span>Vào Sự kiện Giảm giá</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </div>
+          </Link>
+
+          {/* Coupons Management */}
+          <Link
+            href="/admin/coupons"
+            className="bg-white border border-slate-200 hover:border-blue-400 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between"
+          >
+            <div>
+              <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Ticket className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                Quản lý Mã Giảm giá (Coupons)
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed mt-1">
+                Tạo và phát hành mã ưu đãi cùng số lượng giới hạn, theo dõi tiến độ lượt sử dụng thời gian thực.
+              </p>
+            </div>
+            <div className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-blue-600 group-hover:translate-x-1 transition-transform">
+              <span>Vào trang Mã Giảm giá</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </div>
           </Link>

@@ -12,6 +12,13 @@ export interface MembershipPlanResponse {
   description?: string;
   userType: PlanUserType;
   price: number;
+  originalPrice?: number;
+  discountedPrice?: number;
+  discountPercent?: number;
+  hasDiscount?: boolean;
+  activeEventName?: string;
+  activeEventEndTime?: string;
+  activeEventId?: string;
   salePrice?: number;
   currency: string;
   billingCycle: BillingCycle;

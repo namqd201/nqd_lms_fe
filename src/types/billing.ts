@@ -95,3 +95,10 @@ export interface UpsertCouponRequest {
   courseId?: string;
   isActive?: boolean;
 }
+
+export interface CouponStats {
+  totalCoupons: number;
+  activeCoupons: number;
+  totalUsed: number;
+  totalLimit: number;
+}

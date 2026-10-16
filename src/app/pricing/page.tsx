@@ -315,6 +315,16 @@ export default function PricingPage() {
                           </div>
                         ) : (
                           <div className="flex flex-col">
+                            {plan.hasDiscount && plan.originalPrice && plan.originalPrice > plan.price && (
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs text-slate-400 line-through font-semibold">
+                                  {plan.originalPrice.toLocaleString('vi-VN')} VND
+                                </span>
+                                <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-black text-[10px] animate-pulse">
+                                  -{plan.discountPercent}% SALE
+                                </span>
+                              </div>
+                            )}
                             <div className="flex items-baseline gap-1">
                               <span className={`text-3xl font-black ${isUltraCard ? 'bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent' : 'text-blue-600'}`}>
                                 {plan.price.toLocaleString('vi-VN')}
@@ -323,6 +333,11 @@ export default function PricingPage() {
                                 VND / {plan.billingCycle === 'YEARLY' ? 'năm' : 'tháng'}
                               </span>
                             </div>
+                            {plan.hasDiscount && plan.activeEventName && (
+                              <span className="text-[11px] font-bold text-rose-600 mt-0.5 flex items-center gap-1">
+                                🔥 {plan.activeEventName}
+                              </span>
+                            )}
                             {plan.billingCycle === 'YEARLY' && (
                               <span className="text-[11px] text-emerald-600 font-bold mt-0.5">
                                 ~ {Math.round(plan.price / 12).toLocaleString('vi-VN')} VND / tháng

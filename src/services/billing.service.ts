@@ -232,6 +232,30 @@ export const billingService = {
     return res.data ?? res;
   },
 
+  updateCoupon: async (
+    id: string,
+    payload: import('@/types/billing').UpsertCouponRequest
+  ): Promise<import('@/types/billing').CouponDto> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/coupons/manage/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+    const res = await handleApiResponse<any>(response, 'Không thể cập nhật mã giảm giá');
+    return res.data ?? res;
+  },
+
+  getCouponStats: async (): Promise<import('@/types/billing').CouponStats> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/coupons/manage/stats`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    const res = await handleApiResponse<any>(response, 'Không thể lấy thống kê mã giảm giá');
+    return res.data ?? res ?? { totalCoupons: 0, activeCoupons: 0, totalUsed: 0, totalLimit: 0 };
+  },
+
   toggleCoupon: async (id: string): Promise<import('@/types/billing').CouponDto> => {
     const response = await fetch(`${API_BASE_URL}/api/v1/coupons/manage/${id}/toggle`, {
       method: 'PUT',

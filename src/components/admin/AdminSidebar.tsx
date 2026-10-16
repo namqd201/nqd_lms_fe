@@ -23,6 +23,8 @@ import {
   BarChart3,
   GraduationCap,
   Presentation,
+  Flame,
+  Ticket,
 } from 'lucide-react';
 
 interface AdminMenuItem {
@@ -122,6 +124,18 @@ export const AdminSidebar: React.FC = () => {
           label: 'Quản lý Tài chính & Payout',
           icon: BarChart3,
           badge: 'Finance',
+        },
+        {
+          href: '/admin/promotions',
+          label: 'Sự kiện Giảm giá',
+          icon: Flame,
+          badge: 'Sale',
+        },
+        {
+          href: '/admin/coupons',
+          label: 'Mã Giảm giá (Coupons)',
+          icon: Ticket,
+          badge: 'Coupons',
         },
       ],
     },
