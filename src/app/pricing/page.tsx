@@ -19,6 +19,8 @@ import {
   ArrowRight,
   Loader2,
   AlertCircle,
+  Tag,
+  X,
 } from 'lucide-react';
 
 const FEATURE_MAP: Record<string, string> = {
@@ -63,6 +65,7 @@ export default function PricingPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [isCreatingOrder, setIsCreatingOrder] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState<string>('');
 
   const effectiveSub = currentSub || authSub;
 
@@ -117,7 +120,7 @@ export default function PricingPage() {
     try {
       setIsCreatingOrder(plan.id);
       setErrorMsg(null);
-      const order = await billingService.createMembershipOrder(plan.id);
+      const order = await billingService.createMembershipOrder(plan.id, couponCode.trim() || undefined);
       window.location.href = `/payment/${encodeURIComponent(order.orderCode)}`;
     } catch (err) {
       setErrorMsg(formatErrorMessage(err, 'Không thể khởi tạo đơn hàng đăng ký'));
@@ -224,6 +227,29 @@ export default function PricingPage() {
                   Tiết kiệm 33%
                 </span>
               </span>
+            </div>
+
+            {/* Promo / Coupon Input */}
+            <div className="pt-2 flex items-center justify-center">
+              <div className="inline-flex items-center gap-2 p-1.5 px-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs text-xs max-w-sm w-full">
+                <Tag className="w-4 h-4 text-blue-500 shrink-0" />
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  placeholder="Nhập mã ưu đãi / voucher (nếu có)..."
+                  className="w-full bg-transparent border-none text-xs font-mono uppercase focus:outline-hidden text-slate-800 placeholder:text-slate-400 placeholder:normal-case font-bold"
+                />
+                {couponCode && (
+                  <button
+                    onClick={() => setCouponCode('')}
+                    className="text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+                    title="Xóa mã"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 

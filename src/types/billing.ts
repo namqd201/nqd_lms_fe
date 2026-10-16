@@ -75,6 +75,9 @@ export interface CouponDto {
   validFrom: string;
   validUntil?: string;
   isActive: boolean;
+  planId?: string;
+  planName?: string;
+  targetPlanGroup?: 'ALL' | 'PRO' | 'ULTRA' | string;
   courseId?: string;
   courseName?: string;
   creatorId?: string;
@@ -92,7 +95,9 @@ export interface UpsertCouponRequest {
   usageLimit?: number;
   validFrom?: string;
   validUntil?: string;
-  courseId?: string;
+  planId?: string | null;
+  targetPlanGroup?: 'ALL' | 'PRO' | 'ULTRA' | string;
+  courseId?: string | null;
   isActive?: boolean;
 }
 

@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { billingService } from '@/services/billing.service';
-import { courseService } from '@/services/course.service';
+import { membershipService } from '@/services/membership.service';
 import { CouponDto, UpsertCouponRequest, DiscountType, CouponStats } from '@/types/billing';
+import { MembershipPlanResponse } from '@/types/membership';
 import { formatErrorMessage } from '@/utils/errorMessage';
 import {
   Ticket,
@@ -32,7 +33,7 @@ import {
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<CouponDto[]>([]);
   const [stats, setStats] = useState<CouponStats>({ totalCoupons: 0, activeCoupons: 0, totalUsed: 0, totalLimit: 0 });
-  const [courses, setCourses] = useState<{ id: string; name: string }[]>([]);
+  const [plans, setPlans] = useState<MembershipPlanResponse[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -60,7 +61,7 @@ export default function AdminCouponsPage() {
   const [maxDiscountAmount, setMaxDiscountAmount] = useState<string>('');
   const [validFrom, setValidFrom] = useState<string>('');
   const [validUntil, setValidUntil] = useState<string>('');
-  const [courseId, setCourseId] = useState<string>('');
+  const [scopeOption, setScopeOption] = useState<string>('ALL');
   const [isActive, setIsActive] = useState<boolean>(true);
 
   // Delete State
@@ -71,18 +72,14 @@ export default function AdminCouponsPage() {
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const [list, statsData, coursesData] = await Promise.all([
+      const [list, statsData, plansData] = await Promise.all([
         billingService.getManagedCoupons(),
         billingService.getCouponStats(),
-        courseService.getPublishedCourses().catch(() => []),
+        membershipService.getPlans().catch(() => []),
       ]);
       setCoupons(Array.isArray(list) ? list : []);
       if (statsData) setStats(statsData);
-      setCourses(
-        Array.isArray(coursesData)
-          ? coursesData.map((c: any) => ({ id: c.id, name: c.name || c.title }))
-          : []
-      );
+      setPlans(Array.isArray(plansData) ? plansData : []);
     } catch (err) {
       setErrorMsg(formatErrorMessage(err, 'Không thể tải danh sách mã giảm giá'));
     } finally {
@@ -148,7 +145,7 @@ export default function AdminCouponsPage() {
     setValidFrom(new Date().toISOString().split('T')[0]);
     const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     setValidUntil(in30Days);
-    setCourseId('');
+    setScopeOption('ALL');
     setIsActive(true);
     setModalError(null);
     setIsModalOpen(true);
@@ -167,7 +164,15 @@ export default function AdminCouponsPage() {
     setMaxDiscountAmount(coupon.maxDiscountAmount ? String(coupon.maxDiscountAmount) : '');
     setValidFrom(toDateInput(coupon.validFrom));
     setValidUntil(toDateInput(coupon.validUntil));
-    setCourseId(coupon.courseId || '');
+    if (coupon.planId) {
+      setScopeOption(`PLAN_${coupon.planId}`);
+    } else if (coupon.targetPlanGroup === 'PRO') {
+      setScopeOption('GROUP_PRO');
+    } else if (coupon.targetPlanGroup === 'ULTRA') {
+      setScopeOption('GROUP_ULTRA');
+    } else {
+      setScopeOption('ALL');
+    }
     setIsActive(coupon.isActive);
     setModalError(null);
     setIsModalOpen(true);
@@ -191,6 +196,17 @@ export default function AdminCouponsPage() {
       return;
     }
 
+    let targetPlanGroup: 'ALL' | 'PRO' | 'ULTRA' = 'ALL';
+    let planId: string | null = null;
+    if (scopeOption === 'GROUP_PRO') {
+      targetPlanGroup = 'PRO';
+    } else if (scopeOption === 'GROUP_ULTRA') {
+      targetPlanGroup = 'ULTRA';
+    } else if (scopeOption.startsWith('PLAN_')) {
+      planId = scopeOption.replace('PLAN_', '');
+      targetPlanGroup = 'ALL';
+    }
+
     setIsSaving(true);
     setModalError(null);
 
@@ -205,7 +221,8 @@ export default function AdminCouponsPage() {
       usageLimit: usageLimit ? Number(usageLimit) : undefined,
       validFrom: validFrom ? `${validFrom}T00:00:00` : undefined,
       validUntil: validUntil ? `${validUntil}T23:59:59` : undefined,
-      courseId: courseId || undefined,
+      targetPlanGroup,
+      planId,
       isActive,
     };
 
@@ -586,13 +603,22 @@ export default function AdminCouponsPage() {
 
                       {/* Scope */}
                       <td className="py-4 px-4">
-                        {coupon.courseName ? (
-                          <span className="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
-                            Khóa: {coupon.courseName}
+                        {coupon.planName ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                            <span>Gói: {coupon.planName}</span>
+                          </span>
+                        ) : coupon.targetPlanGroup === 'ULTRA' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-black bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-2xs">
+                            <Sparkles className="w-3 h-3 fill-white" />
+                            <span>Chỉ gói ULTRA</span>
+                          </span>
+                        ) : coupon.targetPlanGroup === 'PRO' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                            <span>Chỉ các gói PRO</span>
                           </span>
                         ) : (
-                          <span className="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-700">
-                            Toàn hệ thống
+                          <span className="inline-block px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                            Tất cả gói Pro & Ultra
                           </span>
                         )}
                       </td>
@@ -817,19 +843,28 @@ export default function AdminCouponsPage() {
 
               {/* Phạm vi áp dụng */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Phạm vi áp dụng</label>
+                <label className="text-xs font-bold text-slate-700">Phạm vi áp dụng gói hội viên *</label>
                 <select
-                  value={courseId}
-                  onChange={(e) => setCourseId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={scopeOption}
+                  onChange={(e) => setScopeOption(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="">Toàn hệ thống (Mọi khóa học & gói hội viên)</option>
-                  {courses.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      Chỉ riêng khóa học: {c.name}
-                    </option>
-                  ))}
+                  <option value="ALL">Toàn bộ gói hội viên (Cả gói PRO & ULTRA)</option>
+                  <option value="GROUP_PRO">⭐ Chỉ áp dụng cho các Gói PRO (Học sinh & Giáo viên)</option>
+                  <option value="GROUP_ULTRA">👑 Chỉ áp dụng cho Gói ULTRA (Học sinh Ultra)</option>
+                  {plans.length > 0 && (
+                    <optgroup label="Áp dụng riêng cho từng gói cụ thể:">
+                      {plans.map((p) => (
+                        <option key={p.id} value={`PLAN_${p.id}`}>
+                          Chỉ riêng: {p.name} ({p.billingCycle === 'YEARLY' ? 'Gói Năm' : 'Gói Tháng'} - {Number(p.price).toLocaleString('vi-VN')}đ)
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
+                <p className="text-[11px] text-slate-400">
+                  Chọn nhóm gói PRO, gói ULTRA hoặc gói cụ thể để mã giảm giá chỉ có hiệu lực khi học viên thanh toán gói tương ứng.
+                </p>
               </div>
 
               {/* Mô tả */}

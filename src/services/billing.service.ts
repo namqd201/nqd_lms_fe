@@ -208,8 +208,11 @@ export const billingService = {
     return res.data ?? res ?? [];
   },
 
-  getManagedCoupons: async (courseId?: string): Promise<import('@/types/billing').CouponDto[]> => {
-    const qs = courseId ? `?courseId=${encodeURIComponent(courseId)}` : '';
+  getManagedCoupons: async (planId?: string, courseId?: string): Promise<import('@/types/billing').CouponDto[]> => {
+    const params = new URLSearchParams();
+    if (planId) params.append('planId', planId);
+    if (courseId) params.append('courseId', courseId);
+    const qs = params.toString() ? `?${params.toString()}` : '';
     const response = await fetch(`${API_BASE_URL}/api/v1/coupons/manage${qs}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
