@@ -20,9 +20,32 @@ import {
   Clock,
   ExternalLink,
   Radio,
+  RotateCw,
 } from 'lucide-react';
+import katex from 'katex';
 import { gamificationService, GamificationDashboardData } from '@/services/gamification.service';
 import { labService, LabRoomItem } from '@/services/lab.service';
+
+const MATH_COPILOT_FORMULAS = [
+  {
+    title: '// Tính chất tuyến tính của Tích phân:',
+    latex: '\\int_{a}^{b} \\left[ f(x) \\pm g(x) \\right] dx = \\int_{a}^{b} f(x) \\, dx \\pm \\int_{a}^{b} g(x) \\, dx',
+    step: '✓ Phân tích: Tách thành hai tích phân cơ bản để tính nhanh',
+    query: 'tinh+chat+tuyen+tinh+tich+phan',
+  },
+  {
+    title: '// Công thức Tích phân Gauss:',
+    latex: '\\int_{0}^{\\infty} e^{-x^2} \\, dx = \\frac{\\sqrt{\\pi}}{2}',
+    step: '✓ Phân tích bước 1: Đổi sang hệ tọa độ cực r, θ',
+    query: 'giai+tich+phan+gauss',
+  },
+  {
+    title: '// Công thức Tích phân từng phần:',
+    latex: '\\int u \\, dv = u \\cdot v - \\int v \\, du',
+    step: '✓ Quy tắc đặt: Nhất lô, nhì đa, tam lượng, tứ mũ',
+    query: 'tich+phan+tung+phan',
+  },
+];
 
 function getSpeakerInitials(name?: string) {
   if (!name) return 'GV';
@@ -54,6 +77,7 @@ export default function Home() {
   const [claiming, setClaiming] = useState(false);
   const [activeLab, setActiveLab] = useState<LabRoomItem | null>(null);
   const [isLoadingLab, setIsLoadingLab] = useState<boolean>(true);
+  const [formulaIndex, setFormulaIndex] = useState<number>(0);
 
   const isAdmin = user?.roles?.some((r) => r === 'ADMIN' || r === 'ROLE_ADMIN');
   const isTeacher = user?.roles?.some((r) => r === 'TEACHER' || r === 'ROLE_TEACHER');
@@ -92,6 +116,14 @@ export default function Home() {
     }, 7000);
     return () => clearInterval(timer);
   }, [slides.length]);
+
+  // Auto-switch math formulas every 7 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setFormulaIndex((prev) => (prev + 1) % MATH_COPILOT_FORMULAS.length);
+    }, 7000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Load real gamification metrics (Streak, XP, Missions, Weekly study)
   useEffect(() => {
@@ -496,21 +528,45 @@ export default function Home() {
                   <div className="flex-1 bg-gradient-to-b from-slate-900/95 to-slate-950/95 border border-indigo-500/30 rounded-2xl p-4 backdrop-blur-xl shadow-xl hover:border-cyan-400/50 transition-all">
                     <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                       <div className="flex items-center gap-2">
-                        <span className="text-indigo-400 text-sm font-serif">∑</span>
+                        <span className="text-indigo-400 text-sm font-serif font-bold">∑</span>
                         <span className="text-xs font-bold text-slate-200">AI LaTeX Copilot</span>
                       </div>
-                      <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40">
-                        Real-time Solver
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40">
+                          Real-time Solver
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setFormulaIndex((prev) => (prev + 1) % MATH_COPILOT_FORMULAS.length)}
+                          className="p-1 text-slate-400 hover:text-cyan-300 transition cursor-pointer"
+                          title="Đổi công thức tiếp theo"
+                        >
+                          <RotateCw className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="mt-2.5 bg-slate-950 rounded-xl p-2.5 border border-slate-800 font-mono text-[11px] text-cyan-300 space-y-1">
-                      <div className="text-slate-400 text-[10px]">// Công thức Tích phân Gauss:</div>
-                      <div className="text-white font-semibold tracking-wide py-0.5 bg-indigo-950/40 px-2 rounded border border-indigo-800/40 overflow-x-auto">
-                        \int_{0}^{'{'}\infty{'}'} e^{'{'}-x^2{'}'} dx = \frac{'{'}\sqrt{'{'}\pi{'}'}{'}'}{'{'}2{'}'}
+                    <div className="mt-2.5 bg-slate-950/90 rounded-xl p-2.5 border border-slate-800 font-mono text-[11px] text-cyan-300 space-y-1.5 shadow-inner">
+                      <div className="text-slate-400 text-[10px] flex items-center justify-between">
+                        <span>{MATH_COPILOT_FORMULAS[formulaIndex].title}</span>
+                        <span className="text-[9px] text-slate-500 font-sans">
+                          {formulaIndex + 1}/{MATH_COPILOT_FORMULAS.length}
+                        </span>
                       </div>
+
+                      {/* Mathematical Equation rendered via KaTeX typography */}
+                      <div
+                        className="py-2 px-3 bg-gradient-to-r from-slate-950/90 via-indigo-950/40 to-slate-950/90 rounded-xl border border-indigo-500/30 overflow-x-auto text-white flex items-center justify-center min-h-[50px] select-none text-base sm:text-lg [&_.katex]:text-white [&_.katex-display]:my-0 shadow-inner"
+                        dangerouslySetInnerHTML={{
+                          __html: katex.renderToString(MATH_COPILOT_FORMULAS[formulaIndex].latex, {
+                            displayMode: true,
+                            throwOnError: false,
+                          }),
+                        }}
+                      />
+
                       <div className="text-[10px] text-emerald-400 flex items-center gap-1.5 pt-0.5">
-                        <span>✓ Phân tích bước 1: Đổi sang tọa độ cực r, θ</span>
+                        <span>{MATH_COPILOT_FORMULAS[formulaIndex].step}</span>
                       </div>
                     </div>
 
@@ -519,7 +575,7 @@ export default function Home() {
                         Độ chính xác: <strong className="text-emerald-400 font-semibold">99.8%</strong>
                       </span>
                       <Link
-                        href="/ai-tutor?q=giai+tich+phan+gauss"
+                        href={`/ai-tutor?q=${MATH_COPILOT_FORMULAS[formulaIndex].query}`}
                         className="text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-0.5"
                       >
                         <span>Xem giải chi tiết</span>
