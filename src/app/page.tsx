@@ -15,8 +15,33 @@ import {
   ChevronRight,
   ChevronLeft,
   Trophy,
+  FlaskConical,
+  Calendar,
+  Clock,
+  ExternalLink,
+  Radio,
 } from 'lucide-react';
 import { gamificationService, GamificationDashboardData } from '@/services/gamification.service';
+import { labService, LabRoomItem } from '@/services/lab.service';
+
+function getSpeakerInitials(name?: string) {
+  if (!name) return 'GV';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function formatScheduledTime(dateStr?: string) {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const date = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+    return `${time} • ${date}`;
+  } catch {
+    return dateStr;
+  }
+}
 
 export default function Home() {
   const { user, isLoading, isAuthenticated, loginWithGoogle } = useAuth();
@@ -27,6 +52,8 @@ export default function Home() {
   const [rewardClaimed, setRewardClaimed] = useState(false);
   const [gamification, setGamification] = useState<GamificationDashboardData | null>(null);
   const [claiming, setClaiming] = useState(false);
+  const [activeLab, setActiveLab] = useState<LabRoomItem | null>(null);
+  const [isLoadingLab, setIsLoadingLab] = useState<boolean>(true);
 
   const isAdmin = user?.roles?.some((r) => r === 'ADMIN' || r === 'ROLE_ADMIN');
   const isTeacher = user?.roles?.some((r) => r === 'TEACHER' || r === 'ROLE_TEACHER');
@@ -78,6 +105,39 @@ export default function Home() {
         .catch((err) => console.error('Failed to load gamification dashboard', err));
     }
   }, [isAuthenticated]);
+
+  // Load real-time active or upcoming public Lab room for the hero widget
+  useEffect(() => {
+    let isMounted = true;
+    labService
+      .getPublicLabs()
+      .then((rooms) => {
+        if (!isMounted) return;
+        if (rooms && rooms.length > 0) {
+          // Prioritize: 1st live room, else 1st scheduled room
+          const liveRoom = rooms.find((r) => r.status === 'LIVE');
+          if (liveRoom) {
+            setActiveLab(liveRoom);
+          } else {
+            const scheduledRoom = rooms.find((r) => r.status === 'SCHEDULED');
+            setActiveLab(scheduledRoom || null);
+          }
+        } else {
+          setActiveLab(null);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load public lab rooms for hero widget', err);
+        if (isMounted) setActiveLab(null);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingLab(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleClaimReward = async () => {
     if (!gamification || claiming) return;
@@ -267,53 +327,170 @@ export default function Home() {
 
                 {/* Hero Bento Side Widgets */}
                 <div className="w-full xl:w-96 flex flex-col sm:flex-row xl:flex-col gap-3.5 shrink-0 justify-between">
-                  {/* Interactive Widget 1: Live Interactive Classroom */}
-                  <div className="flex-1 bg-slate-900/90 border border-slate-700/70 rounded-2xl p-4 backdrop-blur-xl shadow-xl hover:border-blue-500/50 transition-all group">
-                    <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 ring-4 ring-emerald-500/20" />
-                        <span className="text-xs font-bold text-white tracking-wide">Phòng Lab Trực Tuyến #04</span>
-                      </div>
-                      <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded-full border border-cyan-800/50">
-                        48 Đang học
-                      </span>
-                    </div>
-
-                    <div className="mt-3 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-xs ring-2 ring-blue-400">
-                            TS
-                          </div>
-                          <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-[#090d16] rounded-full" />
+                  {/* Interactive Widget 1: Real-time Live Interactive Lab Room */}
+                  {isLoadingLab ? (
+                    <div className="flex-1 bg-slate-900/90 border border-slate-700/70 rounded-2xl p-4 backdrop-blur-xl shadow-xl flex flex-col justify-between animate-pulse">
+                      <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-slate-700" />
+                          <span className="h-4 w-32 bg-slate-800 rounded" />
                         </div>
-                        <div>
-                          <p className="text-xs font-semibold text-white">TS. Trần Quang Hưng</p>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <span className="text-[11px] text-slate-400">Đang phát biểu:</span>
-                            <div className="flex items-end gap-0.5 h-3 ml-1">
-                              <span className="w-1 bg-cyan-400 rounded-full wave-1" />
-                              <span className="w-1 bg-cyan-400 rounded-full wave-2" />
-                              <span className="w-1 bg-cyan-400 rounded-full wave-3" />
-                              <span className="w-1 bg-cyan-400 rounded-full wave-4" />
-                            </div>
+                        <span className="h-4 w-16 bg-slate-800 rounded-full" />
+                      </div>
+                      <div className="mt-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-slate-800" />
+                          <div className="space-y-1.5">
+                            <div className="h-3 w-24 bg-slate-800 rounded" />
+                            <div className="h-2.5 w-32 bg-slate-800 rounded" />
                           </div>
                         </div>
+                        <div className="h-7 w-20 bg-slate-800 rounded-xl" />
+                      </div>
+                      <div className="mt-3 h-8 bg-slate-950/60 rounded-xl border border-slate-800" />
+                    </div>
+                  ) : activeLab ? (
+                    // Case 1 & Case 2: There is a LIVE or an UPCOMING SCHEDULED Lab
+                    <div className="flex-1 bg-slate-900/90 border border-slate-700/70 rounded-2xl p-4 backdrop-blur-xl shadow-xl hover:border-blue-500/50 transition-all group">
+                      <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
+                        <div className="flex items-center gap-2 min-w-0 pr-2">
+                          {activeLab.status === 'LIVE' ? (
+                            <span className="relative flex h-2.5 w-2.5 shrink-0">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                            </span>
+                          ) : (
+                            <span className="w-2.5 h-2.5 rounded-full bg-blue-400 ring-4 ring-blue-500/20 shrink-0" />
+                          )}
+                          <span className="text-xs font-bold text-white tracking-wide truncate">
+                            {activeLab.title || 'Phòng Lab Trực Tuyến'}
+                          </span>
+                        </div>
+
+                        {activeLab.status === 'LIVE' ? (
+                          <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/70 px-2 py-0.5 rounded-full border border-emerald-600/50 flex items-center gap-1 shrink-0 animate-pulse">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            ĐANG LIVE
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-mono font-bold text-cyan-300 bg-cyan-950/70 px-2 py-0.5 rounded-full border border-cyan-800/50 flex items-center gap-1 shrink-0">
+                            <Clock className="w-3 h-3 text-cyan-400" />
+                            SẮP DIỄN RA
+                          </span>
+                        )}
                       </div>
 
-                      <Link
-                        href="/courses"
-                        className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md shadow-blue-600/30 group-hover:scale-105 transition-all"
-                      >
-                        Vào tức thì
-                      </Link>
-                    </div>
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="relative shrink-0">
+                            {activeLab.hostAvatarUrl ? (
+                              <img
+                                src={activeLab.hostAvatarUrl}
+                                alt={activeLab.speakerName}
+                                className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-400"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-xs ring-2 ring-blue-400 text-white">
+                                {getSpeakerInitials(activeLab.speakerName)}
+                              </div>
+                            )}
+                            {activeLab.status === 'LIVE' && (
+                              <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-[#090d16] rounded-full ring-1 ring-emerald-400" />
+                            )}
+                          </div>
 
-                    <div className="mt-3 bg-slate-950/60 rounded-xl p-2 border border-slate-800 text-[11px] text-slate-300 flex items-center gap-2">
-                      <span className="text-blue-400 font-mono text-xs">●</span>
-                      <span className="truncate">Chuyên đề: Thuật toán Tối ưu Hóa Lồi & SVMs</span>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-white truncate">
+                              {activeLab.speakerName || 'Giảng viên phụ trách'}
+                            </p>
+                            {activeLab.status === 'LIVE' ? (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <span className="text-[11px] text-slate-400">Đang phát trực tiếp:</span>
+                                <div className="flex items-end gap-0.5 h-3 ml-1">
+                                  <span className="w-1 bg-cyan-400 rounded-full wave-1" />
+                                  <span className="w-1 bg-cyan-400 rounded-full wave-2" />
+                                  <span className="w-1 bg-cyan-400 rounded-full wave-3" />
+                                  <span className="w-1 bg-cyan-400 rounded-full wave-4" />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1 mt-0.5 text-[11px] text-cyan-400">
+                                <Calendar className="w-3 h-3 text-cyan-400" />
+                                <span>{formatScheduledTime(activeLab.scheduledStartTime)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {activeLab.status === 'LIVE' && activeLab.guestMeetingUrl ? (
+                          <a
+                            href={activeLab.guestMeetingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-blue-600/30 group-hover:scale-105 transition-all flex items-center gap-1 shrink-0"
+                          >
+                            <span>Vào tức thì</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        ) : (
+                          <Link
+                            href="/labs"
+                            className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md shadow-blue-600/30 group-hover:scale-105 transition-all flex items-center gap-1 shrink-0"
+                          >
+                            <span>Vào phòng Lab</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </Link>
+                        )}
+                      </div>
+
+                      <div className="mt-3 bg-slate-950/60 rounded-xl p-2 border border-slate-800 text-[11px] text-slate-300 flex items-center gap-2">
+                        <span className={activeLab.status === 'LIVE' ? 'text-emerald-400 font-mono text-xs' : 'text-blue-400 font-mono text-xs'}>
+                          ●
+                        </span>
+                        <span className="truncate">
+                          {activeLab.description || `Chuyên đề: ${activeLab.title}`}
+                        </span>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    // Case 3: No Lab is currently live and no upcoming scheduled Lab
+                    <div className="flex-1 bg-slate-900/90 border border-slate-700/70 rounded-2xl p-4 backdrop-blur-xl shadow-xl hover:border-indigo-500/50 transition-all group">
+                      <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-slate-500 ring-4 ring-slate-600/20" />
+                          <span className="text-xs font-bold text-white tracking-wide">Phòng Lab Trực Tuyến</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700">
+                          Phòng Lab 24/7
+                        </span>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-900/50 via-blue-900/40 to-slate-800 border border-indigo-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+                            <FlaskConical className="w-5 h-5 text-cyan-400" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-white">Chưa có phiên Live trực tiếp</p>
+                            <p className="text-[11px] text-slate-400 truncate">Vào sảnh Lab để mở phòng hoặc xem video</p>
+                          </div>
+                        </div>
+
+                        <Link
+                          href="/labs"
+                          className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30 group-hover:scale-105 transition-all flex items-center gap-1 shrink-0"
+                        >
+                          <span>Vào sảnh Lab</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
+
+                      <div className="mt-3 bg-slate-950/60 rounded-xl p-2 border border-slate-800 text-[11px] text-slate-400 flex items-center gap-2">
+                        <span className="text-indigo-400 font-mono text-xs">●</span>
+                        <span className="truncate">Sảnh Lab hỗ trợ tạo phòng 100ms Live Call hoặc xem lại video bài giảng lưu trữ.</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Interactive Widget 2: AI LaTeX Copilot Live Solver */}
                   <div className="flex-1 bg-gradient-to-b from-slate-900/95 to-slate-950/95 border border-indigo-500/30 rounded-2xl p-4 backdrop-blur-xl shadow-xl hover:border-cyan-400/50 transition-all">
