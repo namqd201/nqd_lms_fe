@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { CheckCircle2, Copy, Loader2, QrCode, AlertCircle, Tag, X, Check } from 'lucide-react';
+import Link from 'next/link';
+import { CheckCircle2, Copy, Loader2, QrCode, AlertCircle, Tag, X, Check, Trash2, XCircle } from 'lucide-react';
 import { billingService } from '@/services/billing.service';
 import { OrderResponse } from '@/types/billing';
 import { useAuth } from '@/context/AuthContext';
@@ -29,6 +30,7 @@ export default function PaymentPage() {
   const [couponInput, setCouponInput] = useState<string>('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState<boolean>(false);
   const [couponMsg, setCouponMsg] = useState<{ text: string; isError: boolean } | null>(null);
+  const [isCancelling, setIsCancelling] = useState<boolean>(false);
 
   const loadOrder = useCallback(async () => {
     const current = await billingService.getOrderByCode(orderCode);
@@ -47,7 +49,7 @@ export default function PaymentPage() {
         if (!active) return;
         setConfig({ bankCode: cfg.bankCode, accountNumber: cfg.accountNumber, accountName: cfg.accountName });
         if (current.status === 'PAID') setSuccess(true);
-        else {
+        else if (current.status !== 'CANCELLED') {
           const created = await billingService.initiatePayment(current.id, 'VIETQR');
           if (active) setPayment(created);
         }
@@ -59,7 +61,7 @@ export default function PaymentPage() {
   }, [loadOrder]);
 
   useEffect(() => {
-    if (success) return;
+    if (success || order?.status === 'CANCELLED') return;
     const timer = setInterval(async () => {
       try {
         const current = await loadOrder();
@@ -72,13 +74,29 @@ export default function PaymentPage() {
       }
     }, 2000);
     return () => clearInterval(timer);
-  }, [loadOrder, refreshUser, success]);
+  }, [loadOrder, refreshUser, success, order?.status]);
 
   useEffect(() => {
     if (!success) return;
     const timer = window.setTimeout(() => router.push('/'), 3000);
     return () => window.clearTimeout(timer);
   }, [router, success]);
+
+  const handleCancelOrder = async () => {
+    if (!order) return;
+    if (!window.confirm(`Bạn có chắc chắn muốn hủy đơn hàng #${order.orderCode}?`)) {
+      return;
+    }
+    setIsCancelling(true);
+    try {
+      const updated = await billingService.cancelOrder(order.orderCode, 'Người dùng chủ động hủy trên trang thanh toán');
+      setOrder(updated);
+    } catch (err) {
+      alert(formatErrorMessage(err, 'Không thể hủy đơn hàng'));
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const handleApplyCoupon = async () => {
     if (!order || !couponInput.trim()) return;
@@ -134,6 +152,37 @@ export default function PaymentPage() {
 
   if (!order) {
     return <div className="min-h-full flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
+  }
+
+  if (order.status === 'CANCELLED') {
+    return (
+      <div className="min-h-full flex items-center justify-center p-6">
+        <div className="max-w-lg w-full rounded-3xl bg-white border border-slate-200 shadow-xl p-10 text-center">
+          <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-4 border border-rose-100">
+            <XCircle className="w-10 h-10" />
+          </div>
+          <h1 className="text-2xl font-black text-slate-900">Đơn hàng đã được hủy</h1>
+          <p className="mt-3 text-slate-600 text-sm">
+            Bạn đã hủy đơn hàng này thành công. Bạn có thể chọn mua lại hoặc tham khảo các khóa học và gói hội viên khác bất kỳ lúc nào.
+          </p>
+          <p className="mt-4 text-xs font-mono text-slate-400">#{order.orderCode}</p>
+          <div className="mt-6 flex items-center justify-center gap-3">
+            <Link
+              href="/orders"
+              className="px-5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs transition"
+            >
+              Lịch sử mua hàng
+            </Link>
+            <Link
+              href="/pricing"
+              className="px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs transition shadow-xs"
+            >
+              Xem gói hội viên VIP
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const qrUrl = (config.accountNumber && config.bankCode)
@@ -232,9 +281,23 @@ export default function PaymentPage() {
               </div>
             )}
 
-            <div className="flex items-center gap-2 text-xs text-blue-600">
-              <Loader2 className="w-4 h-4 animate-spin" /> Đang chờ xác nhận thanh toán tự động...
-            </div>
+            {order.status === 'PENDING' && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                <div className="flex items-center gap-2 text-xs text-blue-600 font-medium">
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                  <span>Đang chờ xác nhận thanh toán tự động...</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCancelOrder}
+                  disabled={isCancelling}
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50/60 hover:bg-rose-100/80 text-rose-600 font-bold text-xs transition cursor-pointer disabled:opacity-50 shrink-0"
+                >
+                  {isCancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  <span>Hủy đơn này</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

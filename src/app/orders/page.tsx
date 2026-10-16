@@ -87,6 +87,7 @@ export default function OrdersPage() {
     if (!window.confirm(`Bạn có chắc chắn muốn hủy đơn hàng #${orderCode}?`)) {
       return;
     }
+    setErrorMsg(null);
     try {
       setCancellingCode(orderCode);
       await billingService.cancelOrder(orderCode, isAdmin ? 'Admin hủy đơn hàng' : 'Người dùng chủ động hủy');
