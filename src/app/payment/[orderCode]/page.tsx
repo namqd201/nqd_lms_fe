@@ -92,6 +92,13 @@ export default function PaymentPage() {
       if (updated.status === 'PAID') {
         setSuccess(true);
         await refreshUser();
+      } else {
+        try {
+          const newPayment = await billingService.initiatePayment(updated.id, 'VIETQR');
+          setPayment(newPayment);
+        } catch {
+          // Dynamic SePay URL remains active fallback
+        }
       }
     } catch (err) {
       setCouponMsg({ text: formatErrorMessage(err, 'Không thể áp dụng mã giảm giá'), isError: true });
@@ -108,6 +115,12 @@ export default function PaymentPage() {
       const updated = await billingService.removeCoupon(order.id);
       setOrder(updated);
       setCouponMsg({ text: 'Đã gỡ mã giảm giá.', isError: false });
+      try {
+        const newPayment = await billingService.initiatePayment(updated.id, 'VIETQR');
+        setPayment(newPayment);
+      } catch {
+        // Dynamic SePay URL remains active fallback
+      }
     } catch (err) {
       setCouponMsg({ text: formatErrorMessage(err, 'Không thể gỡ mã giảm giá'), isError: true });
     } finally {
@@ -123,7 +136,9 @@ export default function PaymentPage() {
     return <div className="min-h-full flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
   }
 
-  const qrUrl = payment?.qrCode || `https://qr.sepay.vn/img?acc=${config.accountNumber}&bank=${config.bankCode}&amount=${order.finalAmount}&des=${encodeURIComponent(order.orderCode)}&template=compact2`;
+  const qrUrl = (config.accountNumber && config.bankCode)
+    ? `https://qr.sepay.vn/img?acc=${encodeURIComponent(config.accountNumber)}&bank=${encodeURIComponent(config.bankCode)}&amount=${Math.round(order.finalAmount)}&des=${encodeURIComponent(order.orderCode)}&template=compact2`
+    : (payment?.qrCode || '');
 
   if (success) {
     return <div className="min-h-full flex items-center justify-center p-6"><div className="max-w-lg w-full rounded-3xl bg-white border border-emerald-200 shadow-xl p-10 text-center"><CheckCircle2 className="w-20 h-20 mx-auto text-emerald-500" /><h1 className="mt-5 text-2xl font-black text-slate-900">Thanh toán thành công!</h1><p className="mt-3 text-slate-600">Gói hội viên của bạn đã được kích hoạt. Bạn sẽ được chuyển về trang chủ sau 3 giây.</p><p className="mt-4 text-xs font-mono text-slate-400">#{order.orderCode}</p></div></div>;
