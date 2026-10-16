@@ -28,7 +28,7 @@ import { labService, LabRoomItem } from '@/services/lab.service';
 import { studentService } from '@/services/student.service';
 import { courseService } from '@/services/course.service';
 import { examService } from '@/services/exam.service';
-import { StudentResumeLearningResponse, ResumeCourseDto, ResumeExamDto } from '@/types/student';
+import { StudentResumeLearningResponse, ResumeCourseDto, ResumeExamDto, WeeklyScheduleEventDto } from '@/types/student';
 
 const MATH_COPILOT_FORMULAS = [
   {
@@ -88,6 +88,10 @@ export default function Home() {
   const [isLoadingResume, setIsLoadingResume] = useState<boolean>(true);
   const [selectedCourseIndex, setSelectedCourseIndex] = useState<number>(0);
   const [selectedExamIndex, setSelectedExamIndex] = useState<number>(0);
+
+  // Real Weekly Schedule & Live Events State
+  const [weeklyEvents, setWeeklyEvents] = useState<WeeklyScheduleEventDto[]>([]);
+  const [isLoadingWeekly, setIsLoadingWeekly] = useState<boolean>(true);
 
   const isAdmin = user?.roles?.some((r) => r === 'ADMIN' || r === 'ROLE_ADMIN');
   const isTeacher = user?.roles?.some((r) => r === 'TEACHER' || r === 'ROLE_TEACHER');
@@ -249,8 +253,12 @@ export default function Home() {
         .getResumeLearning()
         .then((data) => {
           if (!isMounted) return;
-          if (data && (data.inProgressCourse || data.inProgressExam)) {
+          if (data && (data.inProgressCourse || data.inProgressExam || data.weeklyEvents)) {
             setResumeData(data);
+            if (data.weeklyEvents && data.weeklyEvents.length > 0) {
+              setWeeklyEvents(data.weeklyEvents);
+              setIsLoadingWeekly(false);
+            }
             setIsLoadingResume(false);
           } else {
             loadPublicFallback();
@@ -263,6 +271,30 @@ export default function Home() {
     } else {
       loadPublicFallback();
     }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated]);
+
+  // Load real weekly schedule and live events for this current week
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoadingWeekly(true);
+    studentService
+      .getWeeklySchedule()
+      .then((events) => {
+        if (!isMounted) return;
+        if (events && events.length > 0) {
+          setWeeklyEvents(events);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not load weekly schedule events:', err);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingWeekly(false);
+      });
 
     return () => {
       isMounted = false;
@@ -1480,52 +1512,116 @@ export default function Home() {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Event 1 */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-blue-50/50 hover:border-blue-200 transition-all flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-white border border-slate-200 text-center shrink-0 w-12">
-                  <span className="block text-[10px] font-bold text-red-500 uppercase">T.Sáu</span>
-                  <span className="block text-base font-extrabold text-slate-800">24</span>
-                </div>
-                <div className="space-y-0.5">
-                  <span className="inline-block px-1.5 py-0.5 text-[10px] font-semibold bg-emerald-100 text-emerald-700 rounded">
-                    20:00 - 21:30
-                  </span>
-                  <h4 className="text-xs font-bold text-slate-800">Workshop: Ứng dụng Prompt AI trong Giải Toán</h4>
-                  <p className="text-[11px] text-slate-400">Giảng viên: ThS. Nguyễn Quốc Dũng</p>
-                </div>
+            {isLoadingWeekly && weeklyEvents.length === 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[1, 2, 3].map((idx) => (
+                  <div key={idx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-start gap-3 animate-pulse">
+                    <div className="p-2 rounded-xl bg-slate-200 shrink-0 w-12 h-14" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-4 bg-slate-200 rounded w-20" />
+                      <div className="h-4 bg-slate-200 rounded w-full" />
+                      <div className="h-3 bg-slate-200 rounded w-2/3" />
+                    </div>
+                  </div>
+                ))}
               </div>
+            ) : weeklyEvents.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {weeklyEvents.map((evt) => {
+                  const todayDay = new Date().getDate();
+                  const isToday = evt.dayOfMonth === todayDay;
 
-              {/* Event 2 */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-blue-50/50 hover:border-blue-200 transition-all flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-white border border-slate-200 text-center shrink-0 w-12">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">T.Bảy</span>
-                  <span className="block text-base font-extrabold text-slate-800">25</span>
-                </div>
-                <div className="space-y-0.5">
-                  <span className="inline-block px-1.5 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-700 rounded">
-                    14:00 - 16:00
-                  </span>
-                  <h4 className="text-xs font-bold text-slate-800">Thi thử ĐGNL ĐHQG Lần 3 (Quiz Bảo Mật)</h4>
-                  <p className="text-[11px] text-slate-400">Thời gian: 150 phút • 120 câu hỏi</p>
-                </div>
+                  return (
+                    <Link
+                      key={evt.id}
+                      href={evt.targetUrl || '/labs'}
+                      className={`p-3.5 rounded-2xl border transition-all flex items-start gap-3 group ${
+                        evt.isLiveNow
+                          ? 'bg-red-50/40 border-red-200 hover:bg-red-50 hover:border-red-300 shadow-xs'
+                          : isToday
+                          ? 'bg-blue-50/30 border-blue-200 hover:bg-blue-50/60 hover:border-blue-300'
+                          : 'bg-slate-50 border-slate-100 hover:bg-blue-50/50 hover:border-blue-200'
+                      }`}
+                    >
+                      <div
+                        className={`p-2 rounded-xl text-center shrink-0 w-12 border transition-colors ${
+                          evt.isLiveNow
+                            ? 'bg-white border-red-200 shadow-xs'
+                            : isToday
+                            ? 'bg-white border-blue-200'
+                            : 'bg-white border-slate-200'
+                        }`}
+                      >
+                        <span
+                          className={`block text-[10px] font-bold uppercase ${
+                            evt.isLiveNow
+                              ? 'text-red-600'
+                              : isToday
+                              ? 'text-blue-600'
+                              : 'text-slate-500'
+                          }`}
+                        >
+                          {evt.dayOfWeekText}
+                        </span>
+                        <span
+                          className={`block text-base font-extrabold ${
+                            evt.isLiveNow
+                              ? 'text-red-600'
+                              : isToday
+                              ? 'text-blue-600'
+                              : 'text-slate-800'
+                          }`}
+                        >
+                          {evt.dayOfMonth}
+                        </span>
+                      </div>
+                      <div className="space-y-0.5 flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span
+                            className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded border ${
+                              evt.isLiveNow
+                                ? 'bg-red-100 text-red-700 border-red-200'
+                                : evt.badgeColor === 'emerald'
+                                ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                                : evt.badgeColor === 'blue'
+                                ? 'bg-blue-100 text-blue-700 border-blue-200'
+                                : evt.badgeColor === 'purple'
+                                ? 'bg-purple-100 text-purple-700 border-purple-200'
+                                : evt.badgeColor === 'amber'
+                                ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                : 'bg-slate-100 text-slate-700 border-slate-200'
+                            }`}
+                          >
+                            {evt.isLiveNow && (
+                              <span className="relative flex h-1.5 w-1.5 mr-1">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span>
+                              </span>
+                            )}
+                            {evt.timeRange}
+                          </span>
+                          {isToday && !evt.isLiveNow && (
+                            <span className="text-[10px] font-bold text-blue-600 bg-blue-100/60 px-1.5 py-0.5 rounded">
+                              Hôm nay
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="text-xs font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">
+                          {evt.title}
+                        </h4>
+                        <p className="text-[11px] text-slate-400 truncate">
+                          {evt.subtitle || 'NQD-LMS Trực Tuyến'}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
-
-              {/* Event 3 */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-blue-50/50 hover:border-blue-200 transition-all flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-white border border-slate-200 text-center shrink-0 w-12">
-                  <span className="block text-[10px] font-bold text-slate-400 uppercase">C.Nhật</span>
-                  <span className="block text-base font-extrabold text-slate-800">26</span>
-                </div>
-                <div className="space-y-0.5">
-                  <span className="inline-block px-1.5 py-0.5 text-[10px] font-semibold bg-purple-100 text-purple-700 rounded">
-                    23:59 Deadline
-                  </span>
-                  <h4 className="text-xs font-bold text-slate-800">Nộp bài tập lớn: Phân tích Dữ liệu Sinh học</h4>
-                  <p className="text-[11px] text-slate-400">Chấm điểm tự động qua NQD-LMS AI</p>
-                </div>
+            ) : (
+              <div className="py-6 text-center text-xs text-slate-500 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                Chưa có sự kiện hoặc lịch học trực tiếp nào được lên lịch trong tuần này.
               </div>
-            </div>
+            )}
           </section>
         </>
       )}

@@ -1,5 +1,5 @@
 import { UpdateProfileRequest, UserProfileResponse } from '@/types/user';
-import { StudentResumeLearningResponse } from '@/types/student';
+import { StudentResumeLearningResponse, WeeklyScheduleEventDto } from '@/types/student';
 import { handleApiResponse } from '@/utils/errorMessage';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -59,5 +59,40 @@ export const studentService = {
       'Không thể tải tiến trình học tập tiếp tục'
     );
   },
+
+  getWeeklySchedule: async (): Promise<WeeklyScheduleEventDto[]> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/student/progress/weekly-schedule`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const json = await response.json();
+        return json.data || [];
+      }
+    } catch {
+      // fallback to public weekly schedule
+    }
+
+    try {
+      const publicRes = await fetch(`${API_BASE_URL}/api/v1/public/weekly-schedule`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (publicRes.ok) {
+        const publicJson = await publicRes.json();
+        return publicJson.data || [];
+      }
+    } catch {
+      // ignore
+    }
+    return [];
+  },
 };
+
 

@@ -49,9 +49,25 @@ export interface ResumeExamDto {
   lastAttemptedAt?: string | null;
 }
 
+export interface WeeklyScheduleEventDto {
+  id: string;
+  type: string;
+  title: string;
+  subtitle?: string | null;
+  dayOfWeekText: string;
+  dayOfMonth: number;
+  timeRange: string;
+  badgeType: string;
+  badgeColor: string;
+  targetUrl: string;
+  eventTime?: string | null;
+  isLiveNow?: boolean;
+}
+
 export interface StudentResumeLearningResponse {
   inProgressCourse?: ResumeCourseDto | null;
   otherCourses?: ResumeCourseDto[];
   inProgressExam?: ResumeExamDto | null;
   otherExams?: ResumeExamDto[];
+  weeklyEvents?: WeeklyScheduleEventDto[];
 }
