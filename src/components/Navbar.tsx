@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { RoleBadge } from './RoleBadge';
 import { NotificationBell } from './NotificationBell';
 import { UserAvatar } from './UserAvatar';
-import { Menu, LogOut, User as UserIcon, BookOpen, Layers, Users, Crown, Sparkles, Zap, TrendingUp, BarChart3, GraduationCap } from 'lucide-react';
+import { Menu, LogOut, User as UserIcon, BookOpen, Layers, Users, Crown, Sparkles, Zap, TrendingUp, BarChart3, GraduationCap, Compass } from 'lucide-react';
 
 interface NavbarProps {
   onToggleMobileSidebar?: () => void;
@@ -269,6 +269,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
                         </Link>
                       )}
 
+                      <Link
+                        href="/guide"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium transition-colors"
+                      >
+                        <Compass className="w-4 h-4 text-emerald-600" />
+                        <span>Hướng dẫn sử dụng</span>
+                      </Link>
+
                       <div className="border-t border-slate-100 my-1" />
 
                       <button
@@ -287,12 +296,21 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileSidebar }) => {
               </div>
             </>
           ) : (
-            <button
-              onClick={loginWithGoogle}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#83C75D] hover:bg-[#72b44e] text-white font-semibold text-sm shadow-sm transition-all"
-            >
-              Đăng nhập Google
-            </button>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/guide"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium text-xs transition-colors"
+              >
+                <Compass className="w-4 h-4 text-slate-500" />
+                <span>Hướng dẫn</span>
+              </Link>
+              <button
+                onClick={loginWithGoogle}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#83C75D] hover:bg-[#72b44e] text-white font-semibold text-sm shadow-sm transition-all"
+              >
+                Đăng nhập Google
+              </button>
+            </div>
           )}
         </div>
       </div>

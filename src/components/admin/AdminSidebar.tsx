@@ -25,6 +25,7 @@ import {
   Presentation,
   Flame,
   Ticket,
+  Compass,
 } from 'lucide-react';
 
 interface AdminMenuItem {
@@ -151,6 +152,12 @@ export const AdminSidebar: React.FC = () => {
           href: '/admin/settings',
           label: 'Cấu hình Hệ thống',
           icon: Settings,
+        },
+        {
+          href: '/guide',
+          label: 'Hướng dẫn sử dụng',
+          icon: Compass,
+          badge: 'Guide',
         },
       ],
     },

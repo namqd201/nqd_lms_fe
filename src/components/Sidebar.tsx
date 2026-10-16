@@ -23,6 +23,7 @@ import {
   GraduationCap,
   Trophy,
   FlaskConical,
+  Compass,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -172,6 +173,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpenMobile, onCloseMobile })
           },
         ]
       : []),
+    {
+      href: '/guide',
+      label: 'Hướng dẫn sử dụng',
+      icon: Compass,
+      badge: isTeacher ? 'Giáo viên' : 'Học sinh',
+      badgeColor: isTeacher
+        ? 'bg-indigo-100 text-indigo-700 border-indigo-200 font-bold'
+        : 'bg-emerald-100 text-[#4e8231] border-emerald-200 font-bold',
+    },
     {
       href: '/profile',
       label: 'Hồ sơ cá nhân',
