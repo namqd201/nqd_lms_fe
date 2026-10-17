@@ -219,4 +219,42 @@ export const financeService = {
     const res = await handleApiResponse<any>(response, 'Không thể xử lý hoàn tiền đơn hàng');
     return res.data ?? res;
   },
+
+  getAdminEarnings: async (
+    status?: EarningStatus,
+    page: number = 0,
+    size: number = 10
+  ): Promise<{ content: TeacherEarningResponse[]; totalElements: number; totalPages: number }> => {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    params.append('page', String(page));
+    params.append('size', String(size));
+
+    const response = await fetch(`${API_BASE_URL}/api/v1/admin/finance/earnings?${params.toString()}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    const res = await handleApiResponse<any>(response, 'Không thể tải sổ cái thu nhập hệ thống');
+    const data = res.data ?? res;
+    return {
+      content: data.content ?? (Array.isArray(data) ? data : []),
+      totalElements: data.totalElements ?? (Array.isArray(data) ? data.length : 0),
+      totalPages: data.totalPages ?? 1,
+    };
+  },
+
+  adminConfirmOrderPaid: async (orderId: string, note?: string): Promise<any> => {
+    const params = new URLSearchParams();
+    if (note && note.trim()) params.append('note', note.trim());
+    const query = params.toString() ? `?${params.toString()}` : '';
+
+    const response = await fetch(`${API_BASE_URL}/api/v1/admin/orders/${orderId}/confirm-paid${query}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    const res = await handleApiResponse<any>(response, 'Không thể xác nhận thanh toán đơn hàng');
+    return res.data ?? res;
+  },
 };

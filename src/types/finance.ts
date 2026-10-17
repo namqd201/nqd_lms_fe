@@ -19,6 +19,9 @@ export interface TeacherEarningResponse {
   orderItemId: string;
   courseId: string;
   courseName: string;
+  teacherId?: string;
+  teacherName?: string;
+  teacherEmail?: string;
   grossAmount: number;
   platformFeeRate: number;
   platformFee: number;
@@ -79,11 +82,15 @@ export interface TeacherWithdrawalResponse {
 
 export interface AdminPlatformRevenueResponse {
   grossRevenue: number;
+  membershipRevenue?: number;
+  courseRevenue?: number;
   platformTotalFees: number;
   teacherTotalEarnings: number;
   completedWithdrawals: number;
   pendingWithdrawals: number;
   reversedAmount: number;
+  paidOrdersCount?: number;
+  pendingOrdersCount?: number;
   currency: string;
 }
 
