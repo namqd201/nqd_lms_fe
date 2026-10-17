@@ -62,3 +62,24 @@ export interface AdminCourseResponse {
   deletedBy?: string;
 }
 
+export interface OnlineUserDetail {
+  userId: string;
+  fullName: string;
+  email: string;
+  avatarUrl?: string;
+  roles: string[];
+  currentPath: string;
+  lastActiveAgoSeconds: number;
+  lastActiveAt: string;
+}
+
+export interface OnlineUsersStats {
+  totalOnline: number;
+  authenticatedOnline: number;
+  guestOnline: number;
+  studentsOnline: number;
+  teachersOnline: number;
+  adminsOnline: number;
+  recentUsers: OnlineUserDetail[];
+  timestamp: number;
+}

@@ -14,6 +14,7 @@ import {
   SubjectResponse,
   SubjectStatus,
   AdminCourseResponse,
+  OnlineUsersStats,
 } from '@/types/admin';
 import { handleApiResponse } from '@/utils/errorMessage';
 
@@ -330,5 +331,51 @@ export const adminService = {
     });
 
     return handleApiResponse<void>(response, 'Không thể xóa khóa học');
+  },
+
+  // ================= REAL-TIME ONLINE USERS ANALYTICS =================
+  getOnlineUsersStats: async (): Promise<OnlineUsersStats> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/admin/analytics/online-users`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    return handleApiResponse<OnlineUsersStats>(response, 'Không thể tải số liệu người dùng online');
+  },
+
+  subscribeOnlineUsersStream: (
+    onData: (data: OnlineUsersStats) => void,
+    onError?: (err: unknown) => void
+  ): (() => void) => {
+    if (typeof window === 'undefined') return () => {};
+
+    try {
+      const eventSource = new EventSource(`${API_BASE_URL}/api/v1/admin/analytics/online-users/stream`, {
+        withCredentials: true,
+      });
+
+      eventSource.addEventListener('online-stats', (event) => {
+        try {
+          const parsed = JSON.parse(event.data);
+          onData(parsed);
+        } catch (e) {
+          console.error('Failed to parse SSE data', e);
+        }
+      });
+
+      eventSource.onerror = (err) => {
+        if (onError) onError(err);
+      };
+
+      return () => {
+        eventSource.close();
+      };
+    } catch (err) {
+      if (onError) onError(err);
+      return () => {};
+    }
   },
 };

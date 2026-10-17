@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Sidebar } from '@/components/Sidebar';
 import StudentAiTutorWidget from '@/components/StudentAiTutorWidget';
 import { useAuth } from '@/context/AuthContext';
+import { activityService } from '@/services/activity.service';
 
 import { usePathname } from 'next/navigation';
 
@@ -18,6 +19,31 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const pathname = usePathname();
 
   const isAdminRoute = pathname.startsWith('/admin');
+
+  useEffect(() => {
+    // Gửi heartbeat ban đầu và khi đổi trang
+    activityService.sendHeartbeat(pathname);
+
+    // Gửi định kỳ mỗi 30s khi tab đang mở
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        activityService.sendHeartbeat(pathname);
+      }
+    }, 30000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        activityService.sendHeartbeat(pathname);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [pathname]);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-slate-50 text-slate-900 overflow-hidden">
