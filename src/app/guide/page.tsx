@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import {
+  Compass,
   BookOpen,
   GraduationCap,
   Sparkles,
@@ -11,7 +12,7 @@ import {
   Search,
   CheckCircle2,
   ChevronRight,
-  ChevronDown,
+  ChevronLeft,
   Layers,
   FileSpreadsheet,
   BarChart3,
@@ -19,57 +20,64 @@ import {
   MessageSquareCode,
   Trophy,
   Award,
-  CreditCard,
-  Flame,
-  ShieldCheck,
-  Users,
-  Settings,
-  Presentation,
-  FlaskConical,
-  Compass,
-  ArrowRight,
-  ExternalLink,
-  Laptop,
-  Check,
-  Info,
-  AlertTriangle,
-  Lightbulb,
-  QrCode,
   DollarSign,
-  TrendingUp,
-  FileText,
+  FlaskConical,
+  ShieldCheck,
+  Check,
+  ExternalLink,
   Clock,
-  Percent,
+  ThumbsUp,
+  ThumbsDown,
+  Menu,
+  X,
+  FileText,
+  Lightbulb,
+  AlertTriangle,
   Play,
-  RotateCcw,
+  Send,
+  QrCode,
+  ArrowRight,
+  Users,
+  Presentation,
+  Flame,
+  Ticket,
+  Bot,
+  Laptop,
+  CheckCheck,
 } from 'lucide-react';
 
 type RoleTab = 'STUDENT' | 'TEACHER' | 'ADMIN';
 
-interface StepItem {
+interface DocStep {
   title: string;
-  desc: string;
-  details?: string[];
-  tips?: string;
-  alert?: string;
+  description: string;
+  keyPoints?: string[];
 }
 
-interface ChapterItem {
+interface DocArticle {
   id: string;
-  badge: string;
-  badgeColor: string;
-  icon: React.ElementType;
+  category: string;
   title: string;
-  subtitle: string;
+  shortTitle: string;
+  icon: React.ElementType;
+  readTime: string;
+  badge?: string;
+  badgeColor?: string;
+  tldr: string; // Tóm tắt nhanh 30 giây
+  steps: DocStep[];
+  tip?: string;
+  warning?: string;
   actionText?: string;
   actionHref?: string;
-  actionColor?: string;
-  steps: StepItem[];
-}
-
-interface FaqItem {
-  question: string;
-  answer: string;
+  mockupType?:
+    | 'student-exam'
+    | 'student-ai-tutor'
+    | 'student-mistake'
+    | 'student-payment'
+    | 'teacher-ai-question'
+    | 'teacher-finance'
+    | 'teacher-course-slide'
+    | 'none';
 }
 
 export default function GuidePage() {
@@ -78,1211 +86,1384 @@ export default function GuidePage() {
   const isAdmin = user?.roles?.some((r) => r === 'ADMIN' || r === 'ROLE_ADMIN');
   const isTeacher = user?.roles?.some((r) => r === 'TEACHER' || r === 'ROLE_TEACHER');
 
-  // Role auto-detection:
-  // If Teacher -> default to TEACHER tab
-  // If Admin -> default to TEACHER (or ADMIN)
-  // Else (Student / Guest) -> default to STUDENT tab
-  const [activeTab, setActiveTab] = useState<RoleTab>('STUDENT');
-  const [userOverridden, setUserOverridden] = useState<boolean>(false);
+  // Role detection
+  const [activeRole, setActiveRole] = useState<RoleTab>('STUDENT');
+  const [activeArticleId, setActiveArticleId] = useState<string>('student-quickstart');
+  const [userSwitchedRole, setUserSwitchedRole] = useState<boolean>(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({});
-  const [expandedFaq, setExpandedFaq] = useState<Record<string, boolean>>({});
+  const [feedbackGiven, setFeedbackGiven] = useState<'yes' | 'no' | null>(null);
 
-  // Auto-set tab based on role when user data loads (unless user already clicked another tab)
+  // Auto detect user role on load
   useEffect(() => {
-    if (!userOverridden) {
+    if (!userSwitchedRole) {
       if (isAdmin) {
-        setActiveTab('TEACHER');
+        setActiveRole('TEACHER');
+        setActiveArticleId('teacher-curriculum');
       } else if (isTeacher) {
-        setActiveTab('TEACHER');
+        setActiveRole('TEACHER');
+        setActiveArticleId('teacher-curriculum');
       } else {
-        setActiveTab('STUDENT');
+        setActiveRole('STUDENT');
+        setActiveArticleId('student-quickstart');
       }
     }
-  }, [isTeacher, isAdmin, userOverridden]);
+  }, [isAdmin, isTeacher, userSwitchedRole]);
 
-  // Handle manual tab switch
-  const handleTabSwitch = (tab: RoleTab) => {
-    setActiveTab(tab);
-    setUserOverridden(true);
-    setSearchQuery('');
-  };
-
-  const toggleChapter = (id: string) => {
-    setExpandedChapters((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
-  };
-
-  const toggleFaq = (idx: string) => {
-    setExpandedFaq((prev) => ({
-      ...prev,
-      [idx]: !prev[idx],
-    }));
-  };
-
-  // -------------------------------------------------------------
-  // DỮ LIỆU HƯỚNG DẪN HỌC SINH (STUDENT DATA)
-  // -------------------------------------------------------------
-  const studentChapters: ChapterItem[] = [
+  // --------------------------------------------------------------------------
+  // DANH SÁCH BÀI HƯỚNG DẪN DÀNH CHO HỌC SINH (STUDENT ARTICLES)
+  // --------------------------------------------------------------------------
+  const studentArticles: DocArticle[] = [
     {
-      id: 'student-start',
-      badge: 'Khởi đầu',
-      badgeColor: 'bg-blue-100 text-blue-700 border-blue-200',
+      id: 'student-quickstart',
+      category: 'Khởi đầu & Tài khoản',
+      title: 'Bắt đầu nhanh: Đăng nhập One-Click & Hồ sơ học sinh',
+      shortTitle: 'Đăng nhập & Hồ sơ',
       icon: Compass,
-      title: 'Chương 1: Đăng nhập & Thiết lập Hồ sơ Cá nhân',
-      subtitle: 'Bắt đầu hành trình học tập thông minh chỉ với 1 cú click chuột qua Google One-Click.',
-      actionText: 'Cập nhật hồ sơ',
-      actionHref: '/profile',
-      actionColor: 'bg-blue-600 hover:bg-blue-700 text-white',
+      readTime: '1 phút đọc',
+      badge: 'Cơ bản',
+      badgeColor: 'bg-blue-100 text-blue-700 border-blue-200',
+      tldr: 'Đăng nhập trực tiếp bằng Google không cần mật khẩu, cập nhật khối lớp từ 1-12 hoặc Đại học để nhận đề thi chuẩn xác.',
       steps: [
         {
-          title: 'Đăng nhập nhanh không cần mật khẩu',
-          desc: 'Bấm nút "Đăng nhập Google" ở góc trên bên phải. Hệ thống kết nối an toàn với Google Account của bạn, không cần tạo mật khẩu rườm rà.',
-          details: [
-            'Thông tin email và ảnh đại diện được đồng bộ tự động.',
-            'Bảo mật 2 lớp an toàn chuẩn Google OAuth2.',
-          ],
+          title: 'Đăng nhập bảo mật qua Google',
+          description:
+            'Bấm nút "Đăng nhập Google" ở góc trên bên phải màn hình. Hệ thống liên kết tự động với tài khoản Google của bạn, không lo quên mật khẩu.',
+          keyPoints: ['Hỗ trợ cả máy tính và điện thoại', 'Đồng bộ tên và ảnh đại diện tự động'],
         },
         {
-          title: 'Cập nhật thông tin & Khối lớp học',
-          desc: 'Truy cập mục "Hồ sơ cá nhân" để thiết lập tên đầy đủ và khối lớp bạn đang theo học (Tiểu học lớp 1-5, THCS lớp 6-9, THPT lớp 10-12 hoặc Đại học).',
-          details: [
-            'Tên đầy đủ sẽ được in chính xác trên Chứng chỉ hoàn thành khóa học (Certificate).',
-            'Chọn đúng khối lớp giúp hệ thống gợi ý bài giảng và đề thi phù hợp nhất.',
-          ],
-          tips: 'Bạn có thể thay đổi số điện thoại và cập nhật ảnh đại diện bất kỳ lúc nào tại trang Hồ sơ.',
+          title: 'Cập nhật Khối lớp & Họ tên in trên chứng chỉ',
+          description:
+            'Vào trang "Hồ sơ cá nhân" (/profile) để kiểm tra họ tên hiển thị. Tên này sẽ xuất hiện trên Chứng chỉ tốt nghiệp điện tử sau khi bạn hoàn thành khóa học.',
+          keyPoints: ['Chọn đúng khối lớp để hệ thống lọc bài tập phù hợp', 'Có thể cập nhật ảnh và số điện thoại bất kỳ lúc nào'],
         },
       ],
+      tip: 'Bạn nên sử dụng cùng một tài khoản Google khi học trên điện thoại và máy tính để đồng bộ chuỗi ngày học (Streak).',
+      actionText: 'Cập nhật hồ sơ ngay',
+      actionHref: '/profile',
     },
     {
-      id: 'student-course',
-      badge: 'Bài giảng',
-      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+      id: 'student-courses',
+      category: 'Học tập & Bài giảng',
+      title: 'Cách học Bài giảng Video, Slide tương tác & Tải tài liệu',
+      shortTitle: 'Khóa học & Bài giảng',
       icon: BookOpen,
-      title: 'Chương 2: Khám phá Khóa học & Bài học Tương tác',
-      subtitle: 'Tham gia học tập với video HD, chế độ trình chiếu tương tác (Slide Mode) và tài liệu đính kèm.',
-      actionText: 'Khám phá khóa học',
-      actionHref: '/courses',
-      actionColor: 'bg-[#83C75D] hover:bg-[#72b44e] text-white',
+      readTime: '2 phút đọc',
+      badge: 'Trọng tâm',
+      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+      tldr: 'Khám phá bài học với video độ nét cao, bấm nút "Trình chiếu Slide" để học tương tác toàn màn hình, tải tài liệu đính kèm bên dưới bài.',
       steps: [
         {
           title: 'Tìm kiếm & Đăng ký Khóa học',
-          desc: 'Truy cập mục "Khóa học" từ thanh menu bên trái. Bạn có thể lọc bài học theo Môn học (Toán, Lý, Hóa, Văn, Anh, Sinh, Sử, Địa, Tin), theo khối lớp hoặc giảng viên yêu thích.',
-          details: [
-            'Khóa học miễn phí: Bấm "Bắt đầu học ngay" để vào học tức thì.',
-            'Khóa học trả phí: Bấm "Mua khóa học" để thanh toán quét mã QR qua VietQR SePay tiện lợi.',
-          ],
+          description:
+            'Vào mục "Khóa học" (/courses). Sử dụng bộ lọc 9 môn học chính (Toán, Văn, Anh, Lý, Hóa, Sinh, Sử, Địa, Tin) và khối lớp để chọn khóa học bạn mong muốn.',
+          keyPoints: ['Khóa học miễn phí: bấm "Bắt đầu học ngay"', 'Khóa học trả phí: quét mã VietQR SePay để kích hoạt tức thì'],
         },
         {
-          title: 'Trải nghiệm học bài & Chế độ Slide tương tác',
-          desc: 'Mỗi bài học được tổ chức khoa học gồm video bài giảng, tóm tắt lý thuyết bằng Markdown/LaTeX, và nút "Trình chiếu Slide".',
-          details: [
-            'Xem bài giảng video với tốc độ tùy chỉnh (1x, 1.25x, 1.5x, 2x).',
-            'Sử dụng nút "Trình chiếu Slide" để hiển thị slide toàn màn hình, ghi chú nhanh bài học.',
-            'Tải file tài liệu, bài tập về nhà đính kèm ở chân trang bài học.',
+          title: 'Học bài & Trình chiếu Slide tương tác',
+          description:
+            'Trong giao diện bài học, bạn có thể chỉnh tốc độ video (1x, 1.25x, 1.5x) và bấm nút "Trình chiếu Slide" để xem slide bài giảng tương tác toàn màn hình.',
+          keyPoints: [
+            'Hệ thống tự động lưu vị trí video bạn đang xem dở',
+            'Bấm "Hoàn thành bài học" sau khi học xong để tích lũy % tiến độ',
           ],
-          tips: 'Sau khi xem xong bài học, hãy bấm "Hoàn thành bài học" để tích lũy % tiến độ khóa học!',
         },
       ],
+      mockupType: 'teacher-course-slide',
+      tip: 'Chế độ Trình chiếu Slide rất thích hợp khi bạn muốn vừa nghe giảng vừa chụp màn hình tóm tắt lý thuyết để ôn tập.',
+      actionText: 'Khám phá khóa học',
+      actionHref: '/courses',
     },
     {
-      id: 'student-class-lab',
-      badge: 'Lớp học & Live',
-      badgeColor: 'bg-rose-100 text-rose-700 border-rose-200',
-      icon: FlaskConical,
-      title: 'Chương 3: Tham gia Lớp học & Phòng Lab Trực tiếp',
-      subtitle: 'Kết nối trực tuyến cùng thầy cô và bạn bè, tham gia buổi học Live Call trực quan.',
-      actionText: 'Vào Phòng Lab',
-      actionHref: '/labs',
-      actionColor: 'bg-rose-600 hover:bg-rose-700 text-white',
+      id: 'student-practice-exams',
+      category: 'Luyện tập & Thi cử',
+      title: 'Làm bài tập trắc nghiệm, công thức LaTeX & Thi bấm giờ',
+      shortTitle: 'Làm bài tập & Đề thi',
+      icon: FileSpreadsheet,
+      readTime: '2 phút đọc',
+      badge: 'Cần nắm vững',
+      badgeColor: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+      tldr: 'Làm bài tập trắc nghiệm hiển thị công thức Toán LaTeX sắc nét, đồng hồ đếm ngược tự động thu bài và xem lời giải chi tiết ngay.',
       steps: [
         {
-          title: 'Tham gia Lớp học của Thầy/Cô (Classrooms)',
-          desc: 'Truy cập mục "Lớp học" (/classrooms). Bấm nút "Tham gia bằng mã" và nhập mã mời (Code) do giáo viên của bạn cung cấp.',
-          details: [
-            'Xem danh sách bạn cùng lớp và bảng tin thông báo của lớp.',
-            'Nhận bài tập riêng và đề thi thử được giao độc quyền cho lớp.',
-          ],
+          title: 'Làm bài tập sau mỗi bài học',
+          description:
+            'Sau khi xem bài giảng, bấm sang tab "Bài tập" để củng cố kiến thức. Câu hỏi hỗ trợ đầy đủ công thức Toán/Lý/Hóa LaTeX và hình ảnh sơ đồ trực quan.',
         },
         {
-          title: 'Học trực tuyến tại Phòng Lab (Live Call)',
-          desc: 'Mục "Phòng Lab" (/labs) mang đến không gian tương tác trực tiếp qua Video & Âm thanh chất lượng cao.',
-          details: [
-            'Bật/tắt Micro và Camera linh hoạt khi phát biểu bài.',
-            'Chia sẻ màn hình và xem bài giảng trực tiếp của giáo viên.',
-            'Khung chat phòng Lab cho phép gửi câu hỏi và nhận câu trả lời ngay trong buổi học.',
+          title: 'Tham gia Đề thi chính thức (Timed Exams)',
+          description:
+            'Đồng hồ đếm ngược hiển thị ở góc trên màn hình. Hệ thống tự động lưu đáp án sau mỗi câu chọn. Khi hết giờ, bài làm sẽ tự động được nộp và chấm điểm tức thì.',
+          keyPoints: [
+            'Xem bảng xếp loại và phân tích phổ điểm chi tiết',
+            'Xem đáp án đúng kèm lời giải từng bước để hiểu rõ bản chất',
           ],
-          tips: 'Hãy chuẩn bị tai nghe có micro để buổi học trực tiếp đạt chất lượng âm thanh tốt nhất.',
         },
       ],
-    },
-    {
-      id: 'student-practice-exam',
-      badge: 'Luyện tập & Thi',
-      badgeColor: 'bg-indigo-100 text-indigo-700 border-indigo-200',
-      icon: FileSpreadsheet,
-      title: 'Chương 4: Luyện tập Bài tập & Tham gia Đề thi Bấm giờ',
-      subtitle: 'Củng cố kiến thức với đề thi trắc nghiệm, công thức toán LaTeX và tự động chấm điểm.',
+      mockupType: 'student-exam',
+      warning: 'Trong thời gian làm bài thi bấm giờ, hạn chế F5 hoặc tải lại trang để tránh ảnh hưởng đến thời gian đếm ngược.',
       actionText: 'Làm bài tập ngay',
       actionHref: '/courses',
-      actionColor: 'bg-indigo-600 hover:bg-indigo-700 text-white',
-      steps: [
-        {
-          title: 'Làm bài tập trắc nghiệm & Tự luận',
-          desc: 'Sau mỗi bài học, hãy làm bài tập kiểm tra để đánh giá mức độ hiểu bài. Hệ thống hỗ trợ đa dạng định dạng câu hỏi:',
-          details: [
-            'Trắc nghiệm một lựa chọn & nhiều lựa chọn.',
-            'Câu hỏi công thức Toán/Lý/Hóa hiển thị bằng LaTeX sắc nét.',
-            'Câu hỏi đi kèm hình ảnh sơ đồ, biểu đồ phân tích thực tế.',
-          ],
-        },
-        {
-          title: 'Tham gia Đề thi Bấm giờ (Timed Exams)',
-          desc: 'Khi tham gia đề thi chính thức, đồng hồ đếm ngược sẽ hiển thị rõ ràng trên góc màn hình.',
-          details: [
-            'Hệ thống tự động lưu câu trả lời sau mỗi lần chọn để phòng ngừa mất mạng.',
-            'Khi hết thời gian làm bài, hệ thống sẽ tự động thu bài và chấm điểm ngay lập tức.',
-            'Xem phổ điểm, bảng so sánh và phân tích lời giải chi tiết cho từng câu hỏi.',
-          ],
-          alert: 'Không nên tải lại trang liên tục trong khi làm bài thi để tránh ảnh hưởng đến thời gian đếm ngược.',
-        },
-      ],
-    },
-    {
-      id: 'student-mistake-notebook',
-      badge: 'AI Ôn tập',
-      badgeColor: 'bg-pink-100 text-pink-700 border-pink-200',
-      icon: Dumbbell,
-      title: 'Chương 5: Sổ tay Lỗi sai Thông minh (AI Spaced Repetition)',
-      subtitle: 'Tự động thu thập câu sai và nhắc nhở ôn luyện ngắt quãng để khắc phục lỗ hổng kiến thức.',
-      actionText: 'Mở Sổ tay lỗi sai',
-      actionHref: '/mistake-notebook',
-      actionColor: 'bg-pink-600 hover:bg-pink-700 text-white',
-      steps: [
-        {
-          title: 'Cơ chế tự động gom lỗi sai',
-          desc: 'Mỗi khi bạn chọn sai một câu hỏi trong bài tập hoặc đề thi, hệ thống sẽ tự động lưu câu hỏi đó vào Sổ tay lỗi sai cá nhân (/mistake-notebook).',
-          details: [
-            'Ghi nhận đáp án bạn đã chọn và đáp án đúng kèm lời giải chi tiết.',
-            'Phân loại lỗi sai theo môn học và mức độ nhận thức.',
-          ],
-        },
-        {
-          title: 'Thuật toán Lặp lại Ngắt quãng (Spaced Repetition)',
-          desc: 'Sổ tay không chỉ lưu trữ mà còn tính toán thời điểm vàng bạn sắp quên kiến thức để nhắc bạn làm lại câu sai.',
-          details: [
-            'Lần 1: Ôn lại sau 24 giờ kể từ khi sai.',
-            'Lần 2: Ôn lại sau 3 ngày nếu vẫn trả lời chưa chắc chắn.',
-            'Lần 3: Ôn lại sau 7 ngày để khắc sâu vào trí nhớ dài hạn.',
-          ],
-          tips: 'Dành 10 phút mỗi ngày luyện tập trong Sổ tay lỗi sai là cách nhanh nhất để tăng từ 1 - 2 điểm bài thi!',
-        },
-      ],
     },
     {
       id: 'student-ai-tutor',
-      badge: 'Gia sư 24/7',
-      badgeColor: 'bg-purple-100 text-purple-700 border-purple-200',
+      category: 'Trợ lý Thông minh',
+      title: 'Hỏi đáp bài tập 24/7 với Trợ lý AI Tutor & Nhận diện ảnh',
+      shortTitle: 'Trợ lý AI Tutor 24/7',
       icon: MessageSquareCode,
-      title: 'Chương 6: Trợ lý Học tập Thông minh AI Tutor',
-      subtitle: 'Giải đáp mọi thắc mắc học tập 24/7, nhận diện đề bài qua ảnh chụp và giải thích từng bước.',
-      actionText: 'Trò chuyện với AI',
-      actionHref: '/ai-tutor',
-      actionColor: 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white',
+      readTime: '2 phút đọc',
+      badge: 'Công nghệ AI',
+      badgeColor: 'bg-purple-100 text-purple-700 border-purple-200',
+      tldr: 'Gia sư AI đồng hành 24/7, hỗ trợ chụp ảnh đề bài từ điện thoại để giải thích từng bước theo phương pháp tư duy Socratic.',
       steps: [
         {
-          title: 'Hỏi đáp bài tập mọi lúc mọi nơi',
-          desc: 'Bấm nút "AI Tutor" trên thanh menu bên trái hoặc biểu tượng robot nhỏ ở góc dưới màn hình để mở khung trò chuyện.',
-          details: [
-            'Hỗ trợ giải toán, lý, hóa, ngữ văn, tiếng anh và lập trình.',
-            'Phương pháp Socratic: AI hướng dẫn tư duy từng bước thay vì chỉ quăng đáp án thô.',
-          ],
+          title: 'Mở AI Tutor từ bất kỳ trang nào',
+          description:
+            'Bấm vào mục "AI Tutor" trên thanh menu bên trái hoặc click vào biểu tượng robot nhỏ ở góc dưới màn hình.',
         },
         {
-          title: 'Tải ảnh chụp đề bài từ điện thoại/máy tính',
-          desc: 'Bạn gặp bài toán hình học khó hoặc đề thi trên giấy? Chỉ cần chụp ảnh và tải lên khung chat.',
-          details: [
-            'Công nghệ OCR nhận diện chữ viết tay và công thức toán học.',
-            'Hỏi thêm các câu mở rộng: "Hãy giải thích tại sao bước này ra kết quả như vậy?".',
+          title: 'Chụp ảnh bài tập hoặc nhập câu hỏi',
+          description:
+            'Tải ảnh đề bài toán học, hình vẽ hoặc đoạn văn. AI Tutor sẽ nhận diện chữ viết (OCR) và hướng dẫn phương pháp giải từng bước.',
+          keyPoints: [
+            'Không chỉ đưa đáp án thô, AI giải thích vì sao lại ra kết quả đó',
+            'Bạn có thể hỏi đào sâu: "Hãy cho ví dụ tương tự" hoặc "Giải thích công thức này"',
           ],
-          tips: 'Tài khoản PRO và ULTRA nhận được tốc độ phản hồi AI siêu tốc và không giới hạn số lượng câu hỏi mỗi ngày!',
         },
       ],
+      mockupType: 'student-ai-tutor',
+      tip: 'Tài khoản PRO và ULTRA được ưu tiên tốc độ phản hồi AI siêu tốc và hỏi đáp không giới hạn số lượng câu hỏi.',
+      actionText: 'Trò chuyện với AI Tutor',
+      actionHref: '/ai-tutor',
     },
     {
-      id: 'student-progress-certs',
-      badge: 'Thành tựu',
-      badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+      id: 'student-mistake-notebook',
+      category: 'Luyện tập Thông minh',
+      title: 'Sổ tay lỗi sai thông minh: Ôn tập ngắt quãng (Spaced Repetition)',
+      shortTitle: 'Sổ tay lỗi sai AI',
+      icon: Dumbbell,
+      readTime: '2 phút đọc',
+      badge: 'Độc quyền LMS',
+      badgeColor: 'bg-pink-100 text-pink-700 border-pink-200',
+      tldr: 'Mọi câu bạn chọn sai trong bài tập hoặc đề thi sẽ được tự động lưu vào Sổ tay lỗi sai và lên lịch ôn tập lại sau 1 ngày, 3 ngày, 7 ngày.',
+      steps: [
+        {
+          title: 'Hệ thống tự động gom câu sai',
+          description:
+            'Bạn không cần ghi chép thủ công ra vở. Bất kỳ câu hỏi nào làm sai sẽ tự động xuất hiện tại mục "Sổ tay lỗi sai" (/mistake-notebook).',
+        },
+        {
+          title: 'Ôn tập lại theo chu kỳ trí nhớ khoa học',
+          description:
+            'Sổ tay chia các câu hỏi theo chu kỳ ôn tập: Cần ôn hôm nay ➔ Ôn sau 3 ngày ➔ Đã thuần thục. Khi bạn làm đúng lại câu sai, câu hỏi sẽ được chuyển lên cấp độ ghi nhớ dài hạn.',
+        },
+      ],
+      mockupType: 'student-mistake',
+      tip: 'Chỉ cần dành 10 phút mỗi ngày làm lại các câu trong Sổ tay lỗi sai là cách nhanh nhất để không bao giờ mất điểm oan!',
+      actionText: 'Mở Sổ tay lỗi sai',
+      actionHref: '/mistake-notebook',
+    },
+    {
+      id: 'student-classrooms-lab',
+      category: 'Lớp học & Live Call',
+      title: 'Tham gia Lớp học của Thầy/Cô & Buổi học trực tiếp Phòng Lab',
+      shortTitle: 'Lớp học & Phòng Lab Live',
+      icon: FlaskConical,
+      readTime: '2 phút đọc',
+      badge: 'Tương tác',
+      badgeColor: 'bg-rose-100 text-rose-700 border-rose-200',
+      tldr: 'Nhập mã mời để vào lớp học riêng của thầy cô, tham gia phòng Lab tương tác trực tiếp qua Video/Micro và chia sẻ màn hình.',
+      steps: [
+        {
+          title: 'Vào lớp học bằng Mã tham gia (Class Code)',
+          description:
+            'Vào mục "Lớp học" (/classrooms), bấm "Tham gia bằng mã" và nhập mã code do giáo viên cung cấp để vào lớp nhận bài tập riêng.',
+        },
+        {
+          title: 'Học trực tiếp tại Phòng Lab (Live Call)',
+          description:
+            'Khi giáo viên phát trực tiếp, truy cập mục "Phòng Lab" (/labs) để tham gia buổi học trực tuyến có âm thanh, hình ảnh và khung chat hỏi đáp.',
+        },
+      ],
+      tip: 'Nên sử dụng tai nghe có mic để chất lượng trao đổi trực tiếp với thầy cô và bạn bè trong Phòng Lab được rõ nét nhất.',
+      actionText: 'Vào Phòng Lab',
+      actionHref: '/labs',
+    },
+    {
+      id: 'student-gamification',
+      category: 'Thành tích & Chứng chỉ',
+      title: 'Chuỗi ngày học Streak, Bảng xếp hạng & Nhận Chứng chỉ',
+      shortTitle: 'Streak, BXH & Chứng chỉ',
       icon: Trophy,
-      title: 'Chương 7: Chuỗi Ngày Học (Streak), Bảng Xếp Hạng & Chứng Chỉ',
-      subtitle: 'Thi đua nhận quà cùng bạn bè toàn quốc và nhận chứng chỉ hoàn thành khóa học uy tín.',
+      readTime: '1.5 phút đọc',
+      badge: 'Thưởng',
+      badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+      tldr: 'Giữ ngọn lửa Streak mỗi ngày để nhận điểm thưởng, đua top Bảng xếp hạng và nhận Chứng chỉ tốt nghiệp điện tử có mã QR.',
+      steps: [
+        {
+          title: 'Thắp sáng ngọn lửa Streak mỗi ngày',
+          description:
+            'Mỗi ngày học ít nhất 1 bài học hoặc hoàn thành 1 bài tập, chuỗi Streak của bạn sẽ tăng lên 1 ngày. Đạt mốc 7 ngày, 30 ngày để nhận huy hiệu danh giá.',
+        },
+        {
+          title: 'Đua Top BXH & Tải Chứng chỉ',
+          description:
+            'Xem vị trí của bạn trên Bảng xếp hạng tuần/tháng (/leaderboard). Khi hoàn thành 100% khóa học, vào mục "Chứng chỉ của tôi" (/profile/certificates) để tải bằng khen kèm mã QR xác thực.',
+        },
+      ],
       actionText: 'Xem Bảng xếp hạng',
       actionHref: '/leaderboard',
-      actionColor: 'bg-amber-500 hover:bg-amber-600 text-white',
-      steps: [
-        {
-          title: 'Duy trì chuỗi ngày học liên tục (Streak)',
-          desc: 'Mỗi ngày hoàn thành ít nhất 1 bài học hoặc 1 bài tập, bạn sẽ thắp sáng ngọn lửa Streak của ngày hôm đó.',
-          details: [
-            'Chuỗi Streak càng cao, bạn càng nhận được nhiều điểm thưởng XP.',
-            'Theo dõi biểu đồ học tập trực quan tại trang "Tiến độ học tập" (/profile/progress).',
-          ],
-        },
-        {
-          title: 'Đua Top Bảng Xếp Hạng & Nhận Chứng chỉ',
-          desc: 'Cạnh tranh vị trí Top 1 - 3 tuần/tháng trên Bảng xếp hạng (/leaderboard) để nhận quà tặng tài khoản ULTRA.',
-          details: [
-            'Khi hoàn thành 100% các bài học và bài kiểm tra của khóa học, bạn sẽ được cấp Chứng chỉ tốt nghiệp điện tử.',
-            'Chứng chỉ có mã tra cứu và mã QR xác thực tại mục "Chứng chỉ của tôi" (/profile/certificates).',
-          ],
-        },
-      ],
     },
     {
-      id: 'student-pricing-payment',
-      badge: 'Nâng cấp VIP',
-      badgeColor: 'bg-violet-100 text-violet-700 border-violet-200',
+      id: 'student-membership',
+      category: 'Gói Hội viên & Thanh toán',
+      title: 'Nâng cấp Gói PRO / ULTRA & Thanh toán VietQR SePay',
+      shortTitle: 'Gói VIP & Thanh toán SePay',
       icon: Sparkles,
-      title: 'Chương 8: Nâng cấp Hội viên PRO/ULTRA & Thanh toán SePay VietQR',
-      subtitle: 'Mở khóa toàn quyền học tập đỉnh cao, thanh toán tiện lợi chỉ trong 5 giây quét mã ngân hàng.',
-      actionText: 'Nâng cấp ngay',
-      actionHref: '/pricing',
-      actionColor: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white',
+      readTime: '2 phút đọc',
+      badge: 'VIP',
+      badgeColor: 'bg-violet-100 text-violet-700 border-violet-200',
+      tldr: 'Nâng cấp tài khoản PRO/ULTRA mở khóa toàn bộ bài giảng chất lượng cao, thanh toán quét mã QR qua SePay tự động kích hoạt trong vài giây.',
       steps: [
         {
-          title: 'Lựa chọn Gói Hội viên phù hợp',
-          desc: 'Truy cập trang Bảng giá (/pricing) để xem quyền lợi các gói: Miễn phí, Gói PRO (cho học sinh/giáo viên) và Gói ULTRA cao cấp nhất.',
-          details: [
-            'Học không giới hạn toàn bộ bài giảng chất lượng cao.',
-            'Trợ lý AI Tutor thông minh hoạt động 24/7 không giới hạn lượt hỏi.',
-            'Luyện thi không giới hạn với ngân hàng câu hỏi chọn lọc.',
-          ],
+          title: 'Chọn gói hội viên phù hợp',
+          description:
+            'Truy cập trang Bảng giá (/pricing) để chọn gói: PRO Học sinh (luyện thi & AI Tutor nâng cao) hoặc ULTRA (không giới hạn toàn sàn).',
         },
         {
-          title: 'Áp dụng Mã giảm giá & Thanh toán qua SePay VietQR',
-          desc: 'Khi bấm chọn gói, bạn sẽ được chuyển đến trang Thanh toán bảo mật (/payment/[orderCode]).',
-          details: [
-            'Nhập mã giảm giá (Coupon) nếu có và bấm "Áp dụng" để được chiết khấu trực tiếp.',
-            'Mở app ngân hàng bất kỳ (Vietcombank, MB, Techcombank, VPBank, Momo, v.v.) và quét mã VietQR trên màn hình.',
-            'Hệ thống tự động nhận diện giao dịch qua SePay và nâng cấp tài khoản của bạn ngay lập tức trong vài giây.',
-            'Nếu đổi ý muốn chọn gói khác, bạn có thể bấm nút "Hủy đơn hàng" ngay trên trang thanh toán.',
+          title: 'Áp dụng mã giảm giá & Quét mã VietQR',
+          description:
+            'Tại trang thanh toán (/payment/[orderCode]), nhập mã giảm giá (nếu có) để giảm tiền trực tiếp. Mở app ngân hàng bất kỳ (MB, Vietcombank, Techcombank, Momo, v.v.) quét mã QR trên màn hình.',
+          keyPoints: [
+            'Hệ thống tự động kích hoạt tài khoản trong vòng 3 - 10 giây sau khi chuyển khoản',
+            'Không cần chụp biên lai gửi nhân viên hỗ trợ, mọi thứ tự động 100%',
+            'Có thể bấm "Hủy đơn hàng" ngay trên trang nếu muốn đổi gói khác',
           ],
-          tips: 'Không thay đổi nội dung chuyển khoản trong mã QR để hệ thống kích hoạt tự động chuẩn xác nhất!',
         },
       ],
+      mockupType: 'student-payment',
+      tip: 'Giữ nguyên nội dung chuyển khoản được tạo sẵn trong mã QR để hệ thống nhận diện giao dịch của bạn tức thì.',
+      actionText: 'Nâng cấp PRO / ULTRA',
+      actionHref: '/pricing',
     },
   ];
 
-  // -------------------------------------------------------------
-  // DỮ LIỆU HƯỚNG DẪN GIÁO VIÊN (TEACHER DATA)
-  // -------------------------------------------------------------
-  const teacherChapters: ChapterItem[] = [
+  // --------------------------------------------------------------------------
+  // DANH SÁCH BÀI HƯỚNG DẪN DÀNH CHO GIÁO VIÊN (TEACHER ARTICLES)
+  // --------------------------------------------------------------------------
+  const teacherArticles: DocArticle[] = [
     {
-      id: 'teacher-register',
-      badge: 'Đăng ký',
-      badgeColor: 'bg-blue-100 text-blue-700 border-blue-200',
+      id: 'teacher-verification',
+      category: 'Bắt đầu & Xét duyệt',
+      title: 'Quy trình Đăng ký & Xét duyệt Giảng viên NQD-LMS',
+      shortTitle: 'Đăng ký Giảng viên',
       icon: GraduationCap,
-      title: 'Chương 1: Đăng ký & Xét duyệt Quyền Giảng viên',
-      subtitle: 'Gia nhập đội ngũ giáo viên NQD-LMS để xây dựng bài giảng và mở rộng tầm ảnh hưởng giáo dục.',
-      actionText: 'Đăng ký Giảng viên',
-      actionHref: '/become-teacher',
-      actionColor: 'bg-blue-600 hover:bg-blue-700 text-white',
+      readTime: '1.5 phút đọc',
+      badge: 'Bước 1',
+      badgeColor: 'bg-blue-100 text-blue-700 border-blue-200',
+      tldr: 'Nộp thông tin chuyên môn và bằng cấp tại /become-teacher, Admin sẽ xét duyệt trong 12-24h và mở khóa toàn bộ công cụ giảng dạy.',
       steps: [
         {
           title: 'Gửi hồ sơ đăng ký giảng dạy',
-          desc: 'Truy cập đường dẫn /become-teacher từ thanh menu hoặc menu tài khoản cá nhân.',
-          details: [
-            'Điền đầy đủ thông tin: Chuyên môn giảng dạy, trường học/cơ quan công tác, số năm kinh nghiệm.',
-            'Tải lên ảnh chụp bằng cấp, chứng chỉ sư phạm hoặc giấy chứng nhận năng lực.',
-            'Cung cấp liên kết kênh bài giảng mẫu (YouTube, Google Drive, v.v.) nếu có.',
-          ],
+          description:
+            'Truy cập /become-teacher, điền đầy đủ chuyên môn (Toán, Lý, Hóa...), trường đang công tác và tải lên ảnh chứng chỉ/bằng cấp sư phạm.',
         },
         {
-          title: 'Thời gian xét duyệt & Kích hoạt',
-          desc: 'Ban quản trị NQD-LMS sẽ xét duyệt hồ sơ trong vòng 12 - 24 giờ làm việc. Sau khi duyệt thành công, tài khoản của bạn sẽ tự động được cấp quyền ROLE_TEACHER và mở khóa menu quản trị giảng viên.',
-          tips: 'Sau khi được duyệt, bạn sẽ thấy thêm các mục: "Quản lý Giáo trình", "Quản lý Đề thi", "Thống kê & Báo cáo", "Tài chính & Rút tiền" trên thanh menu bên trái.',
+          title: 'Nhận thông báo kích hoạt quyền Giảng viên',
+          description:
+            'Sau khi được Admin phê duyệt, tài khoản của bạn sẽ xuất hiện thêm các menu: Quản lý Giáo trình, Quản lý Đề thi, Ngân hàng Câu hỏi và Tài chính & Rút tiền.',
         },
       ],
+      actionText: 'Đăng ký giảng dạy ngay',
+      actionHref: '/become-teacher',
     },
     {
-      id: 'teacher-courses',
-      badge: 'Giáo trình',
-      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+      id: 'teacher-curriculum',
+      category: 'Biên soạn & Giáo trình',
+      title: 'Tạo Khóa học, phân chia Chương & Bài giảng Slide',
+      shortTitle: 'Biên soạn Khóa học & Slide',
       icon: Layers,
-      title: 'Chương 2: Biên soạn Khóa học, Chương & Bài giảng Đa phương tiện',
-      subtitle: 'Tạo khóa học chuyên nghiệp với cấu trúc bài học phân cấp, video bài giảng và slide tương tác.',
-      actionText: 'Quản lý giáo trình',
+      readTime: '2.5 phút đọc',
+      badge: 'Cốt lõi',
+      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+      tldr: 'Thiết kế khóa học theo cấu trúc phân cấp: Khóa học ➔ Chương (Chapters) ➔ Bài học (Lessons) kèm video, slide trình chiếu và tài liệu PDF.',
+      steps: [
+        {
+          title: 'Khởi tạo thông tin Khóa học',
+          description:
+            'Vào mục "Quản lý Giáo trình" (/teacher/courses) bấm "+ Tạo khóa học mới". Điền tiêu đề, chọn môn học, tải ảnh bìa (thumbnail) và đặt giá bán (hoặc 0đ nếu miễn phí).',
+        },
+        {
+          title: 'Thêm Chương học & Bài học đa phương tiện',
+          description:
+            'Tạo các chương theo trình tự khoa học. Trong mỗi bài học, nhúng video bài giảng (YouTube hoặc link trực tiếp), viết tóm tắt lý thuyết bằng Markdown/LaTeX và tích hợp Slide trình chiếu.',
+          keyPoints: [
+            'Đính kèm bài tập tự luyện và tài liệu ôn tập định dạng PDF',
+            'Chuyển trạng thái từ "Bản nháp" sang "Xuất bản" khi hoàn thiện',
+          ],
+        },
+      ],
+      mockupType: 'teacher-course-slide',
+      actionText: 'Quản lý Giáo trình',
       actionHref: '/teacher/courses',
-      actionColor: 'bg-emerald-600 hover:bg-emerald-700 text-white',
-      steps: [
-        {
-          title: 'Tạo Khóa học mới',
-          desc: 'Vào mục "Quản lý Giáo trình" (/teacher/courses) và bấm nút "+ Tạo khóa học mới".',
-          details: [
-            'Nhập tên khóa học hấp dẫn, chọn Môn học và Khối lớp tương ứng.',
-            'Tải lên ảnh bìa đại diện (Thumbnail) sắc nét với kích thước chuẩn 16:9.',
-            'Thiết lập giá bán khóa học (hoặc đặt 0 VNĐ để phát hành miễn phí cho cộng đồng).',
-            'Viết phần mô tả tổng quan về kiến thức và đầu ra học viên sẽ đạt được.',
-          ],
-        },
-        {
-          title: 'Thiết kế Chương học (Chapters) & Bài học (Lessons)',
-          desc: 'Một khóa học chuẩn gồm các Chương lớn, mỗi Chương chứa nhiều Bài học nhỏ theo lộ trình bài bản.',
-          details: [
-            'Thêm Chương mới: Đặt tên chương và thứ tự hiển thị.',
-            'Thêm Bài học: Nhập tiêu đề, đính kèm đường dẫn video bài giảng (YouTube hoặc lưu trữ đám mây).',
-            'Soạn nội dung bài học bằng Markdown chuẩn đẹp, chèn công thức Toán LaTeX ($...$).',
-            'Tích hợp Slide bài giảng: Học sinh có thể bấm xem slide trực tiếp khi học.',
-          ],
-          tips: 'Khóa học tạo xong sẽ ở trạng thái Nháp (Draft). Sau khi biên soạn đầy đủ nội dung, hãy gạt sang trạng thái "Xuất bản" (Publish) để học sinh có thể đăng ký học!',
-        },
-      ],
     },
     {
-      id: 'teacher-questions',
-      badge: 'Ngân hàng đề',
-      badgeColor: 'bg-purple-100 text-purple-700 border-purple-200',
+      id: 'teacher-questions-ai',
+      category: 'Ngân hàng Đề & AI',
+      title: 'Ngân hàng Câu hỏi thông minh & Sinh câu hỏi bằng AI',
+      shortTitle: 'Ngân hàng Câu hỏi & AI',
       icon: HelpCircle,
-      title: 'Chương 3: Xây dựng Ngân hàng Câu hỏi & Tích hợp Trợ lý AI',
-      subtitle: 'Quản lý hàng ngàn câu hỏi phân loại theo môn, mức độ khó và sinh câu hỏi tự động với AI.',
-      actionText: 'Ngân hàng câu hỏi',
-      actionHref: '/teacher/questions',
-      actionColor: 'bg-purple-600 hover:bg-purple-700 text-white',
+      readTime: '2 phút đọc',
+      badge: 'AI Generator',
+      badgeColor: 'bg-purple-100 text-purple-700 border-purple-200',
+      tldr: 'Quản lý kho câu hỏi phân loại theo 4 mức độ nhận thức, hỗ trợ công thức Toán LaTeX và tính năng sinh câu hỏi tự động bằng AI trong 30 giây.',
       steps: [
         {
-          title: 'Tạo câu hỏi thủ công chất lượng cao',
-          desc: 'Vào mục "Ngân hàng Câu hỏi" (/teacher/questions) và bấm "Thêm câu hỏi mới".',
-          details: [
-            'Chọn môn học, khối lớp, chủ đề kiến thức và mức độ khó: Nhận biết, Thông hiểu, Vận dụng, Vận dụng cao.',
-            'Hỗ trợ đầy đủ công thức Toán/Lý/Hóa LaTeX (ví dụ: $\\frac{-b \\pm \\sqrt{\\Delta}}{2a}$).',
-            'Đính kèm ảnh minh họa đề bài sắc nét (sơ đồ mạch điện, hình học không gian, biểu đồ, v.v.).',
-            'Đính kèm tệp âm thanh nghe (.mp3) cho các bài thi môn Tiếng Anh.',
-            'Soạn sẵn lời giải chi tiết từng bước để học sinh xem sau khi làm bài.',
-          ],
+          title: 'Soạn câu hỏi chuẩn công thức LaTeX',
+          description:
+            'Tại mục "Ngân hàng Câu hỏi" (/teacher/questions), bạn có thể soạn câu hỏi trắc nghiệm kèm công thức toán học sắc nét (ví dụ: $\\sqrt{x^2+1}$), đính kèm hình vẽ hình học hoặc tệp nghe mp3.',
         },
         {
-          title: 'Sinh câu hỏi siêu tốc với Trợ lý AI',
-          desc: 'Tiết kiệm 80% thời gian soạn đề bằng tính năng AI Generator tích hợp ngay trong ngân hàng câu hỏi.',
-          details: [
-            'Nhập chủ đề kiến thức hoặc dán đoạn văn bản bài học vào khung AI.',
-            'Chọn số lượng câu hỏi và tỷ lệ độ khó mong muốn.',
-            'AI tự động tạo trọn bộ câu hỏi, 4 phương án lựa chọn, chỉ rõ đáp án đúng và lời giải chi tiết.',
-            'Giáo viên dễ dàng chỉnh sửa lại trước khi lưu vào ngân hàng chung.',
-          ],
-          tips: 'Bạn có thể gắn thẻ (Tags) cho câu hỏi để sau này lọc và tạo đề thi theo ma trận cực kỳ thuận tiện.',
+          title: 'Sử dụng AI Generator để sinh câu hỏi siêu tốc',
+          description:
+            'Chỉ cần nhập chủ đề (ví dụ: "Định lý Pytago lớp 8") hoặc dán một đoạn văn bản bài học, AI sẽ tự động sinh trọn bộ câu hỏi, 4 phương án, đáp án đúng và lời giải chi tiết.',
         },
       ],
+      mockupType: 'teacher-ai-question',
+      tip: 'Bạn có thể chỉnh sửa lại nội dung do AI sinh ra trước khi lưu vào ngân hàng câu hỏi chính thức.',
+      actionText: 'Mở Ngân hàng Câu hỏi',
+      actionHref: '/teacher/questions',
     },
     {
-      id: 'teacher-exams',
-      badge: 'Tổ chức thi',
-      badgeColor: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+      id: 'teacher-exams-matrix',
+      category: 'Khảo thí & Tổ chức Thi',
+      title: 'Tạo Đề thi Bấm giờ, Trộn đề theo Ma trận & Chấm tự động',
+      shortTitle: 'Quản lý Đề thi & Khảo thí',
       icon: FileSpreadsheet,
-      title: 'Chương 4: Tạo & Quản lý Đề thi Bấm giờ (Exams)',
-      subtitle: 'Cấu hình ma trận đề thi, tự động trộn đề, thiết lập thời gian làm bài và chấm điểm tự động.',
-      actionText: 'Quản lý đề thi',
-      actionHref: '/teacher/exams',
-      actionColor: 'bg-indigo-600 hover:bg-indigo-700 text-white',
+      readTime: '2 phút đọc',
+      badge: 'Tự động chấm',
+      badgeColor: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+      tldr: 'Thiết lập thời gian làm bài, tỷ lệ ma trận nhận thức (Nhận biết, Thông hiểu, Vận dụng), tự động trộn thứ tự câu hỏi và xem phổ điểm học sinh.',
       steps: [
         {
           title: 'Cấu hình thông số Đề thi',
-          desc: 'Vào mục "Quản lý Đề thi" (/teacher/exams) và bấm "Tạo đề thi mới".',
-          details: [
-            'Đặt tên đề thi (ví dụ: Đề kiểm tra 1 tiết Toán 10 - Chương Vectơ).',
-            'Thiết lập thời gian làm bài (ví dụ: 45 phút, 90 phút).',
-            'Thiết lập số lần làm bài tối đa (1 lần đối với thi thật, hoặc không giới hạn với đề luyện tập).',
-            'Thời gian mở đề và hạn chót nộp bài.',
-          ],
+          description:
+            'Vào mục "Quản lý Đề thi" (/teacher/exams) bấm "Tạo đề thi mới". Đặt thời gian làm bài (ví dụ: 45 phút), ngày mở/đóng đề và số lần làm bài tối đa.',
         },
         {
-          title: 'Phương thức nạp câu hỏi vào đề',
-          desc: 'Hỗ trợ 3 cách tạo đề thi linh hoạt:',
-          details: [
-            'Cách 1: Chọn câu hỏi cụ thể từ Ngân hàng câu hỏi cá nhân.',
-            'Cách 2: Trộn đề ngẫu nhiên theo ma trận độ khó (ví dụ: 40% Nhận biết, 30% Thông hiểu, 20% Vận dụng, 10% Vận dụng cao).',
-            'Cách 3: Sử dụng AI Exam Builder để sinh đề thi hoàn chỉnh trong 30 giây.',
-          ],
-        },
-        {
-          title: 'Chấm thi & Xem phân tích phổ điểm',
-          desc: 'Hệ thống tự động chấm điểm bài làm trắc nghiệm ngay khi học sinh nộp bài.',
-          details: [
-            'Xem danh sách thí sinh đã nộp bài, thời gian làm bài và số điểm đạt được.',
-            'Xem biểu đồ phân bố phổ điểm và tỷ lệ các câu hỏi học sinh hay làm sai nhất để kịp thời giảng lại trên lớp.',
-          ],
+          title: 'Nạp câu hỏi từ Ngân hàng hoặc Trộn ma trận',
+          description:
+            'Chọn câu hỏi cụ thể từ ngân hàng hoặc thiết lập ma trận độ khó (ví dụ: 40% Nhận biết, 30% Thông hiểu, 20% Vận dụng, 10% Vận dụng cao) để hệ thống tự động bốc đề ngẫu nhiên cho từng học sinh.',
         },
       ],
+      actionText: 'Quản lý Đề thi',
+      actionHref: '/teacher/exams',
     },
     {
-      id: 'teacher-classroom-labs',
-      badge: 'Tương tác',
-      badgeColor: 'bg-rose-100 text-rose-700 border-rose-200',
+      id: 'teacher-classes-lab',
+      category: 'Lớp học & Trực tuyến',
+      title: 'Quản lý Lớp học & Dạy trực tiếp Phòng Lab Live Call',
+      shortTitle: 'Lớp học & Phòng Lab Live',
       icon: Presentation,
-      title: 'Chương 5: Quản lý Lớp học & Dạy trực tuyến Live Call',
-      subtitle: 'Tạo không gian lớp học riêng, giao bài tập về nhà và phát trực tiếp bài giảng có hình ảnh/âm thanh.',
-      actionText: 'Tạo Lớp học',
-      actionHref: '/classrooms',
-      actionColor: 'bg-rose-600 hover:bg-rose-700 text-white',
+      readTime: '2 phút đọc',
+      badge: 'Live Stream',
+      badgeColor: 'bg-rose-100 text-rose-700 border-rose-200',
+      tldr: 'Tạo lớp học, cung cấp mã mời cho học sinh, mở phòng Lab dạy trực tiếp có video, âm thanh, chia sẻ màn hình không cần cài Zoom.',
       steps: [
         {
-          title: 'Tạo Lớp học & Cung cấp Mã mời',
-          desc: 'Tại trang "Lớp học" (/classrooms), giáo viên tạo lớp học mới và gửi Mã lớp (Class Code) cho học sinh tham gia.',
-          details: [
-            'Quản lý danh sách học sinh theo danh sách lớp.',
-            'Giao bài tập hoặc chỉ định đề thi riêng biệt cho lớp với thời hạn nộp bài rõ ràng.',
-          ],
+          title: 'Tạo lớp học & Cấp mã mời',
+          description:
+            'Tại mục "Lớp học" (/classrooms), tạo lớp và gửi mã Class Code cho học sinh. Bạn có thể giao bài tập và đề thi độc quyền cho lớp này.',
         },
         {
-          title: 'Tổ chức buổi học trực tiếp tại Phòng Lab (/labs)',
-          desc: 'Không cần cài đặt thêm phần mềm ngoài (như Zoom hay Meet), giáo viên có thể mở phòng giảng dạy trực tiếp ngay trên NQD-LMS.',
-          details: [
-            'Phát video và âm thanh bài giảng độ nét cao.',
-            'Chia sẻ toàn màn hình hoặc cửa sổ slide thuyết trình.',
-            'Quản lý micro của học sinh, giải đáp thắc mắc trực tiếp qua khung chat.',
-          ],
+          title: 'Giảng dạy trực tiếp tại Phòng Lab (/labs)',
+          description:
+            'Bật camera và micro để bắt đầu buổi giảng trực tiếp. Bạn có thể chia sẻ toàn màn hình bài thuyết trình PowerPoint hoặc PDF và trao đổi với học sinh qua khung chat thời gian thực.',
         },
       ],
+      actionText: 'Quản lý Lớp học',
+      actionHref: '/classrooms',
     },
     {
-      id: 'teacher-finance',
-      badge: 'Doanh thu & Rút tiền',
-      badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+      id: 'teacher-finance-payout',
+      category: 'Doanh thu & Rút tiền',
+      title: 'Thống kê Doanh thu & Quy trình Gửi lệnh Rút tiền (Payout)',
+      shortTitle: 'Doanh thu & Rút tiền',
       icon: DollarSign,
-      title: 'Chương 6: Thống kê Doanh thu & Yêu cầu Rút tiền (Payout)',
-      subtitle: 'Theo dõi báo cáo tăng trưởng học viên và nhận thanh toán doanh thu minh bạch về tài khoản ngân hàng.',
-      actionText: 'Quản lý tài chính',
-      actionHref: '/teacher/finance',
-      actionColor: 'bg-amber-600 hover:bg-amber-700 text-white',
+      readTime: '2 phút đọc',
+      badge: 'Thu nhập',
+      badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+      tldr: 'Theo dõi doanh số bán khóa học minh bạch và gửi yêu cầu rút tiền về tài khoản ngân hàng chính chủ qua /teacher/finance.',
       steps: [
         {
-          title: 'Theo dõi Báo cáo & Thống kê Giảng dạy',
-          desc: 'Trang "Thống kê & Báo cáo" (/teacher/analytics) giúp giáo viên nắm bắt toàn diện bức tranh đào tạo:',
-          details: [
-            'Tổng số lượng học viên đăng ký theo từng ngày, tuần, tháng.',
-            'Tỷ lệ học sinh hoàn thành các khóa học.',
-            'Doanh số bán khóa học và số dư khả dụng thực nhận.',
-          ],
+          title: 'Xem báo cáo doanh thu & Số dư khả dụng',
+          description:
+            'Trang "Tài chính & Rút tiền" (/teacher/finance) hiển thị chi tiết tổng doanh số, số dư khả dụng thực nhận và lịch sử học viên đăng ký.',
         },
         {
-          title: 'Quy trình Yêu cầu Rút tiền (Payout)',
-          desc: 'Tại trang "Tài chính & Rút tiền" (/teacher/finance), giáo viên có thể gửi lệnh rút tiền về tài khoản ngân hàng.',
-          details: [
-            'Nhập số tiền muốn rút (tối thiểu theo quy định hệ thống).',
-            'Điền thông tin tài khoản ngân hàng nhận tiền: Tên ngân hàng, Số tài khoản, Tên chủ tài khoản chính xác.',
-            'Bấm "Gửi yêu cầu rút tiền". Admin sẽ phê duyệt và chuyển khoản trong vòng 24 - 48 giờ làm việc.',
-            'Lịch sử giao dịch và trạng thái lệnh rút tiền được cập nhật minh bạch theo thời gian thực.',
-          ],
-          tips: 'Kiểm tra kỹ số tài khoản ngân hàng thụ hưởng trước khi xác nhận gửi yêu cầu rút tiền.',
+          title: 'Gửi yêu cầu Rút tiền (Payout)',
+          description:
+            'Nhập số tiền muốn rút và thông tin tài khoản ngân hàng (Tên ngân hàng, Số tài khoản, Chủ tài khoản). Admin sẽ đối soát và giải ngân trong 24-48 giờ làm việc.',
         },
       ],
+      mockupType: 'teacher-finance',
+      warning: 'Vui lòng kiểm tra chính xác số tài khoản và tên chủ tài khoản ngân hàng thụ hưởng trước khi bấm xác nhận rút tiền.',
+      actionText: 'Quản lý Tài chính',
+      actionHref: '/teacher/finance',
     },
   ];
 
-  // -------------------------------------------------------------
-  // DỮ LIỆU HƯỚNG DẪN ADMIN (ADMIN DATA)
-  // -------------------------------------------------------------
-  const adminChapters: ChapterItem[] = [
+  // --------------------------------------------------------------------------
+  // DANH SÁCH BÀI HƯỚNG DẪN DÀNH CHO ADMIN (ADMIN ARTICLES)
+  // --------------------------------------------------------------------------
+  const adminArticles: DocArticle[] = [
     {
-      id: 'admin-dashboard',
-      badge: 'Quản trị chung',
-      badgeColor: 'bg-purple-100 text-purple-700 border-purple-200',
+      id: 'admin-dashboard-overview',
+      category: 'Quản trị Hệ thống',
+      title: 'Tổng quan Vận hành Nền tảng & Dashboard Quản trị',
+      shortTitle: 'Dashboard Quản trị',
       icon: BarChart3,
-      title: '1. Tổng quan & Dashboard Quản trị',
-      subtitle: 'Theo dõi các chỉ số quan trọng về người dùng, khóa học, doanh thu và tải hệ thống.',
-      actionText: 'Vào Admin Dashboard',
-      actionHref: '/admin',
-      actionColor: 'bg-purple-600 hover:bg-purple-700 text-white',
+      readTime: '1.5 phút đọc',
+      badge: 'Admin',
+      badgeColor: 'bg-purple-100 text-purple-700 border-purple-200',
+      tldr: 'Theo dõi tổng số người dùng, khóa học hoạt động, biểu đồ doanh thu SePay và sức khỏe hệ thống tại /admin.',
       steps: [
         {
-          title: 'Giám sát hoạt động toàn sàn',
-          desc: 'Trang Admin Dashboard (/admin) cung cấp các biểu đồ thống kê tăng trưởng người dùng mới, tỷ lệ hoàn thành khóa học và doanh thu SePay theo thời gian.',
-          details: [
-            'Theo dõi số lượng học sinh, giáo viên đang online.',
-            'Biểu đồ biến động doanh thu theo tuần, tháng, quý.',
-          ],
+          title: 'Giám sát chỉ số theo thời gian thực',
+          description:
+            'Truy cập /admin để xem số lượng học sinh đang hoạt động, số khóa học mới tạo và doanh thu theo ngày/tháng.',
         },
       ],
+      actionText: 'Vào Admin Portal',
+      actionHref: '/admin',
     },
     {
-      id: 'admin-users-roles',
-      badge: 'Người dùng & Quyền',
-      badgeColor: 'bg-blue-100 text-blue-700 border-blue-200',
+      id: 'admin-users-management',
+      category: 'Tài khoản & Phân quyền',
+      title: 'Quản lý Người dùng & Gán quyền Vai trò (Roles)',
+      shortTitle: 'Người dùng & Phân quyền',
       icon: Users,
-      title: '2. Quản lý Người dùng & Phân quyền Roles',
-      subtitle: 'Tra cứu tài khoản, cấp quyền TEACHER/ADMIN hoặc khóa tài khoản vi phạm.',
-      actionText: 'Quản lý người dùng',
-      actionHref: '/admin/users',
-      actionColor: 'bg-blue-600 hover:bg-blue-700 text-white',
+      readTime: '1.5 phút đọc',
+      badge: 'Roles',
+      badgeColor: 'bg-blue-100 text-blue-700 border-blue-200',
+      tldr: 'Tìm kiếm học sinh, giáo viên, khóa/mở tài khoản và phân quyền vai trò ROLE_STUDENT, ROLE_TEACHER, ROLE_ADMIN.',
       steps: [
         {
-          title: 'Tìm kiếm & Điều chỉnh quyền hạn',
-          desc: 'Tại trang /admin/users và /admin/roles, quản trị viên có thể tìm kiếm người dùng theo email hoặc họ tên.',
-          details: [
-            'Gán hoặc thu hồi vai trò: ROLE_STUDENT, ROLE_TEACHER, ROLE_ADMIN.',
-            'Khóa hoặc kích hoạt lại tài khoản khi phát hiện dấu hiệu vi phạm điều khoản.',
-          ],
+          title: 'Điều chỉnh quyền hạn người dùng',
+          description:
+            'Tại /admin/users và /admin/roles, tìm kiếm theo email hoặc tên để cấp quyền Giảng viên hoặc Quản trị viên.',
         },
       ],
+      actionText: 'Quản lý Người dùng',
+      actionHref: '/admin/users',
     },
     {
       id: 'admin-teacher-approvals',
-      badge: 'Duyệt giảng viên',
-      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+      category: 'Duyệt Giảng viên',
+      title: 'Xét duyệt Hồ sơ Giáo viên & Bằng cấp Sư phạm',
+      shortTitle: 'Duyệt hồ sơ Giáo viên',
       icon: ShieldCheck,
-      title: '3. Xét duyệt Hồ sơ Giáo viên (Teacher Verifications)',
-      subtitle: 'Kiểm duyệt minh chứng bằng cấp và kích hoạt quyền giảng dạy cho ứng viên.',
-      actionText: 'Duyệt hồ sơ',
-      actionHref: '/admin/teacher-verifications',
-      actionColor: 'bg-emerald-600 hover:bg-emerald-700 text-white',
+      readTime: '1.5 phút đọc',
+      badge: 'Xét duyệt',
+      badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+      tldr: 'Kiểm tra thông tin bằng cấp của ứng viên và bấm Phê duyệt để kích hoạt quyền ROLE_TEACHER kèm thông báo.',
       steps: [
         {
-          title: 'Quy trình kiểm tra & Phê duyệt',
-          desc: 'Khi người dùng nộp đơn tại /become-teacher, yêu cầu sẽ xuất hiện tại /admin/teacher-verifications.',
-          details: [
-            'Kiểm tra thông tin bằng cấp, chứng chỉ sư phạm đính kèm.',
-            'Bấm "Phê duyệt" để tự động nâng cấp tài khoản sang ROLE_TEACHER kèm thông báo.',
-            'Hoặc bấm "Từ chối" kèm lời giải thích lý do để ứng viên bổ sung hồ sơ.',
-          ],
+          title: 'Quy trình kiểm duyệt minh chứng',
+          description:
+            'Tại /admin/teacher-verifications, bấm xem chi tiết hồ sơ, xem ảnh bằng cấp và bấm "Phê duyệt" hoặc "Từ chối" kèm lý do phản hồi.',
         },
       ],
+      actionText: 'Duyệt hồ sơ giáo viên',
+      actionHref: '/admin/teacher-verifications',
     },
     {
-      id: 'admin-finance-payout',
-      badge: 'Tài chính & SePay',
-      badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+      id: 'admin-finance-reconciliation',
+      category: 'Tài chính & SePay',
+      title: 'Đối soát Thanh toán SePay VietQR & Duyệt lệnh Payout',
+      shortTitle: 'Tài chính & Payout SePay',
       icon: DollarSign,
-      title: '4. Quản lý Tài chính, Doanh thu & Lệnh Rút tiền Payout',
-      subtitle: 'Đối soát giao dịch ngân hàng SePay VietQR và xử lý chuyển tiền cho giáo viên.',
-      actionText: 'Quản lý tài chính',
-      actionHref: '/admin/finance',
-      actionColor: 'bg-amber-600 hover:bg-amber-700 text-white',
+      readTime: '2 phút đọc',
+      badge: 'SePay VietQR',
+      badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+      tldr: 'Đối chiếu đơn hàng SePay VietQR tự động, xử lý thủ công các đơn sai cú pháp và duyệt chuyển khoản payout cho giáo viên.',
       steps: [
         {
           title: 'Đối soát đơn hàng SePay',
-          desc: 'Theo dõi toàn bộ đơn hàng gói PRO/ULTRA và khóa học. Hệ thống tự động ghi nhận thanh toán qua Webhook SePay VietQR.',
-          details: [
-            'Tra cứu chi tiết mã đơn hàng (orderCode), số tiền thực nhận và mã tham chiếu ngân hàng.',
-            'Khắc phục đơn hàng thủ công nếu có trường hợp khách hàng chuyển khoản sai nội dung.',
-          ],
+          description:
+            'Theo dõi mã đơn hàng, số tiền và mã giao dịch ngân hàng tại /admin/finance. Mọi thanh toán khớp lệnh sẽ tự động nâng cấp gói cho người dùng.',
         },
         {
-          title: 'Duyệt lệnh rút tiền (Payouts) của Giáo viên',
-          desc: 'Kiểm tra số dư hợp lệ và danh sách yêu cầu rút tiền của giáo viên.',
-          details: [
-            'Xác nhận thông tin số tài khoản và ngân hàng nhận tiền.',
-            'Sau khi thực hiện chuyển khoản cho giáo viên, bấm "Đã xử lý" để cập nhật trạng thái đơn rút tiền.',
-          ],
+          title: 'Phê duyệt lệnh rút tiền cho giáo viên',
+          description:
+            'Kiểm tra yêu cầu rút tiền, thực hiện chuyển khoản đến số tài khoản giáo viên cung cấp và bấm "Đã xử lý".',
         },
       ],
+      actionText: 'Quản lý Tài chính Admin',
+      actionHref: '/admin/finance',
     },
     {
-      id: 'admin-promotions-coupons',
-      badge: 'Khuyến mãi',
+      id: 'admin-coupons-promos',
+      category: 'Khuyến mãi & Marketing',
+      title: 'Tạo Mã Giảm giá (Coupons) & Chiến dịch Khuyến mãi',
+      shortTitle: 'Mã giảm giá & Khuyến mãi',
+      icon: Ticket,
+      readTime: '1.5 phút đọc',
+      badge: 'Marketing',
       badgeColor: 'bg-rose-100 text-rose-700 border-rose-200',
-      icon: Flame,
-      title: '5. Quản lý Sự kiện Giảm giá & Mã Coupon',
-      subtitle: 'Tạo mã voucher chiết khấu cho học sinh và các đợt flash sale toàn sàn.',
-      actionText: 'Quản lý mã giảm giá',
-      actionHref: '/admin/coupons',
-      actionColor: 'bg-rose-600 hover:bg-rose-700 text-white',
+      tldr: 'Tạo mã voucher giảm theo % hoặc tiền mặt cho gói PRO, ULTRA và khóa học tại /admin/coupons.',
       steps: [
         {
-          title: 'Tạo mã giảm giá linh hoạt',
-          desc: 'Tại trang /admin/coupons, bạn có thể tạo mã giảm theo % (ví dụ: GIAM50) hoặc giảm tiền mặt trực tiếp (ví dụ: 100.000 VNĐ).',
-          details: [
-            'Giới hạn số lượt dùng tối đa và thời gian hết hạn.',
-            'Áp dụng cho toàn bộ gói dịch vụ PRO/ULTRA hoặc từng khóa học cụ thể.',
-          ],
+          title: 'Tạo mã voucher giảm giá',
+          description:
+            'Tại /admin/coupons, bấm "Tạo mã mới", thiết lập mã code (ví dụ: SIEUHE2026), mức chiết khấu và thời hạn hiệu lực.',
         },
       ],
+      actionText: 'Quản lý Coupons',
+      actionHref: '/admin/coupons',
     },
   ];
 
-  // -------------------------------------------------------------
-  // DỮ LIỆU HỎI ĐÁP THƯỜNG GẶP (FAQ)
-  // -------------------------------------------------------------
-  const studentFaqs: FaqItem[] = [
-    {
-      question: 'Tôi có cần trả phí để học bài trên NQD-LMS không?',
-      answer:
-        'NQD-LMS cung cấp rất nhiều bài giảng và tài liệu hoàn toàn miễn phí. Đối với các khóa học nâng cao đặc biệt hoặc gói thành viên PRO/ULTRA (mở khóa toàn bộ bài giảng độc quyền và trợ lý AI Tutor không giới hạn), bạn có thể nâng cấp bằng phương thức thanh toán VietQR quét mã siêu nhanh.',
-    },
-    {
-      question: 'Tôi quét mã thanh toán VietQR qua SePay thì bao lâu tài khoản được kích hoạt?',
-      answer:
-        'Hệ thống NQD-LMS tích hợp cổng thanh toán tự động SePay VietQR. Ngay sau khi bạn chuyển khoản thành công từ app ngân hàng, tài khoản của bạn sẽ tự động được kích hoạt và nâng cấp sau khoảng 3 đến 10 giây mà không cần sự can thiệp thủ công của nhân viên hỗ trợ.',
-    },
-    {
-      question: 'Nếu tôi gặp bài toán khó mà không hiểu thì làm thế nào?',
-      answer:
-        'Bạn có thể bấm vào tính năng AI Tutor trên menu hoặc biểu tượng robot nhỏ ở góc màn hình. Hãy nhập câu hỏi hoặc chụp ảnh đề bài tải lên, AI Tutor sẽ phân tích và giải thích từng bước giải quyết vấn đề cho bạn 24/7.',
-    },
-    {
-      question: 'Sổ tay lỗi sai thông minh hoạt động ra sao?',
-      answer:
-        'Bất kỳ câu hỏi nào bạn làm sai trong các bài tập hoặc đề thi sẽ được tự động đưa vào mục "Sổ tay lỗi sai". Dựa trên thuật toán Lặp lại ngắt quãng (Spaced Repetition), hệ thống sẽ lên lịch nhắc nhở bạn luyện lại các câu sai sau 1 ngày, 3 ngày, 7 ngày cho đến khi bạn hoàn toàn làm chủ kiến thức đó.',
-    },
-    {
-      question: 'Làm thế nào để nhận được Chứng chỉ hoàn thành khóa học?',
-      answer:
-        'Khi bạn hoàn thành tất cả các bài học trong giáo trình và đạt điểm yêu cầu trong bài kiểm tra kết thúc khóa học, hệ thống sẽ tự động cấp Chứng chỉ điện tử có tên của bạn cùng mã QR xác thực tại mục "Chứng chỉ của tôi".',
-    },
-  ];
+  // Articles list according to active role
+  const currentArticles = useMemo(() => {
+    if (activeRole === 'STUDENT') return studentArticles;
+    if (activeRole === 'TEACHER') return teacherArticles;
+    return adminArticles;
+  }, [activeRole]);
 
-  const teacherFaqs: FaqItem[] = [
-    {
-      question: 'Làm thế nào để tôi được cấp quyền Giáo viên để tạo khóa học?',
-      answer:
-        'Bạn chỉ cần truy cập trang "/become-teacher", điền thông tin chuyên môn giảng dạy và đính kèm hình ảnh bằng cấp, chứng chỉ sư phạm liên quan. Ban quản trị NQD-LMS sẽ xét duyệt và kích hoạt quyền giáo viên cho bạn trong vòng 12 - 24 giờ.',
-    },
-    {
-      question: 'Tôi có thể tải video bài giảng lên bằng cách nào?',
-      answer:
-        'Bạn có thể nhúng đường dẫn video từ YouTube (để ở chế độ Không công khai/Unlisted hoặc Công khai), hoặc sử dụng các liên kết video trực tiếp để học sinh xem mượt mà trên mọi thiết bị.',
-    },
-    {
-      question: 'AI Generator trong ngân hàng câu hỏi có thể làm được gì?',
-      answer:
-        'AI Generator cho phép bạn dán đoạn văn bản nội dung bài giảng hoặc nhập một chủ đề bất kỳ, sau đó AI sẽ tự động sinh ra các câu hỏi trắc nghiệm kèm 4 phương án, đáp án đúng và lời giải chi tiết chuẩn công thức LaTeX.',
-    },
-    {
-      question: 'Doanh thu bán khóa học được tính và chi trả như thế nào?',
-      answer:
-        'Khi có học sinh mua khóa học của bạn, số tiền sau khi trừ tỷ lệ phí nền tảng sẽ được cộng trực tiếp vào Số dư khả dụng của bạn. Bạn có thể gửi lệnh rút tiền (Payout) về tài khoản ngân hàng bất kỳ lúc nào tại trang "/teacher/finance".',
-    },
-    {
-      question: 'Phòng Lab (Live Call) hỗ trợ những tính năng gì trong giờ dạy?',
-      answer:
-        'Phòng Lab hỗ trợ truyền phát Video & Âm thanh trực tiếp độ trễ thấp, chia sẻ màn hình bài giảng, trình chiếu slide, tương tác đặt câu hỏi và quản lý mic của học sinh trong phòng học.',
-    },
-  ];
-
-  const adminFaqs: FaqItem[] = [
-    {
-      question: 'Làm thế nào để đối soát một đơn hàng nếu người dùng chuyển khoản sai nội dung?',
-      answer:
-        'Tại trang Admin Finance (/admin/finance), bạn có thể kiểm tra danh sách log giao dịch của SePay, đối chiếu số tiền và mã đơn hàng của người dùng để xác nhận kích hoạt tài khoản thủ công.',
-    },
-    {
-      question: 'Quy trình xử lý lệnh rút tiền (Payout) của giảng viên như thế nào?',
-      answer:
-        'Giảng viên gửi yêu cầu rút tiền -> Lệnh hiển thị trong mục Yêu cầu rút tiền tại /admin/finance -> Quản trị viên đối soát số dư -> Thực hiện chuyển khoản ngân hàng -> Bấm xác nhận "Đã hoàn thành" để hệ thống cập nhật lịch sử.',
-    },
-  ];
-
-  // Lựa chọn bộ dữ liệu theo tab đang kích hoạt
-  const currentChapters = useMemo(() => {
-    let list: ChapterItem[] = [];
-    if (activeTab === 'STUDENT') list = studentChapters;
-    else if (activeTab === 'TEACHER') list = teacherChapters;
-    else list = adminChapters;
-
-    if (!searchQuery.trim()) return list;
-
-    const q = searchQuery.toLowerCase();
-    return list.filter((chap) => {
-      const matchTitle = chap.title.toLowerCase().includes(q);
-      const matchSub = chap.subtitle.toLowerCase().includes(q);
-      const matchSteps = chap.steps.some(
-        (s) =>
-          s.title.toLowerCase().includes(q) ||
-          s.desc.toLowerCase().includes(q) ||
-          (s.details && s.details.some((d) => d.toLowerCase().includes(q)))
-      );
-      return matchTitle || matchSub || matchSteps;
+  // Group current articles by category for clean left sidebar
+  const groupedArticles = useMemo(() => {
+    const groups: Record<string, DocArticle[]> = {};
+    currentArticles.forEach((art) => {
+      if (!groups[art.category]) {
+        groups[art.category] = [];
+      }
+      groups[art.category].push(art);
     });
-  }, [activeTab, searchQuery]);
+    return groups;
+  }, [currentArticles]);
 
-  const currentFaqs = useMemo(() => {
-    if (activeTab === 'STUDENT') return studentFaqs;
-    if (activeTab === 'TEACHER') return teacherFaqs;
-    return adminFaqs;
-  }, [activeTab]);
+  // Search filtered articles
+  const filteredSearchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    const all = [...studentArticles, ...teacherArticles, ...adminArticles];
+    return all.filter(
+      (a) =>
+        a.title.toLowerCase().includes(q) ||
+        a.tldr.toLowerCase().includes(q) ||
+        a.category.toLowerCase().includes(q) ||
+        a.steps.some((s) => s.title.toLowerCase().includes(q) || s.description.toLowerCase().includes(q))
+    );
+  }, [searchQuery]);
+
+  // Active article object
+  const activeArticle = useMemo(() => {
+    const found = currentArticles.find((a) => a.id === activeArticleId);
+    return found || currentArticles[0];
+  }, [currentArticles, activeArticleId]);
+
+  // Previous and next article navigation
+  const currentIndex = currentArticles.findIndex((a) => a.id === activeArticle.id);
+  const prevArticle = currentIndex > 0 ? currentArticles[currentIndex - 1] : null;
+  const nextArticle = currentIndex < currentArticles.length - 1 ? currentArticles[currentIndex + 1] : null;
+
+  // Handle switching role
+  const handleRoleSwitch = (role: RoleTab) => {
+    setActiveRole(role);
+    setUserSwitchedRole(true);
+    setSearchQuery('');
+    setFeedbackGiven(null);
+    if (role === 'STUDENT') setActiveArticleId('student-quickstart');
+    else if (role === 'TEACHER') setActiveArticleId('teacher-curriculum');
+    else setActiveArticleId('admin-dashboard-overview');
+  };
+
+  const handleSelectArticle = (id: string, role?: RoleTab) => {
+    if (role && role !== activeRole) {
+      setActiveRole(role);
+      setUserSwitchedRole(true);
+    }
+    setActiveArticleId(id);
+    setSearchQuery('');
+    setFeedbackGiven(null);
+    setMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
-    <div className="w-full min-h-screen bg-slate-50/80 pb-20">
-      {/* --------------------------------------------------------- */}
-      {/* TOP HERO BANNER */}
-      {/* --------------------------------------------------------- */}
-      <section className="bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 text-white pt-10 pb-16 px-4 sm:px-6 lg:px-8 border-b border-slate-800 relative overflow-hidden">
-        {/* Background ambient decorative glow */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="w-full min-h-screen bg-slate-50 flex flex-col text-slate-800">
+      {/* ------------------------------------------------------------- */}
+      {/* 1. TOP HEADER / APP BAR (Modern Docs Style)                    */}
+      {/* ------------------------------------------------------------- */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+          {/* Brand & Mobile Menu Toggle */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition"
+              title="Danh mục hướng dẫn"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
 
-        <div className="max-w-6xl mx-auto relative z-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-emerald-300 text-xs font-bold tracking-wide uppercase mb-3 border border-white/10">
-                <Compass className="w-3.5 h-3.5" />
-                <span>Trung tâm Trợ giúp & Hướng dẫn</span>
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center font-bold text-lg shadow-xs">
+                📖
               </div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
-                Cẩm nang Sử dụng NQD-LMS
-              </h1>
-              <p className="mt-2 text-slate-300 text-sm sm:text-base max-w-2xl">
-                Hướng dẫn chi tiết từng bước giúp bạn làm chủ mọi tính năng học tập, thi cử và giảng dạy thông minh trên nền tảng NQD-LMS.
-              </p>
-            </div>
-
-            {/* Role Detected Indicator Box */}
-            <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15 max-w-md shrink-0 shadow-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-lg shrink-0">
-                  {isTeacher ? '👨‍🏫' : isAdmin ? '🛡️' : '🎓'}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-slate-300">Vai trò của bạn:</span>
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
-                      {isAdmin ? 'Quản trị viên' : isTeacher ? 'Giáo viên' : 'Học sinh'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-200 mt-1">
-                    {isAdmin
-                      ? 'Hệ thống tự động mở khóa toàn bộ cẩm nang dành cho Giáo viên, Học sinh & Admin.'
-                      : isTeacher
-                      ? 'Giao diện tự động tối ưu hóa cẩm nang Quản lý Giáo trình, Đề thi & Doanh thu.'
-                      : 'Giao diện tự động tối ưu hóa cẩm nang Học tập, Luyện thi, AI Tutor & Sổ lỗi sai.'}
-                  </p>
-                </div>
+              <div>
+                <span className="font-extrabold text-slate-900 text-base leading-tight block">
+                  Trung tâm Hướng dẫn
+                </span>
+                <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block">
+                  NQD-LMS Docs & Guides
+                </span>
               </div>
-            </div>
+            </Link>
           </div>
 
-          {/* Quick Search Bar */}
-          <div className="mt-8 max-w-2xl relative">
+          {/* Role Segmented Switcher (Centered) */}
+          <div className="hidden sm:flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200/80">
+            <button
+              onClick={() => handleRoleSwitch('STUDENT')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeRole === 'STUDENT'
+                  ? 'bg-white text-emerald-800 shadow-xs scale-[1.02]'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <GraduationCap className="w-4 h-4 text-emerald-600" />
+              <span>Học sinh</span>
+              <span className="px-1.5 py-0.2 bg-emerald-50 text-emerald-700 rounded-md text-[10px]">
+                {studentArticles.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleRoleSwitch('TEACHER')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeRole === 'TEACHER'
+                  ? 'bg-white text-indigo-800 shadow-xs scale-[1.02]'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Layers className="w-4 h-4 text-indigo-600" />
+              <span>Giáo viên</span>
+              <span className="px-1.5 py-0.2 bg-indigo-50 text-indigo-700 rounded-md text-[10px]">
+                {teacherArticles.length}
+              </span>
+            </button>
+
+            {(isAdmin || activeRole === 'ADMIN') && (
+              <button
+                onClick={() => handleRoleSwitch('ADMIN')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeRole === 'ADMIN'
+                    ? 'bg-white text-purple-800 shadow-xs scale-[1.02]'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4 text-purple-600" />
+                <span>Quản trị viên</span>
+              </button>
+            )}
+          </div>
+
+          {/* Quick Search Input with Dropdown */}
+          <div className="relative w-full max-w-[280px] sm:max-w-xs">
             <div className="relative">
-              <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm kiếm tính năng: AI Tutor, đề thi, LaTeX, sổ lỗi sai, SePay, rút tiền..."
-                className="w-full pl-12 pr-10 py-3.5 rounded-2xl bg-white text-slate-900 placeholder:text-slate-400 text-sm font-medium shadow-md focus:outline-hidden focus:ring-3 focus:ring-emerald-400"
+                placeholder="Tìm hướng dẫn nhanh..."
+                className="w-full pl-9 pr-8 py-2 rounded-xl bg-slate-100 hover:bg-slate-200/60 focus:bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 border border-transparent focus:border-slate-300 focus:outline-hidden transition"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
                 >
-                  Xóa
+                  ✕
                 </button>
               )}
             </div>
 
-            {/* Quick search suggestion tags */}
-            <div className="flex flex-wrap items-center gap-2 mt-3 text-xs text-slate-300">
-              <span className="text-slate-400">Từ khóa phổ biến:</span>
-              {['AI Tutor', 'Sổ tay lỗi sai', 'Đề thi bấm giờ', 'SePay VietQR', 'Phòng Lab', 'Rút tiền', 'Mã giảm giá'].map(
-                (tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => setSearchQuery(tag)}
-                    className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 text-[11px] font-medium transition cursor-pointer border border-white/10"
-                  >
-                    #{tag}
-                  </button>
-                )
+            {/* Live Search Results Popup */}
+            {searchQuery.trim().length > 0 && (
+              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50 animate-in fade-in duration-100 max-h-96 overflow-y-auto">
+                <div className="p-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Kết quả tìm kiếm ({filteredSearchResults.length})
+                </div>
+                {filteredSearchResults.length === 0 ? (
+                  <p className="p-4 text-xs text-slate-500 text-center">
+                    Không tìm thấy bài viết nào chứa "{searchQuery}".
+                  </p>
+                ) : (
+                  filteredSearchResults.map((res) => (
+                    <button
+                      key={res.id}
+                      onClick={() =>
+                        handleSelectArticle(
+                          res.id,
+                          studentArticles.some((x) => x.id === res.id)
+                            ? 'STUDENT'
+                            : teacherArticles.some((x) => x.id === res.id)
+                            ? 'TEACHER'
+                            : 'ADMIN'
+                        )
+                      }
+                      className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 transition flex items-start gap-3 group"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 shrink-0 mt-0.5 group-hover:bg-emerald-50 group-hover:text-emerald-700">
+                        <res.icon className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          {res.category}
+                        </span>
+                        <h4 className="text-xs font-bold text-slate-900 truncate">{res.title}</h4>
+                        <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{res.tldr}</p>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile Role Switcher Bar */}
+        <div className="sm:hidden px-4 pb-3 flex items-center justify-between border-t border-slate-100 pt-2 gap-2">
+          <span className="text-[11px] font-bold text-slate-500 uppercase">Vai trò:</span>
+          <div className="flex items-center gap-1.5 flex-1 justify-end">
+            <button
+              onClick={() => handleRoleSwitch('STUDENT')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold ${
+                activeRole === 'STUDENT'
+                  ? 'bg-[#83C75D] text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-700'
+              }`}
+            >
+              🎓 Học sinh
+            </button>
+            <button
+              onClick={() => handleRoleSwitch('TEACHER')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold ${
+                activeRole === 'TEACHER'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-700'
+              }`}
+            >
+              👨‍🏫 Giáo viên
+            </button>
+            {isAdmin && (
+              <button
+                onClick={() => handleRoleSwitch('ADMIN')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold ${
+                  activeRole === 'ADMIN'
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-700'
+                }`}
+              >
+                🛡️ Admin
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 2. MAIN WORKSPACE CONTAINER (GitBook / Stripe Docs 3-Panel)   */}
+      {/* ------------------------------------------------------------- */}
+      <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex gap-8">
+        {/* ----------------------------------------------------------- */}
+        {/* LEFT SIDEBAR: TOPIC & ARTICLE TREE NAVIGATION               */}
+        {/* ----------------------------------------------------------- */}
+        <aside
+          className={`lg:w-72 shrink-0 ${
+            mobileMenuOpen
+              ? 'fixed inset-0 z-50 bg-white p-6 overflow-y-auto block'
+              : 'hidden lg:block'
+          }`}
+        >
+          {/* Mobile drawer header */}
+          {mobileMenuOpen && (
+            <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-200">
+              <span className="font-extrabold text-base text-slate-900">Danh mục hướng dẫn</span>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+
+          <div className="sticky top-24 space-y-6">
+            {/* Role Header Banner Badge */}
+            <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-base shrink-0 ${
+                    activeRole === 'STUDENT'
+                      ? 'bg-emerald-100 text-[#4e8231]'
+                      : activeRole === 'TEACHER'
+                      ? 'bg-indigo-100 text-indigo-700'
+                      : 'bg-purple-100 text-purple-700'
+                  }`}
+                >
+                  {activeRole === 'STUDENT' ? '🎓' : activeRole === 'TEACHER' ? '👨‍🏫' : '🛡️'}
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                      Đang xem cẩm nang
+                    </span>
+                  </div>
+                  <h3 className="text-xs font-black text-slate-900">
+                    {activeRole === 'STUDENT'
+                      ? 'Dành cho Học sinh'
+                      : activeRole === 'TEACHER'
+                      ? 'Dành cho Giáo viên'
+                      : 'Dành cho Quản trị viên'}
+                  </h3>
+                </div>
+              </div>
+
+              {/* Notice if role auto-detected */}
+              {isTeacher && activeRole === 'TEACHER' && (
+                <p className="text-[11px] text-indigo-700 font-medium mt-2 bg-indigo-50/80 p-2 rounded-xl">
+                  ✨ Tự động nhận diện tài khoản Giáo viên.
+                </p>
+              )}
+            </div>
+
+            {/* Categorized Menu Tree */}
+            <nav className="space-y-5">
+              {Object.entries(groupedArticles).map(([categoryName, articles]) => (
+                <div key={categoryName} className="space-y-1">
+                  <p className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    {categoryName}
+                  </p>
+                  <div className="space-y-0.5">
+                    {articles.map((art) => {
+                      const isActive = art.id === activeArticle.id;
+                      const Icon = art.icon;
+                      return (
+                        <button
+                          key={art.id}
+                          onClick={() => handleSelectArticle(art.id)}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left cursor-pointer group ${
+                            isActive
+                              ? activeRole === 'STUDENT'
+                                ? 'bg-emerald-100/80 text-[#3b6d21] font-bold shadow-2xs'
+                                : activeRole === 'TEACHER'
+                                ? 'bg-indigo-100 text-indigo-900 font-bold shadow-2xs'
+                                : 'bg-purple-100 text-purple-900 font-bold shadow-2xs'
+                              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 truncate">
+                            <Icon
+                              className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
+                                isActive
+                                  ? activeRole === 'STUDENT'
+                                    ? 'text-[#4e8231]'
+                                    : 'text-indigo-600'
+                                  : 'text-slate-400'
+                              }`}
+                            />
+                            <span className="truncate">{art.shortTitle}</span>
+                          </div>
+                          {art.badge && (
+                            <span
+                              className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider border shrink-0 ${
+                                isActive
+                                  ? 'bg-white/80 border-transparent text-slate-800'
+                                  : art.badgeColor || 'bg-slate-100 text-slate-600 border-slate-200'
+                              }`}
+                            >
+                              {art.badge}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </nav>
+
+            {/* Quick Helper Links */}
+            <div className="pt-4 border-t border-slate-200/80 space-y-2">
+              <Link
+                href="/ai-tutor"
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 transition"
+              >
+                <Bot className="w-4 h-4 text-purple-600" />
+                <span>Hỏi trực tiếp AI Tutor</span>
+              </Link>
+              {activeRole === 'STUDENT' && !isTeacher && (
+                <Link
+                  href="/become-teacher"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition"
+                >
+                  <GraduationCap className="w-4 h-4 text-indigo-600" />
+                  <span>Đăng ký làm Giảng viên</span>
+                </Link>
               )}
             </div>
           </div>
-        </div>
-      </section>
+        </aside>
 
-      {/* --------------------------------------------------------- */}
-      {/* ROLE SWITCHER TABS */}
-      {/* --------------------------------------------------------- */}
-      <div className="sticky top-16 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-3 overflow-x-auto gap-3 no-scrollbar">
-            <div className="flex items-center gap-2">
-              {/* Tab 1: Học sinh */}
-              <button
-                onClick={() => handleTabSwitch('STUDENT')}
-                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === 'STUDENT'
-                    ? 'bg-[#83C75D] text-white shadow-sm shadow-[#83C75D]/30 scale-[1.02]'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <GraduationCap className="w-4 h-4" />
-                <span>🎓 Dành cho Học sinh</span>
+        {/* ----------------------------------------------------------- */}
+        {/* CENTER / MAIN CONTENT: EDITORIAL ARTICLE READER             */}
+        {/* ----------------------------------------------------------- */}
+        <main className="flex-1 min-w-0 max-w-3xl">
+          <article className="bg-white rounded-3xl border border-slate-200/90 shadow-xs p-6 sm:p-10">
+            {/* Breadcrumb Navigation */}
+            <nav className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-4">
+              <span>Hướng dẫn</span>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+              <span className="text-slate-600 font-semibold">{activeArticle.category}</span>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+              <span className="text-slate-900 font-bold truncate">{activeArticle.shortTitle}</span>
+            </nav>
+
+            {/* Article Header */}
+            <div className="border-b border-slate-100 pb-6 mb-8">
+              <div className="flex flex-wrap items-center gap-2.5 mb-2.5">
                 <span
-                  className={`text-[10px] px-2 py-0.5 rounded-md font-semibold ${
-                    activeTab === 'STUDENT'
-                      ? 'bg-white/20 text-white'
-                      : 'bg-slate-100 text-slate-600'
+                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                    activeArticle.badgeColor || 'bg-slate-100 text-slate-700 border-slate-200'
                   }`}
                 >
-                  {studentChapters.length} mục
+                  {activeArticle.category}
                 </span>
-              </button>
-
-              {/* Tab 2: Giáo viên */}
-              <button
-                onClick={() => handleTabSwitch('TEACHER')}
-                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === 'TEACHER'
-                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30 scale-[1.02]'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <Layers className="w-4 h-4" />
-                <span>👨‍🏫 Dành cho Giáo viên</span>
-                <span
-                  className={`text-[10px] px-2 py-0.5 rounded-md font-semibold ${
-                    activeTab === 'TEACHER'
-                      ? 'bg-white/20 text-white'
-                      : 'bg-slate-100 text-slate-600'
-                  }`}
-                >
-                  {teacherChapters.length} mục
+                <span className="flex items-center gap-1 text-slate-400 text-xs font-medium">
+                  <Clock className="w-3.5 h-3.5" />
+                  {activeArticle.readTime}
                 </span>
-              </button>
+              </div>
 
-              {/* Tab 3: Admin (Hiển thị nổi bật nếu là Admin) */}
-              <button
-                onClick={() => handleTabSwitch('ADMIN')}
-                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === 'ADMIN'
-                    ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30 scale-[1.02]'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <ShieldCheck className="w-4 h-4" />
-                <span>🛡️ Quản trị viên</span>
-                {isAdmin && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-md font-black bg-amber-400 text-slate-900 uppercase">
-                    Admin
-                  </span>
-                )}
-              </button>
-            </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-snug">
+                {activeArticle.title}
+              </h1>
 
-            {/* Quick Helper Badge */}
-            <div className="hidden lg:flex items-center gap-2 text-xs text-slate-500 font-medium">
-              <Lightbulb className="w-4 h-4 text-amber-500" />
-              <span>Bấm vào từng mục để xem hướng dẫn chi tiết</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* --------------------------------------------------------- */}
-      {/* MAIN CONTENT AREA */}
-      {/* --------------------------------------------------------- */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-        {/* Dynamic Context Header Card */}
-        <div className="mb-8 p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div
-              className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-bold shrink-0 ${
-                activeTab === 'STUDENT'
-                  ? 'bg-emerald-100 text-[#4e8231]'
-                  : activeTab === 'TEACHER'
-                  ? 'bg-indigo-100 text-indigo-700'
-                  : 'bg-purple-100 text-purple-700'
-              }`}
-            >
-              {activeTab === 'STUDENT' ? '🎓' : activeTab === 'TEACHER' ? '👨‍🏫' : '🛡️'}
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                {activeTab === 'STUDENT'
-                  ? 'Cẩm nang Học sinh: Tự tin học tập & Bứt phá điểm số'
-                  : activeTab === 'TEACHER'
-                  ? 'Cẩm nang Giáo viên: Thiết kế Giáo trình, Khảo thí & Doanh thu'
-                  : 'Cẩm nang Quản trị: Vận hành Hệ thống & Đối soát Tài chính'}
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {activeTab === 'STUDENT'
-                  ? 'Hướng dẫn sử dụng toàn bộ tính năng bài học, phòng lab, đề thi, AI Tutor và sổ tay lỗi sai.'
-                  : activeTab === 'TEACHER'
-                  ? 'Hướng dẫn tạo khóa học, soạn ngân hàng câu hỏi AI, tổ chức đề thi và gửi lệnh rút tiền.'
-                  : 'Tài liệu hướng dẫn quản lý tài khoản người dùng, duyệt hồ sơ giảng viên và đối soát SePay.'}
-              </p>
-            </div>
-          </div>
-
-          {/* Quick CTA button for non-teachers in Teacher Tab */}
-          {activeTab === 'TEACHER' && !isTeacher && !isAdmin && (
-            <Link
-              href="/become-teacher"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold text-xs shadow-md transition-all shrink-0"
-            >
-              <span>Đăng ký làm Giảng viên</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          )}
-
-          {activeTab === 'STUDENT' && !isPro && !isUltra && (
-            <Link
-              href="/pricing"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs shadow-md transition-all shrink-0"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-yellow-200" />
-              <span>Nâng cấp PRO / ULTRA</span>
-            </Link>
-          )}
-        </div>
-
-        {/* Search Results Notice */}
-        {searchQuery.trim() && (
-          <div className="mb-6 flex items-center justify-between p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-sm">
-            <span>
-              Kết quả tìm kiếm cho từ khóa: <strong className="underline font-bold">{searchQuery}</strong> ({currentChapters.length} mục)
-            </span>
-            <button
-              onClick={() => setSearchQuery('')}
-              className="text-xs font-bold text-blue-700 hover:underline"
-            >
-              Xóa bộ lọc
-            </button>
-          </div>
-        )}
-
-        {/* ------------------------------------------------------- */}
-        {/* CHAPTERS LIST (ACCORDION CARDS) */}
-        {/* ------------------------------------------------------- */}
-        <div className="space-y-4">
-          {currentChapters.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-2xl border border-slate-200">
-              <Search className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-base font-bold text-slate-700">Không tìm thấy nội dung phù hợp</p>
-              <p className="text-xs text-slate-400 mt-1">
-                Hãy thử lại với từ khóa khác hoặc chuyển sang tab hướng dẫn tương ứng.
-              </p>
-              <button
-                onClick={() => setSearchQuery('')}
-                className="mt-4 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
-              >
-                Xem toàn bộ cẩm nang
-              </button>
-            </div>
-          ) : (
-            currentChapters.map((chapter, idx) => {
-              const Icon = chapter.icon;
-              // Expand first chapter by default or if searched
-              const isExpanded =
-                expandedChapters[chapter.id] !== undefined
-                  ? expandedChapters[chapter.id]
-                  : idx === 0 || searchQuery.trim().length > 0;
-
-              return (
-                <div
-                  key={chapter.id}
-                  id={chapter.id}
-                  className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-all overflow-hidden"
-                >
-                  {/* Chapter Header (Clickable toggle) */}
-                  <div
-                    onClick={() => toggleChapter(chapter.id)}
-                    className="p-5 flex items-start sm:items-center justify-between gap-4 cursor-pointer hover:bg-slate-50/70 transition-colors select-none"
+              {/* Action Link button right at top if available */}
+              {activeArticle.actionHref && (
+                <div className="mt-4">
+                  <Link
+                    href={activeArticle.actionHref}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition"
                   >
-                    <div className="flex items-start sm:items-center gap-3.5">
-                      <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 border border-slate-200">
-                        <Icon className="w-5 h-5 text-slate-700" />
+                    <span>{activeArticle.actionText || 'Trải nghiệm tính năng ngay'}</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* TL;DR Quick Summary Box (30-second skim) */}
+            <div className="p-4.5 rounded-2xl bg-gradient-to-r from-emerald-50/70 via-teal-50/40 to-slate-50 border border-emerald-200/80 mb-8">
+              <div className="flex items-start gap-3">
+                <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-black text-xs shrink-0 mt-0.5 shadow-2xs">
+                  ⚡
+                </div>
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-wider text-emerald-950 mb-1">
+                    Tóm tắt nhanh (TL;DR)
+                  </h4>
+                  <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+                    {activeArticle.tldr}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* ------------------------------------------------------- */}
+            {/* VISUAL MOCKUP PREVIEW (Dựa trên loại bài viết)          */}
+            {/* ------------------------------------------------------- */}
+            {activeArticle.mockupType && activeArticle.mockupType !== 'none' && (
+              <div className="mb-10 rounded-2xl border border-slate-200 bg-slate-900 text-white p-5 shadow-lg overflow-hidden">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4 text-xs text-slate-400">
+                  <span className="flex items-center gap-1.5 font-bold text-slate-300">
+                    <Laptop className="w-3.5 h-3.5 text-emerald-400" />
+                    Mô phỏng Giao diện Trực quan
+                  </span>
+                  <span className="text-[11px] bg-white/10 px-2 py-0.5 rounded text-emerald-300 font-mono">
+                    Live UI Preview
+                  </span>
+                </div>
+
+                {/* 1. MOCKUP: Bài thi trắc nghiệm Toán LaTeX */}
+                {activeArticle.mockupType === 'student-exam' && (
+                  <div className="space-y-4 font-sans text-slate-900">
+                    <div className="bg-white p-5 rounded-xl shadow-xs">
+                      <div className="flex items-center justify-between mb-3 text-xs border-b border-slate-100 pb-2">
+                        <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
+                          Câu hỏi 1 / 20 • Toán học 10
+                        </span>
+                        <span className="flex items-center gap-1 font-mono font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md">
+                          ⏱️ 44:52
+                        </span>
                       </div>
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <span
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${chapter.badgeColor}`}
-                          >
-                            {chapter.badge}
-                          </span>
+                      <p className="text-sm font-bold text-slate-900 mb-3">
+                        Tìm tập nghiệm thực của phương trình: $x^2 - 5x + 6 = 0$
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-semibold">
+                        <div className="p-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50/70 text-emerald-900 flex items-center justify-between">
+                          <span>{'A. S = {2; 3}'}</span>
+                          <Check className="w-4 h-4 text-emerald-600" />
                         </div>
-                        <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
-                          {chapter.title}
-                        </h3>
-                        <p className="text-xs text-slate-500 mt-0.5 line-clamp-1 sm:line-clamp-none">
-                          {chapter.subtitle}
+                        <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700">
+                          {'B. S = {-2; -3}'}
+                        </div>
+                        <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700">
+                          {'C. S = {1; 6}'}
+                        </div>
+                        <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700">
+                          {'D. S = ∅ (Vô nghiệm)'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. MOCKUP: Trợ lý AI Tutor Chat */}
+                {activeArticle.mockupType === 'student-ai-tutor' && (
+                  <div className="space-y-3 font-sans text-xs">
+                    <div className="flex items-end justify-end gap-2">
+                      <div className="bg-indigo-600 text-white p-3 rounded-2xl rounded-br-none max-w-sm">
+                        <p className="font-medium">
+                          "Thầy ơi giải thích giúp em tại sao trọng lực $P = m \cdot g$ lại có chiều luôn hướng về tâm Trái Đất?"
+                        </p>
+                      </div>
+                      <div className="w-6 h-6 rounded-full bg-indigo-200 text-indigo-800 font-bold flex items-center justify-center shrink-0 text-[10px]">
+                        Em
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2">
+                      <div className="w-6 h-6 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center shrink-0 text-[10px]">
+                        AI
+                      </div>
+                      <div className="bg-slate-800 text-slate-100 p-3.5 rounded-2xl rounded-tl-none max-w-md border border-slate-700 space-y-1.5 leading-relaxed">
+                        <p className="font-bold text-emerald-400">Chào bạn! Hãy cùng suy luận nhé:</p>
+                        <p>
+                          Trọng lực là lực hút của Trái Đất tác dụng lên vật. Theo định luật vạn vật hấp dẫn của Newton, Trái Đất có khối lượng khổng lồ tập trung tại tâm, nên lực hút luôn có phương thẳng đứng hướng thẳng về phía tâm!
+                        </p>
+                        <p className="text-[11px] text-slate-400 font-mono">
+                          {'Công thức: P = m · g (với g ≈ 9.8 m/s²)'}
                         </p>
                       </div>
                     </div>
+                  </div>
+                )}
 
-                    <div className="flex items-center gap-3 shrink-0">
-                      {chapter.actionHref && (
-                        <Link
-                          href={chapter.actionHref}
-                          onClick={(e) => e.stopPropagation()}
-                          className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
-                            chapter.actionColor || 'bg-slate-800 text-white'
-                          }`}
-                        >
-                          <span>{chapter.actionText || 'Khám phá'}</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </Link>
-                      )}
-                      <button
-                        type="button"
-                        className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-                      >
-                        <ChevronDown
-                          className={`w-5 h-5 transition-transform duration-200 ${
-                            isExpanded ? 'rotate-180 text-slate-700' : ''
-                          }`}
-                        />
-                      </button>
+                {/* 3. MOCKUP: Sổ tay lỗi sai Spaced Repetition */}
+                {activeArticle.mockupType === 'student-mistake' && (
+                  <div className="font-sans text-xs">
+                    <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-3">
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                        <span>CHU KỲ LẶP LẠI NGẮT QUÃNG (SPACED REPETITION)</span>
+                        <span className="text-emerald-400">Hiệu quả +85% ghi nhớ</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-200">
+                          <span className="font-bold block text-sm text-rose-300">Giai đoạn 1</span>
+                          <span className="text-[11px] mt-0.5 block">Làm sai bài thi</span>
+                          <span className="text-[10px] text-slate-400 mt-2 block">Ôn lại sau 24h</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-200">
+                          <span className="font-bold block text-sm text-amber-300">Giai đoạn 2</span>
+                          <span className="text-[11px] mt-0.5 block">Khắc phục 50%</span>
+                          <span className="text-[10px] text-slate-400 mt-2 block">Ôn lại sau 3 ngày</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-200">
+                          <span className="font-bold block text-sm text-emerald-300">Giai đoạn 3</span>
+                          <span className="text-[11px] mt-0.5 block">Thuần thục 100%</span>
+                          <span className="text-[10px] text-slate-400 mt-2 block">Ghi nhớ dài hạn</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
+                )}
 
-                  {/* Chapter Steps Body (Collapsible) */}
-                  {isExpanded && (
-                    <div className="px-5 pb-6 pt-2 border-t border-slate-100 bg-slate-50/40">
-                      <div className="space-y-4 mt-3">
-                        {chapter.steps.map((step, sIdx) => (
-                          <div
-                            key={sIdx}
-                            className="bg-white p-4.5 rounded-xl border border-slate-200 shadow-2xs"
-                          >
-                            <div className="flex items-start gap-3">
-                              <span className="w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
-                                {sIdx + 1}
-                              </span>
-                              <div className="flex-1">
-                                <h4 className="text-sm font-bold text-slate-900">
-                                  {step.title}
-                                </h4>
-                                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                                  {step.desc}
-                                </p>
-
-                                {step.details && step.details.length > 0 && (
-                                  <ul className="mt-2.5 space-y-1.5 text-xs text-slate-600 pl-1">
-                                    {step.details.map((detail, dIdx) => (
-                                      <li key={dIdx} className="flex items-start gap-2">
-                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                                        <span>{detail}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-
-                                {step.tips && (
-                                  <div className="mt-3 p-3 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
-                                    <Lightbulb className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                                    <div>
-                                      <strong className="font-semibold text-amber-950">Mẹo hữu ích: </strong>
-                                      {step.tips}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {step.alert && (
-                                  <div className="mt-3 p-3 rounded-xl bg-rose-50/80 border border-rose-200 text-rose-900 text-xs flex items-start gap-2">
-                                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                                    <div>
-                                      <strong className="font-semibold text-rose-950">Lưu ý quan trọng: </strong>
-                                      {step.alert}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Mobile Action Link button inside expanded accordion */}
-                      {chapter.actionHref && (
-                        <div className="mt-4 sm:hidden pt-3 border-t border-slate-200">
-                          <Link
-                            href={chapter.actionHref}
-                            className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs ${
-                              chapter.actionColor || 'bg-slate-800 text-white'
-                            }`}
-                          >
-                            <span>{chapter.actionText || 'Khám phá ngay'}</span>
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </Link>
+                {/* 4. MOCKUP: SePay VietQR Payment */}
+                {activeArticle.mockupType === 'student-payment' && (
+                  <div className="bg-white p-4 rounded-xl text-slate-900 font-sans text-xs">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-16 h-16 bg-slate-100 rounded-xl flex items-center justify-center border border-slate-200 text-2xl font-bold">
+                          📱QR
                         </div>
-                      )}
+                        <div>
+                          <p className="font-bold text-sm text-slate-900">Thanh toán tự động qua VietQR</p>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Cổng SePay • Quét bằng MB, VCB, Techcombank, Momo...
+                          </p>
+                          <span className="inline-block mt-1 font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-[11px]">
+                            Trạng thái: Tự động kích hoạt trong 5 giây
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right sm:border-l sm:pl-4 border-slate-100">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                          Số tiền thanh toán
+                        </span>
+                        <span className="text-base font-black text-indigo-700">199.000 đ</span>
+                      </div>
                     </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
+                  </div>
+                )}
 
-        {/* ------------------------------------------------------- */}
-        {/* FREQUENTLY ASKED QUESTIONS (FAQ) */}
-        {/* ------------------------------------------------------- */}
-        <div className="mt-14">
-          <div className="flex items-center gap-2 mb-2">
-            <HelpCircle className="w-5 h-5 text-indigo-600" />
-            <h2 className="text-xl font-extrabold text-slate-900">Câu hỏi thường gặp (FAQ)</h2>
-          </div>
-          <p className="text-xs text-slate-500 mb-6">
-            Giải đáp các thắc mắc phổ biến nhất khi sử dụng nền tảng NQD-LMS.
-          </p>
+                {/* 5. MOCKUP: Giáo viên AI Generator câu hỏi */}
+                {activeArticle.mockupType === 'teacher-ai-question' && (
+                  <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 font-sans text-xs space-y-2.5">
+                    <div className="flex items-center gap-2 text-indigo-300 font-bold">
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      <span>Trợ lý AI Soạn Đề</span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-slate-900 text-slate-300 font-mono text-[11px]">
+                      Chủ đề: "Sinh 5 câu hỏi trắc nghiệm Toán 10: Phương trình đường thẳng trong mặt phẳng Oxy"
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-emerald-400 pt-1">
+                      <span>✓ Đã sinh 5 câu hỏi kèm lời giải LaTeX</span>
+                      <span className="bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-300 font-bold">
+                        Độ chính xác cao
+                      </span>
+                    </div>
+                  </div>
+                )}
 
-          <div className="space-y-3">
-            {currentFaqs.map((faq, fIdx) => {
-              const isFaqOpen = !!expandedFaq[`${activeTab}-${fIdx}`];
-              return (
+                {/* 6. MOCKUP: Giáo viên Rút tiền Payout */}
+                {activeArticle.mockupType === 'teacher-finance' && (
+                  <div className="bg-white p-4 rounded-xl text-slate-900 font-sans text-xs space-y-2">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">
+                          Số dư khả dụng
+                        </span>
+                        <p className="text-lg font-black text-emerald-700">5.250.000 đ</p>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">
+                        Sẵn sàng rút
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-slate-600 text-[11px] pt-1">
+                      <span>Tài khoản thụ hưởng: MB Bank - 0987654321</span>
+                      <span className="font-bold text-indigo-600">Đã giải ngân</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* 7. MOCKUP: Chế độ Slide bài giảng */}
+                {activeArticle.mockupType === 'teacher-course-slide' && (
+                  <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 font-sans text-xs space-y-3">
+                    <div className="aspect-video bg-slate-950 rounded-lg flex items-center justify-center relative overflow-hidden border border-slate-700">
+                      <div className="text-center p-4">
+                        <span className="text-emerald-400 font-bold text-sm block">
+                          Bài 1: Khái niệm Vectơ & Phép toán Cộng Trừ
+                        </span>
+                        <span className="text-slate-400 text-xs mt-1 block">
+                          Slide 3 / 12 • Tương tác trực tiếp trên trình duyệt
+                        </span>
+                      </div>
+                      <div className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-black/60 px-2.5 py-1 rounded text-[10px] text-white">
+                        <span>Trình chiếu toàn màn hình</span>
+                        <ExternalLink className="w-3 h-3 text-emerald-400" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ------------------------------------------------------- */}
+            {/* STEP-BY-STEP NUMBERED WALKTHROUGH                       */}
+            {/* ------------------------------------------------------- */}
+            <div className="space-y-6">
+              <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 mb-2">
+                Các bước thực hiện chi tiết
+              </h3>
+
+              {activeArticle.steps.map((step, idx) => (
                 <div
-                  key={fIdx}
-                  className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden"
+                  key={idx}
+                  className="flex items-start gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 transition"
                 >
-                  <button
-                    onClick={() => toggleFaq(`${activeTab}-${fIdx}`)}
-                    className="w-full text-left p-4.5 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors cursor-pointer select-none"
-                  >
-                    <span className="font-bold text-sm text-slate-900">{faq.question}</span>
-                    <ChevronDown
-                      className={`w-4 h-4 text-slate-400 transition-transform ${
-                        isFaqOpen ? 'rotate-180 text-indigo-600' : ''
-                      }`}
-                    />
-                  </button>
-                  {isFaqOpen && (
-                    <div className="px-4.5 pb-4.5 pt-1 text-xs text-slate-600 leading-relaxed border-t border-slate-100 bg-slate-50/50">
-                      {faq.answer}
-                    </div>
-                  )}
+                  <div className="w-8 h-8 rounded-xl bg-slate-900 text-white font-extrabold text-xs flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                    {idx + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
+                      {step.title}
+                    </h4>
+                    <p className="text-xs sm:text-sm text-slate-600 mt-1.5 leading-relaxed">
+                      {step.description}
+                    </p>
+
+                    {step.keyPoints && step.keyPoints.length > 0 && (
+                      <ul className="mt-3 space-y-1.5 pl-1 text-xs text-slate-600">
+                        {step.keyPoints.map((kp, kIdx) => (
+                          <li key={kIdx} className="flex items-start gap-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                            <span>{kp}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              ))}
+            </div>
 
-        {/* ------------------------------------------------------- */}
-        {/* SUPPORT / CONTACT FOOTER BANNER */}
-        {/* ------------------------------------------------------- */}
-        <div className="mt-14 p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 border border-slate-800">
-          <div>
-            <span className="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-[11px] font-bold uppercase tracking-wider border border-indigo-500/30">
-              Cần thêm trợ giúp?
-            </span>
-            <h3 className="text-xl sm:text-2xl font-black mt-2">
-              Chúng tôi luôn đồng hành cùng bạn 24/7
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
-              Nếu bạn có bất kỳ thắc mắc kỹ thuật hoặc câu hỏi về bài giảng, đội ngũ hỗ trợ NQD-LMS và Trợ lý AI Tutor luôn sẵn sàng hỗ trợ bạn.
-            </p>
-          </div>
+            {/* Tip Callout box */}
+            {activeArticle.tip && (
+              <div className="mt-8 p-4 rounded-2xl bg-amber-50/80 border border-amber-200 text-amber-950 text-xs sm:text-sm flex items-start gap-3 leading-relaxed">
+                <Lightbulb className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="font-extrabold text-amber-950">Mẹo thông minh: </strong>
+                  {activeArticle.tip}
+                </div>
+              </div>
+            )}
 
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
-            <Link
-              href="/ai-tutor"
-              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2"
-            >
-              <span>Trò chuyện với AI Tutor</span>
-              <MessageSquareCode className="w-4 h-4" />
-            </Link>
-            <Link
-              href="/courses"
-              className="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-all border border-white/20 flex items-center gap-2"
-            >
-              <span>Vào học ngay</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            {/* Warning Callout box */}
+            {activeArticle.warning && (
+              <div className="mt-4 p-4 rounded-2xl bg-rose-50/80 border border-rose-200 text-rose-950 text-xs sm:text-sm flex items-start gap-3 leading-relaxed">
+                <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="font-extrabold text-rose-950">Lưu ý quan trọng: </strong>
+                  {activeArticle.warning}
+                </div>
+              </div>
+            )}
+
+            {/* ------------------------------------------------------- */}
+            {/* PREV / NEXT NAVIGATION BUTTONS                          */}
+            {/* ------------------------------------------------------- */}
+            <div className="mt-12 pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+              {prevArticle ? (
+                <button
+                  onClick={() => handleSelectArticle(prevArticle.id)}
+                  className="w-full sm:w-auto flex items-center gap-2 px-4 py-3 rounded-2xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-left transition cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4 text-slate-400" />
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">
+                      Bài trước
+                    </span>
+                    <span className="text-xs font-bold text-slate-800 line-clamp-1">
+                      {prevArticle.shortTitle}
+                    </span>
+                  </div>
+                </button>
+              ) : (
+                <div className="hidden sm:block" />
+              )}
+
+              {nextArticle && (
+                <button
+                  onClick={() => handleSelectArticle(nextArticle.id)}
+                  className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2 px-4 py-3 rounded-2xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-right transition cursor-pointer"
+                >
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase block">
+                      Bài tiếp theo
+                    </span>
+                    <span className="text-xs font-bold text-slate-800 line-clamp-1">
+                      {nextArticle.shortTitle}
+                    </span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </button>
+              )}
+            </div>
+
+            {/* Feedback Widget (Was this page helpful?) */}
+            <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+              <span className="font-medium">Bài hướng dẫn này có hữu ích cho bạn không?</span>
+              {feedbackGiven ? (
+                <span className="text-emerald-600 font-bold flex items-center gap-1.5">
+                  <CheckCheck className="w-4 h-4" /> Cảm ơn bạn đã đóng góp phản hồi!
+                </span>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setFeedbackGiven('yes')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 text-xs font-semibold transition cursor-pointer"
+                  >
+                    <ThumbsUp className="w-3.5 h-3.5" />
+                    <span>Hữu ích</span>
+                  </button>
+                  <button
+                    onClick={() => setFeedbackGiven('no')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-700 text-xs font-semibold transition cursor-pointer"
+                  >
+                    <ThumbsDown className="w-3.5 h-3.5" />
+                    <span>Chưa rõ</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </article>
+        </main>
+
+        {/* ----------------------------------------------------------- */}
+        {/* RIGHT SIDEBAR (On this page / Quick Tips Widget)            */}
+        {/* ----------------------------------------------------------- */}
+        <aside className="hidden xl:block w-64 shrink-0">
+          <div className="sticky top-24 space-y-6">
+            {/* On this page summary */}
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">
+                Trong bài viết này
+              </p>
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center gap-2 text-slate-700 font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  <span>Tóm tắt nhanh (TL;DR)</span>
+                </div>
+                {activeArticle.mockupType && activeArticle.mockupType !== 'none' && (
+                  <div className="flex items-center gap-2 text-slate-700 font-semibold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+                    <span>Mô phỏng Giao diện</span>
+                  </div>
+                )}
+                {activeArticle.steps.map((st, i) => (
+                  <div key={i} className="flex items-center gap-2 text-slate-600 pl-3">
+                    <span className="text-[10px] text-slate-400 font-mono">0{i + 1}.</span>
+                    <span className="line-clamp-1">{st.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Need Direct Help Box */}
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-900 to-slate-900 text-white shadow-md">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-300 block mb-1">
+                Gia sư 24/7
+              </span>
+              <h4 className="text-xs font-black leading-snug">Vẫn còn điều chưa rõ?</h4>
+              <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
+                Trợ lý AI Tutor giải đáp tức thì mọi bài tập hoặc thắc mắc về hệ thống.
+              </p>
+              <Link
+                href="/ai-tutor"
+                className="mt-3.5 inline-flex items-center justify-center gap-2 w-full px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xs transition"
+              >
+                <span>Hỏi AI Tutor ngay</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
-        </div>
-      </main>
+        </aside>
+      </div>
     </div>
   );
 }
