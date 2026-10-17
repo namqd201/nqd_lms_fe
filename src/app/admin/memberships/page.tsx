@@ -194,7 +194,7 @@ export default function AdminMembershipsPage() {
       setName(plan.name || '');
       setUserType(plan.userType || 'STUDENT');
       setDescription(plan.description || '');
-      setPrice(String(plan.price || 0));
+      setPrice(String(plan.originalPrice !== undefined ? plan.originalPrice : (plan.price || 0)));
       setBillingCycle(plan.billingCycle || 'MONTHLY');
       setActive(plan.active !== false);
       setStatus(plan.status || 'PUBLISHED');
@@ -695,19 +695,41 @@ export default function AdminMembershipsPage() {
                   </p>
 
                   {/* Price */}
-                  <div className="mt-3.5 flex items-baseline gap-1.5">
-                    <span className="text-2xl font-black text-slate-900">
-                      {formatPrice(plan.discountedPrice !== undefined ? plan.discountedPrice : plan.price)}
-                    </span>
-                    <span className="text-xs font-bold text-slate-500">
-                      {getCycleLabel(plan.billingCycle)}
-                    </span>
-                    {plan.hasDiscount && plan.originalPrice && (
-                      <span className="text-xs text-slate-400 line-through ml-1">
-                        {formatPrice(plan.originalPrice)}
-                      </span>
-                    )}
-                  </div>
+                  {(() => {
+                    const basePrice = plan.originalPrice !== undefined ? plan.originalPrice : plan.price;
+                    const hasActiveDiscount = plan.hasDiscount && plan.discountedPrice !== undefined && plan.discountPercent !== undefined && plan.discountPercent > 0;
+
+                    return (
+                      <div className="mt-3.5 space-y-1.5">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-2xl font-black text-slate-900">
+                            {formatPrice(basePrice)}
+                          </span>
+                          <span className="text-xs font-bold text-slate-500">
+                            {getCycleLabel(plan.billingCycle)}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                            Giá gốc
+                          </span>
+                        </div>
+
+                        {hasActiveDiscount && (
+                          <div className="flex items-center gap-1.5 p-1.5 px-2 rounded-lg bg-rose-50 border border-rose-100 text-xs">
+                            <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-rose-500 text-white shrink-0">
+                              Sale -{plan.discountPercent}%
+                            </span>
+                            <span className="text-[11px] font-medium text-slate-600 truncate">
+                              Giá khuyến mãi:{' '}
+                              <strong className="text-rose-600 font-black">
+                                {formatPrice(plan.discountedPrice!)}
+                              </strong>{' '}
+                              {getCycleLabel(plan.billingCycle)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {plan.description && (
                     <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
@@ -959,7 +981,7 @@ export default function AdminMembershipsPage() {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Giá niêm yết (VNĐ) <span className="text-rose-500">*</span>
+                      Giá niêm yết gốc (VNĐ) <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="number"
@@ -971,6 +993,22 @@ export default function AdminMembershipsPage() {
                       className="w-full px-3.5 py-2 text-xs font-bold text-slate-900 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                       required
                     />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      * Giá gốc cố định trong hệ thống, không bị đổi bởi sự kiện sale.
+                    </p>
+                    {editingPlan && editingPlan.hasDiscount && editingPlan.discountPercent && editingPlan.discountPercent > 0 && (
+                      <div className="mt-2 p-2 rounded-lg bg-rose-50 border border-rose-100 text-[11px] text-rose-700 space-y-0.5">
+                        <p className="font-bold flex items-center gap-1">
+                          🔥 Đang có sự kiện: {editingPlan.activeEventName || 'Khuyến mãi'} (-{editingPlan.discountPercent}%)
+                        </p>
+                        <p className="text-[10px] text-slate-600">
+                          Giá bán thực tế học sinh nhìn thấy:{' '}
+                          <strong className="text-rose-600 font-bold">
+                            {formatPrice(Math.round(((parseFloat(price) || 0) * (100 - editingPlan.discountPercent)) / 100))}
+                          </strong>
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
