@@ -1,25 +1,6 @@
 import type { NextConfig } from "next";
 
-const cspHeader = `
-  default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://s.ytimg.com https://cdn.jsdelivr.net;
-  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
-  img-src 'self' data: blob: https:;
-  font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net;
-  connect-src 'self' https: wss:;
-  media-src 'self' data: blob: https:;
-  frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://small-forest-267978.app.100ms.live;
-  frame-ancestors 'self';
-  object-src 'none';
-  base-uri 'self';
-  form-action 'self' https:;
-`.replace(/\s{2,}/g, ' ').trim();
-
 const securityHeaders = [
-  {
-    key: 'Content-Security-Policy',
-    value: cspHeader,
-  },
   {
     key: 'X-Frame-Options',
     value: 'SAMEORIGIN',
