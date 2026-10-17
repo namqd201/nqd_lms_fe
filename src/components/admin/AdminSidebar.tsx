@@ -26,6 +26,7 @@ import {
   Flame,
   Ticket,
   Compass,
+  Crown,
 } from 'lucide-react';
 
 interface AdminMenuItem {
@@ -125,6 +126,12 @@ export const AdminSidebar: React.FC = () => {
           label: 'Quản lý Tài chính & Payout',
           icon: BarChart3,
           badge: 'Finance',
+        },
+        {
+          href: '/admin/memberships',
+          label: 'Quản lý Gói Hội viên',
+          icon: Crown,
+          badge: 'VIP',
         },
         {
           href: '/admin/promotions',

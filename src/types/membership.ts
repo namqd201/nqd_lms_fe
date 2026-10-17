@@ -1,5 +1,5 @@
 export type BillingCycle = 'MONTHLY' | 'QUARTERLY' | 'YEARLY' | 'LIFETIME';
-export type PlanUserType = 'STUDENT' | 'TEACHER';
+export type PlanUserType = 'STUDENT' | 'TEACHER' | 'ALL';
 export type SubscriptionStatus = 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING';
 export type EntitlementStatus = 'ACTIVE' | 'EXPIRED' | 'REVOKED';
 export type EntitlementType = 'COURSE_ACCESS' | 'MEMBERSHIP_BENEFIT' | 'EXAM_ATTEMPT' | 'AI_TUTOR_UNLIMITED';
@@ -28,9 +28,37 @@ export interface MembershipPlanResponse {
   aiQuestionLimitPerDay?: number;
   maxClassesLimit?: number;
   maxQuestionsLimit?: number;
+  aiPromptLimitPerMonth?: number;
+  examCreationLimit?: number;
   dailyCourseEnrollmentLimit?: number;
   monthlyCourseEnrollmentLimit?: number;
+  status?: 'PUBLISHED' | 'DRAFT' | 'ARCHIVED';
+  createdAt?: string;
+  updatedAt?: string;
 }
+
+export interface CreateMembershipPlanData {
+  planCode: string;
+  name: string;
+  userType: PlanUserType;
+  description?: string;
+  price: number;
+  currency?: string;
+  billingCycle: BillingCycle;
+  active?: boolean;
+  examLimitPerWeek?: number;
+  aiQuestionLimitPerDay?: number;
+  maxClassesLimit?: number;
+  maxQuestionsLimit?: number;
+  aiPromptLimitPerMonth?: number;
+  examCreationLimit?: number;
+  dailyCourseEnrollmentLimit?: number;
+  monthlyCourseEnrollmentLimit?: number;
+  features?: string[];
+  status?: 'PUBLISHED' | 'DRAFT' | 'ARCHIVED';
+}
+
+export type UpdateMembershipPlanData = Partial<CreateMembershipPlanData>;
 
 export interface SubscriptionResponse {
   id: string;

@@ -16,6 +16,12 @@ import {
   AdminCourseResponse,
   OnlineUsersStats,
 } from '@/types/admin';
+import {
+  MembershipPlanResponse,
+  CreateMembershipPlanData,
+  UpdateMembershipPlanData,
+  SubscriptionResponse,
+} from '@/types/membership';
 import { handleApiResponse } from '@/utils/errorMessage';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -147,7 +153,7 @@ export const adminService = {
     return handleApiResponse<UserSubscriptionResponse>(response, 'Không thể thu hồi quyền VIP của người dùng');
   },
 
-  getMembershipPlans: async (): Promise<any[]> => {
+  getMembershipPlans: async (): Promise<MembershipPlanResponse[]> => {
     const response = await fetch(`${API_BASE_URL}/api/v1/admin/membership/plans`, {
       method: 'GET',
       headers: {
@@ -156,7 +162,70 @@ export const adminService = {
       credentials: 'include',
     });
 
-    return handleApiResponse<any[]>(response, 'Không thể tải danh sách gói hội viên');
+    return handleApiResponse<MembershipPlanResponse[]>(response, 'Không thể tải danh sách gói hội viên');
+  },
+
+  createMembershipPlan: async (data: CreateMembershipPlanData): Promise<MembershipPlanResponse> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/admin/membership/plans`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(data),
+    });
+
+    return handleApiResponse<MembershipPlanResponse>(response, 'Không thể tạo mới gói hội viên');
+  },
+
+  updateMembershipPlan: async (id: string, data: UpdateMembershipPlanData): Promise<MembershipPlanResponse> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/admin/membership/plans/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(data),
+    });
+
+    return handleApiResponse<MembershipPlanResponse>(response, 'Không thể cập nhật gói hội viên');
+  },
+
+  toggleMembershipPlanStatus: async (id: string, active: boolean): Promise<MembershipPlanResponse> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/admin/membership/plans/${id}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ active }),
+    });
+
+    return handleApiResponse<MembershipPlanResponse>(response, 'Không thể đổi trạng thái gói hội viên');
+  },
+
+  deleteMembershipPlan: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/admin/membership/plans/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    return handleApiResponse<void>(response, 'Không thể xóa gói hội viên');
+  },
+
+  initDefaultMembershipPlans: async (): Promise<MembershipPlanResponse[]> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/admin/membership/plans/init-defaults`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    return handleApiResponse<MembershipPlanResponse[]>(response, 'Không thể nạp danh sách gói mặc định');
   },
 
   // ================= ROLES MANAGEMENT =================
